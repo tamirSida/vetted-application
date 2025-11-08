@@ -1,0 +1,13 @@
+export enum Phase {
+  SIGNUP = 'SIGNUP',
+  WEBINAR = 'WEBINAR',
+  IN_DEPTH_APPLICATION = 'IN_DEPTH_APPLICATION',
+  INTERVIEW = 'INTERVIEW',
+  ACCEPTED = 'ACCEPTED'
+}
+
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  VIEWER = 'VIEWER',
+  APPLICANT = 'APPLICANT'
+}

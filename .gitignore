@@ -8,8 +8,12 @@
 
 # Node
 /node_modules
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # IDEs and editors
 .idea/
@@ -19,6 +23,10 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
 
 # Visual Studio Code
 .vscode/*
@@ -37,7 +45,97 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+*.log
+*.tsbuildinfo
 
 # System files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+$RECYCLE_BIN/
+
+# Environment variables & Firebase
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.firebase/
+.firebaserc
+firebase-debug.log*
+firebase-debug.*.log*
+
+# Security - API Keys and Secrets
+**/api-keys.json
+**/service-account*.json
+**/*-key.json
+**/.secret*
+**/secrets.*
+*.pem
+*.key
+*.crt
+*.csr
+
+# Testing
+.karma/
+.nyc_output/
+junit.xml
+cypress/videos/
+cypress/screenshots/
+e2e/results/
+e2e/screenshots/
+
+# Build tools & deployment
+.netlify/
+netlify.toml.bak
+.vercel/
+stats.json
+bundle-report.html
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Performance profiling
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+
+# Optional caches
+.eslintcache
+.stylelintcache
+.npm
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Temporary folders
+tmp/
+temp/
+
+# Uploads and user content
+uploads/
+user-uploads/
+media/
+
+# Auto-generated files
+src/app/**/*.generated.ts
+src/app/**/*.auto.ts

@@ -12,7 +12,7 @@ import {
   getDocs 
 } from '@angular/fire/firestore';
 import { Auth, createUserWithEmailAndPassword, updateProfile } from '@angular/fire/auth';
-import { Phase1Application, Phase, ServiceCountry } from '../models';
+import { Phase1Application, Phase, ServiceCountry, ApplicationStatus } from '../models';
 import { FlaggingService, FlaggingResult } from './flagging.service';
 
 export interface ApplicationSubmissionData {
@@ -132,6 +132,7 @@ export class ApplicationService {
         applicationId: docRef.id,
         cohortId,
         phase: Phase.SIGNUP,
+        status: ApplicationStatus.PHASE_1,
         isAccepted: null,
         webinarAttended: null,
         interviewerId: null,

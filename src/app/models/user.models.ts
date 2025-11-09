@@ -1,4 +1,4 @@
-import { Phase, UserRole } from './enums';
+import { Phase, UserRole, ApplicationStatus } from './enums';
 
 export interface BaseUser {
   userId: string;
@@ -26,10 +26,12 @@ export interface ApplicantUser extends BaseUser {
   applicationId?: string;
   isAccepted: boolean | null;
   phase: Phase;
+  status: ApplicationStatus;
   webinarAttended: number | null;
   interviewerId?: string;
   cohortId: string;
   companyName?: string;
+  interviewDate?: Date | string; // For scheduled interviews
   profileData?: {
     companyName?: string;
     phone?: string;

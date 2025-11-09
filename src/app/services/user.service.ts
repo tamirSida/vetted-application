@@ -15,7 +15,7 @@ import {
   startAfter,
   DocumentSnapshot
 } from '@angular/fire/firestore';
-import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest } from '../models';
+import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus } from '../models';
 import { UserRole } from '../models/enums';
 
 @Injectable({
@@ -23,6 +23,24 @@ import { UserRole } from '../models/enums';
 })
 export class UserService {
   private firestore = inject(Firestore);
+
+  // Helper method to derive status from phase for backward compatibility
+  private deriveStatusFromPhase(phase: string): ApplicationStatus {
+    switch (phase) {
+      case 'SIGNUP':
+        return ApplicationStatus.PHASE_1;
+      case 'WEBINAR':
+        return ApplicationStatus.PHASE_2;
+      case 'IN_DEPTH_APPLICATION':
+        return ApplicationStatus.PHASE_3;
+      case 'INTERVIEW':
+        return ApplicationStatus.PHASE_4;
+      case 'ACCEPTED':
+        return ApplicationStatus.ACCEPTED;
+      default:
+        return ApplicationStatus.PHASE_1;
+    }
+  }
 
   async getAllApplicants(): Promise<ApplicantUser[]> {
     try {
@@ -43,9 +61,11 @@ export class UserService {
           role: data['role'],
           isAccepted: data['isAccepted'],
           phase: data['phase'],
+          status: data['status'] || this.deriveStatusFromPhase(data['phase']),
           webinarAttended: data['webinarAttended'],
           interviewerId: data['interviewerId'],
           cohortId: data['cohortId'],
+          interviewDate: data['interviewDate'],
           profileData: data['profileData'],
           createdAt: data['createdAt'],
           updatedAt: data['updatedAt']
@@ -134,9 +154,11 @@ export class UserService {
           role: data['role'],
           isAccepted: data['isAccepted'],
           phase: data['phase'],
+          status: data['status'] || this.deriveStatusFromPhase(data['phase']),
           webinarAttended: data['webinarAttended'],
           interviewerId: data['interviewerId'],
           cohortId: data['cohortId'],
+          interviewDate: data['interviewDate'],
           profileData: data['profileData'],
           createdAt: data['createdAt'],
           updatedAt: data['updatedAt']
@@ -255,9 +277,11 @@ export class UserService {
           role: data['role'],
           isAccepted: data['isAccepted'],
           phase: data['phase'],
+          status: data['status'] || this.deriveStatusFromPhase(data['phase']),
           webinarAttended: data['webinarAttended'],
           interviewerId: data['interviewerId'],
           cohortId: data['cohortId'],
+          interviewDate: data['interviewDate'],
           profileData: data['profileData'],
           createdAt: data['createdAt'],
           updatedAt: data['updatedAt']

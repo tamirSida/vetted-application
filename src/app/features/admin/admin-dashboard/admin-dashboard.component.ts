@@ -6,7 +6,7 @@ import { DocumentSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../../../services/auth.service';
 import { CohortService } from '../../../services/cohort.service';
 import { UserService } from '../../../services/user.service';
-import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar } from '../../../models';
+import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus } from '../../../models';
 
 type AdminView = 'applicants' | 'cohorts' | 'admin';
 
@@ -107,7 +107,7 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Phase</th>
+                  <th>Status</th>
                   <th>Company</th>
                   <th>Actions</th>
                 </tr>
@@ -121,8 +121,8 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                     </a>
                   </td>
                   <td>
-                    <span [class]="'phase-badge phase-' + applicant.phase.toLowerCase().replace('_', '-')">
-                      {{ getPhaseDisplayName(applicant.phase) }}
+                    <span [class]="'status-badge status-' + applicant.status.toLowerCase().replace('_', '-')">
+                      {{ getStatusDisplayName(applicant.status) }}
                     </span>
                   </td>
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
@@ -928,6 +928,19 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
     .status-rejected { background: #fee2e2; color: #991b1b; }
     .status-pending { background: #fef3c7; color: #92400e; }
 
+    /* Phase status badges */
+    .status-phase-1 { background: #e0e7ff; color: #3730a3; }
+    .status-phase-2 { background: #fef3c7; color: #92400e; }
+    .status-phase-3 { background: #dbeafe; color: #1e40af; }
+    .status-phase-3-in-progress { background: #fbbf24; color: #92400e; }
+    .status-phase-3-submitted { background: #60a5fa; color: #1e40af; }
+    .status-phase-3-rejected { background: #fee2e2; color: #991b1b; }
+    .status-phase-4 { background: #e0e7ff; color: #5b21b6; }
+    .status-phase-4-interview-scheduled { background: #c084fc; color: #5b21b6; }
+    .status-phase-4-post-interview { background: #d8b4fe; color: #6b21a8; }
+    .status-phase-4-rejected { background: #fee2e2; color: #991b1b; }
+    .status-accepted { background: #dcfce7; color: #166534; }
+
     .phase-signup { background: #e0e7ff; color: #3730a3; }
     .phase-webinar { background: #fef3c7; color: #92400e; }
     .phase-in-depth-application { background: #dbeafe; color: #1e40af; }
@@ -1616,6 +1629,23 @@ export class AdminDashboardComponent implements OnInit {
       [Phase.ACCEPTED]: 'Accepted'
     };
     return phaseNames[phase] || phase;
+  }
+
+  getStatusDisplayName(status: ApplicationStatus): string {
+    const statusNames = {
+      [ApplicationStatus.PHASE_1]: 'Phase 1',
+      [ApplicationStatus.PHASE_2]: 'Phase 2',
+      [ApplicationStatus.PHASE_3]: 'Phase 3',
+      [ApplicationStatus.PHASE_3_IN_PROGRESS]: 'Phase 3 In Progress',
+      [ApplicationStatus.PHASE_3_SUBMITTED]: 'Phase 3 Submitted',
+      [ApplicationStatus.PHASE_3_REJECTED]: 'Phase 3 Rejected',
+      [ApplicationStatus.PHASE_4]: 'Phase 4 (Interview)',
+      [ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED]: 'Phase 4 Interview Scheduled',
+      [ApplicationStatus.PHASE_4_POST_INTERVIEW]: 'Phase 4 Post Interview',
+      [ApplicationStatus.PHASE_4_REJECTED]: 'Phase 4 Rejected',
+      [ApplicationStatus.ACCEPTED]: 'Accepted'
+    };
+    return statusNames[status] || status;
   }
 
   getCohortName(cohortId: string): string {

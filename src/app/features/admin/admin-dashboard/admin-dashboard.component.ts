@@ -1,11 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
 import { DocumentSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../../../services/auth.service';
 import { CohortService } from '../../../services/cohort.service';
 import { UserService } from '../../../services/user.service';
-import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase } from '../../../models';
+import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar } from '../../../models';
 
 type AdminView = 'applicants' | 'cohorts' | 'admin';
 
@@ -181,8 +181,8 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
 
           <!-- Cohort Form -->
           <div *ngIf="showCohortForm()" class="form-container">
-            <form [formGroup]="cohortForm" (ngSubmit)="createCohort()" class="create-form">
-              <h3>Create New Cohort</h3>
+            <form [formGroup]="cohortForm" (ngSubmit)="saveCohort()" class="create-form">
+              <h3>{{ editingCohort() ? 'Edit Cohort' : 'Create New Cohort' }}</h3>
               
               <div class="form-group">
                 <label for="cohort-number">Cohort Number</label>
@@ -265,14 +265,76 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                 </div>
               </div>
 
+              <!-- Webinar Sessions Section -->
+              <div class="form-section">
+                <div class="section-header">
+                  <h4>
+                    <i class="fas fa-video"></i>
+                    Webinar Sessions
+                  </h4>
+                  <button type="button" class="secondary-button small" (click)="addWebinar()">
+                    <i class="fas fa-plus"></i>
+                    Add Webinar
+                  </button>
+                </div>
+
+                <div class="webinars-list" formArrayName="webinars">
+                  <div *ngIf="webinars.length === 0" class="empty-webinars">
+                    <p>No webinar sessions added yet. Click "Add Webinar" to create one.</p>
+                  </div>
+                  
+                  <div 
+                    *ngFor="let webinar of webinars.controls; let i = index" 
+                    [formGroupName]="i" 
+                    class="webinar-item">
+                    <div class="webinar-header">
+                      <h5>Webinar {{ i + 1 }}</h5>
+                      <button type="button" class="delete-button small" (click)="removeWebinar(i)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label [for]="'webinar-date-' + i">Date & Time (ET)</label>
+                        <div class="datetime-row">
+                          <input
+                            type="date"
+                            [id]="'webinar-date-' + i"
+                            formControlName="date"
+                            class="form-input date-input"
+                          />
+                          <input
+                            type="time"
+                            [id]="'webinar-time-' + i"
+                            formControlName="time"
+                            class="form-input time-input"
+                          />
+                        </div>
+                        <small class="timezone-note">Will be converted from Eastern Time to UTC</small>
+                      </div>
+                      <div class="form-group">
+                        <label [for]="'webinar-url-' + i">Meeting URL</label>
+                        <input
+                          type="url"
+                          [id]="'webinar-url-' + i"
+                          formControlName="link"
+                          placeholder="https://zoom.us/j/..."
+                          class="form-input"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div class="form-actions">
                 <button type="button" class="secondary-button" (click)="toggleCohortForm()">
                   Cancel
                 </button>
                 <button type="submit" class="primary-button" [disabled]="cohortForm.invalid || isSubmitting()">
-                  <i class="fas fa-plus"></i>
-                  Create Cohort
+                  <i class="fas fa-{{ editingCohort() ? 'save' : 'plus' }}"></i>
+                  {{ editingCohort() ? 'Save Changes' : 'Create Cohort' }}
                 </button>
               </div>
             </form>
@@ -306,12 +368,16 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                   </div>
                   <div class="timeline-item">
                     <i class="fas fa-users"></i>
-                    <span>Capacity: {{ cohort.currentApplicantCount || 0 }} / {{ cohort.maxApplicants || 'Unlimited' }}</span>
+                    <span>Applicants: {{ cohort.currentApplicantCount || 0 }}</span>
+                  </div>
+                  <div class="timeline-item" *ngIf="cohort.webinars && cohort.webinars.length > 0">
+                    <i class="fas fa-video"></i>
+                    <span>Webinars: {{ cohort.webinars.length }}</span>
                   </div>
                 </div>
 
                 <div class="cohort-actions">
-                  <button class="action-button edit-button">
+                  <button class="action-button edit-button" (click)="editCohort(cohort)">
                     <i class="fas fa-edit"></i>
                     Edit
                   </button>
@@ -624,14 +690,6 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
-    .sign-out-button i {
-      font-size: 1rem;
-    }
-
-    .sign-out-button span {
-      font-weight: 600;
-    }
-
     /* Navigation */
     .admin-nav {
       background: #1e40af;
@@ -735,20 +793,6 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
       gap: 0.75rem;
     }
 
-    .stats {
-      display: flex;
-      gap: 1rem;
-    }
-
-    .stat-item {
-      background: #f3f4f6;
-      color: #374151;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-
     /* Buttons */
     .primary-button {
       background: #3b82f6;
@@ -788,6 +832,25 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
 
     .secondary-button:hover {
       background: #374151;
+    }
+
+    .secondary-button.small {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+    }
+
+    .delete-button.small {
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .delete-button.small:hover {
+      background: #b91c1c;
     }
 
     /* Tables */
@@ -990,6 +1053,71 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
       margin-top: 0.25rem;
       display: block;
       font-style: italic;
+    }
+
+    /* Form Sections */
+    .form-section {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 2rem;
+      padding-top: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header h4 {
+      margin: 0;
+      color: #374151;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Webinar Forms */
+    .webinars-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .empty-webinars {
+      text-align: center;
+      padding: 2rem;
+      color: #6b7280;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 2px dashed #d1d5db;
+    }
+
+    .empty-webinars p {
+      margin: 0;
+      font-style: italic;
+    }
+
+    .webinar-item {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .webinar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .webinar-header h5 {
+      margin: 0;
+      color: #374151;
+      font-size: 1rem;
+      font-weight: 600;
     }
 
     /* Grids */
@@ -1284,6 +1412,7 @@ export class AdminDashboardComponent implements OnInit {
   // Form states
   showCohortForm = signal(false);
   showAdminForm = signal(false);
+  editingCohort = signal<Cohort | null>(null);
 
   // Forms
   cohortForm: FormGroup;
@@ -1297,7 +1426,8 @@ export class AdminDashboardComponent implements OnInit {
       applicationEndDate: ['', Validators.required],
       applicationEndTime: ['', Validators.required],
       programStartDate: ['', Validators.required],
-      programEndDate: ['', Validators.required]
+      programEndDate: ['', Validators.required],
+      webinars: this.fb.array([])
     });
 
     this.adminForm = this.fb.group({
@@ -1306,6 +1436,10 @@ export class AdminDashboardComponent implements OnInit {
       role: ['ADMIN', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]]
     });
+  }
+
+  get webinars(): FormArray {
+    return this.cohortForm.get('webinars') as FormArray;
   }
 
   ngOnInit() {
@@ -1359,6 +1493,73 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+  // Timezone conversion methods
+  private getETOffset(date: Date): string {
+    const year = date.getFullYear();
+    
+    // Calculate 2nd Sunday in March
+    const march = new Date(year, 2, 1); // March 1st
+    const daysUntilFirstSunday = (7 - march.getDay()) % 7;
+    const firstSundayMarch = 1 + daysUntilFirstSunday;
+    const secondSundayMarch = firstSundayMarch + 7;
+    const edtStart = new Date(year, 2, secondSundayMarch, 2, 0, 0); // 2 AM
+    
+    // Calculate 1st Sunday in November
+    const november = new Date(year, 10, 1); // November 1st
+    const daysUntilFirstSundayNov = (7 - november.getDay()) % 7;
+    const firstSundayNovember = 1 + daysUntilFirstSundayNov;
+    const edtEnd = new Date(year, 10, firstSundayNovember, 2, 0, 0); // 2 AM
+    
+    // Check if date is within EDT period
+    const isEDT = date >= edtStart && date < edtEnd;
+    
+    // Return proper ET offset (EST = -05:00, EDT = -04:00)
+    return isEDT ? '-04:00' : '-05:00';
+  }
+
+  // Extract time for form display (convert from UTC back to ET)
+  private extractTimeInET(date: Date): string {
+    const etTime = date.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    return etTime;
+  }
+
+  // Extract date for form display (convert from UTC back to ET)
+  private extractDateInET(date: Date): string {
+    const etDate = date.toLocaleDateString('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return etDate;
+  }
+
+  convertETToUTC(dateString: string, timeString: string): Date {
+    if (!dateString || !timeString) {
+      throw new Error('Both date and time are required');
+    }
+    
+    // Parse date components
+    const [year, month, day] = dateString.split('-').map(Number);
+    const [hours, minutes] = timeString.split(':').map(Number);
+    
+    // Create date treating the input as ET timezone
+    const etOffset = this.getETOffset(new Date(year, month - 1, day));
+    const etISOString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000${etOffset}`;
+    
+    return new Date(etISOString);
+  }
+
+  convertETDateToUTC(dateString: string): Date {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return this.convertETToUTC(dateString, '00:00');
+  }
+
   // Applicants methods
   viewApplicantDetails(applicant: ApplicantUser) {
     // TODO: Navigate to applicant detail view
@@ -1386,7 +1587,46 @@ export class AdminDashboardComponent implements OnInit {
     this.showCohortForm.set(!this.showCohortForm());
     if (!this.showCohortForm()) {
       this.cohortForm.reset();
+      this.editingCohort.set(null);
+      this.webinars.clear();
     }
+  }
+
+  editCohort(cohort: Cohort) {
+    if (!cohort.id) {
+      this.error.set('Cannot edit cohort: missing ID');
+      return;
+    }
+    
+    this.editingCohort.set(cohort);
+    
+    // Extract cohort number from name (e.g., "Cohort #001" -> 1)
+    const cohortNumber = parseInt(cohort.name.replace(/\D/g, ''), 10) || 1;
+    
+    // Convert UTC dates to ET for editing
+    this.cohortForm.patchValue({
+      cohortNumber: cohortNumber,
+      applicationStartDate: this.extractDateInET(cohort.applicationStartDate),
+      applicationStartTime: this.extractTimeInET(cohort.applicationStartDate),
+      applicationEndDate: this.extractDateInET(cohort.applicationEndDate),
+      applicationEndTime: this.extractTimeInET(cohort.applicationEndDate),
+      programStartDate: this.extractDateInET(cohort.programStartDate),
+      programEndDate: this.extractDateInET(cohort.programEndDate)
+    });
+
+    // Clear existing webinars and add cohort webinars
+    this.webinars.clear();
+    if (cohort.webinars && cohort.webinars.length > 0) {
+      cohort.webinars.forEach(webinar => {
+        this.webinars.push(this.fb.group({
+          date: [this.extractDateInET(webinar.timestamp), Validators.required],
+          time: [this.extractTimeInET(webinar.timestamp), Validators.required],
+          link: [webinar.link, [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
+        }));
+      });
+    }
+    
+    this.showCohortForm.set(true);
   }
 
   formatCohortName(cohortNumber: number): string {
@@ -1399,36 +1639,21 @@ export class AdminDashboardComponent implements OnInit {
     return this.formatCohortName(cohortNumber);
   }
 
-  convertETToUTC(dateString: string, timeString: string): Date {
-    if (!dateString || !timeString) {
-      throw new Error('Both date and time are required');
-    }
+  addWebinar() {
+    const webinarGroup = this.fb.group({
+      date: ['', Validators.required],
+      time: ['', Validators.required],
+      link: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
+    });
     
-    // Combine date and time strings
-    const dateTimeString = `${dateString}T${timeString}`;
-    
-    // Create a date object assuming ET timezone
-    // Note: This creates a local date, we need to adjust for ET
-    const localDate = new Date(dateTimeString);
-    
-    // ET is UTC-5 (EST) or UTC-4 (EDT)
-    // For simplicity, we'll assume EST (UTC-5) - in production you'd want proper timezone handling
-    const etOffset = 5; // hours
-    const utcDate = new Date(localDate.getTime() + (etOffset * 60 * 60 * 1000));
-    
-    return utcDate;
+    this.webinars.push(webinarGroup);
   }
 
-  convertETDateToUTC(dateString: string): Date {
-    if (!dateString) {
-      throw new Error('Date is required');
-    }
-    
-    // For date-only fields, set to start of day in ET then convert to UTC
-    return this.convertETToUTC(dateString, '00:00');
+  removeWebinar(index: number) {
+    this.webinars.removeAt(index);
   }
 
-  async createCohort() {
+  async saveCohort() {
     if (this.cohortForm.invalid || this.isSubmitting()) return;
 
     try {
@@ -1444,24 +1669,60 @@ export class AdminDashboardComponent implements OnInit {
       const programStartUTC = this.convertETDateToUTC(formValue.programStartDate);
       const programEndUTC = this.convertETDateToUTC(formValue.programEndDate);
       
-      const cohort = await this.cohortService.createCohort({
-        name: cohortName,
-        applicationStartDate: applicationStartUTC,
-        applicationEndDate: applicationEndUTC,
-        programStartDate: programStartUTC,
-        programEndDate: programEndUTC
-      });
-
-      this.cohorts.update(cohorts => [cohort, ...cohorts]);
-      this.success.set('Cohort created successfully!');
-      this.toggleCohortForm();
+      // Convert webinar dates to UTC
+      const webinars: Partial<Webinar>[] = formValue.webinars?.map((webinar: any, index: number) => ({
+        num: index + 1,
+        timestamp: this.convertETToUTC(webinar.date, webinar.time),
+        link: webinar.link,
+        code: this.generateWebinarCode()
+      })) || [];
       
+      const editingCohort = this.editingCohort();
+      
+      if (editingCohort && editingCohort.id) {
+        // Update existing cohort
+        await this.cohortService.updateCohort(editingCohort.id, {
+          name: cohortName,
+          applicationStartDate: applicationStartUTC,
+          applicationEndDate: applicationEndUTC,
+          programStartDate: programStartUTC,
+          programEndDate: programEndUTC,
+          webinars: webinars
+        });
+        
+        this.success.set('Cohort updated successfully!');
+        // Ensure we stay on cohorts view and refresh
+        this.currentView.set('cohorts');
+        await this.loadCohortsPage(true);
+      } else {
+        // Create new cohort
+        await this.cohortService.createCohort({
+          name: cohortName,
+          applicationStartDate: applicationStartUTC,
+          applicationEndDate: applicationEndUTC,
+          programStartDate: programStartUTC,
+          programEndDate: programEndUTC,
+          webinars: webinars
+        });
+
+        this.success.set('Cohort created successfully!');
+        // Ensure we stay on cohorts view and refresh
+        this.currentView.set('cohorts');
+        await this.loadCohortsPage(true);
+      }
+
+      this.toggleCohortForm();
       setTimeout(() => this.success.set(''), 5000);
     } catch (error: any) {
-      this.error.set(error.message || 'Failed to create cohort');
+      this.error.set(error.message || 'Failed to save cohort');
+      setTimeout(() => this.error.set(''), 5000);
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  private generateWebinarCode(): string {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
   getCohortStatus(cohort: Cohort): string {
@@ -1488,12 +1749,20 @@ export class AdminDashboardComponent implements OnInit {
   async deleteCohort(cohortId: string) {
     if (!confirm('Are you sure you want to delete this cohort?')) return;
 
+    this.isSubmitting.set(true);
     try {
-      // TODO: Implement delete cohort
+      await this.cohortService.deleteCohort(cohortId);
       this.success.set('Cohort deleted successfully!');
       setTimeout(() => this.success.set(''), 5000);
+      
+      // Ensure we stay on cohorts view and refresh
+      this.currentView.set('cohorts');
+      await this.loadCohortsPage(true);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to delete cohort');
+      setTimeout(() => this.error.set(''), 5000);
+    } finally {
+      this.isSubmitting.set(false);
     }
   }
 

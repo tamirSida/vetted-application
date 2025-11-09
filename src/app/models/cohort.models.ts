@@ -8,7 +8,6 @@ export interface Cohort {
   applicationEndDate: Date;
   name: string;
   description?: string;
-  maxApplicants?: number;
   currentApplicantCount?: number;
   isActive: boolean;
   webinars: Webinar[];
@@ -23,7 +22,7 @@ export interface CohortCreateRequest {
   applicationEndDate: Date;
   name: string;
   description?: string;
-  maxApplicants?: number;
+  webinars?: Partial<Webinar>[];
 }
 
 export interface CohortUpdateRequest {
@@ -33,9 +32,9 @@ export interface CohortUpdateRequest {
   applicationEndDate?: Date;
   name?: string;
   description?: string;
-  maxApplicants?: number;
   currentApplicantCount?: number;
   isActive?: boolean;
+  webinars?: Partial<Webinar>[];
 }
 
 export interface CohortValidationError {

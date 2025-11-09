@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, Timestamp, limit, startAfter, DocumentSnapshot } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, deleteDoc, Timestamp, limit, startAfter, DocumentSnapshot } from '@angular/fire/firestore';
 import { Observable, from } from 'rxjs';
 import { Cohort, CohortCreateRequest, CohortUpdateRequest, CohortOverlapCheck, CohortValidationError } from '../models/cohort.models';
 import { Webinar } from '../models/webinar.models';
@@ -31,11 +31,10 @@ export class CohortService {
       const cohort: Cohort = {
         ...utcDates,
         name: cohortRequest.name,
-        description: cohortRequest.description,
-        maxApplicants: cohortRequest.maxApplicants,
+        description: cohortRequest.description || '',
         currentApplicantCount: 0,
         isActive: true,
-        webinars: [],
+        webinars: cohortRequest.webinars || [],
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -288,11 +287,9 @@ export class CohortService {
     
     dateFields.forEach(field => {
       if (result[field]) {
-        // Convert from ET to UTC
-        const etDate = new Date(result[field]);
-        // Assuming input is in ET, we need to add the offset to get UTC
-        const utcDate = new Date(etDate.getTime() + (etDate.getTimezoneOffset() * 60000));
-        result[field] = utcDate;
+        // The date is already in the correct format from the admin component
+        // No conversion needed - just pass it through
+        result[field] = result[field];
       }
     });
 
@@ -371,6 +368,16 @@ export class CohortService {
       }
     } catch (error) {
       console.error('Error activating cohort:', error);
+      throw error;
+    }
+  }
+
+  async deleteCohort(cohortId: string): Promise<void> {
+    try {
+      const cohortRef = doc(this.firestore, APP_CONSTANTS.COLLECTIONS.COHORTS, cohortId);
+      await deleteDoc(cohortRef);
+    } catch (error) {
+      console.error('Error deleting cohort:', error);
       throw error;
     }
   }

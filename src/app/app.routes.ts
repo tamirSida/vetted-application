@@ -6,8 +6,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(c => c.AdminDashboardComponent)
   },
   {
+    path: 'auth/login',
+    loadComponent: () => import('./features/auth/login/login.component').then(c => c.LoginComponent)
+  },
+  {
+    path: 'application/phase1',
+    loadComponent: () => import('./features/applicant/application/phase1/phase1-application.component').then(c => c.Phase1ApplicationComponent)
+  },
+  {
     path: '',
-    redirectTo: '/admin',
+    redirectTo: '/auth/login',
     pathMatch: 'full'
   }
 ];

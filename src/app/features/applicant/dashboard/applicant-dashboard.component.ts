@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
 import { PhaseProgressionService } from '../../../services/phase-progression.service';
 import { ApplicantUser, Phase } from '../../../models';
-import { Phase1SignupComponent } from '../phase1-signup/phase1-signup.component';
 import { Phase2WebinarComponent } from '../phase2-webinar/phase2-webinar.component';
 import { Phase3ApplicationComponent } from '../phase3-application/phase3-application.component';
 import { Phase4InterviewComponent } from '../phase4-interview/phase4-interview.component';
@@ -14,7 +13,6 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
   standalone: true,
   imports: [
     CommonModule,
-    Phase1SignupComponent,
     Phase2WebinarComponent,
     Phase3ApplicationComponent,
     Phase4InterviewComponent,
@@ -89,11 +87,16 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
       <main class="main-content">
         <div class="phase-container">
           <!-- Phase 1: Sign Up -->
-          <app-phase1-signup 
-            *ngIf="applicant?.phase === Phase.SIGNUP && applicant"
-            [applicant]="applicant"
-            (phaseCompleted)="onPhaseCompleted($event)"
-          ></app-phase1-signup>
+          <div *ngIf="applicant?.phase === Phase.SIGNUP && applicant" class="phase-content">
+            <div class="phase-card">
+              <h2>Phase 1: Application Signup</h2>
+              <p>Complete your initial application to get started with the Vetted Accelerator program.</p>
+              <a href="/application/phase1" class="btn btn-primary">
+                <i class="fas fa-edit"></i>
+                Start Application
+              </a>
+            </div>
+          </div>
 
           <!-- Phase 1 Submitted - Pending Approval -->
           <div 

@@ -11,3 +11,10 @@ export enum UserRole {
   VIEWER = 'VIEWER',
   APPLICANT = 'APPLICANT'
 }
+
+export enum ServiceCountry {
+  USA = 'USA',
+  ISRAEL = 'Israel',
+  OTHER = 'Other'
+}
+

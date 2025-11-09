@@ -1,4 +1,4 @@
-import { Phase } from './enums';
+import { Phase, ServiceCountry } from './enums';
 
 export interface BaseApplication {
   id?: string;
@@ -16,25 +16,38 @@ export interface BaseApplication {
 
 export interface Phase1Application extends BaseApplication {
   phase: Phase.SIGNUP;
+  // Page 1 - Company & Personal Info
+  companyInfo: {
+    companyName: string;
+    companyWebsite?: string;
+    role: string;
+    isFounder: boolean;
+  };
   personalInfo: {
     firstName: string;
     lastName: string;
     email: string;
+    confirmEmail: string;
+    password: string;
+    confirmPassword: string;
     phone: string;
-    linkedIn?: string;
-    location: string;
   };
-  backgroundInfo: {
-    currentRole?: string;
-    company?: string;
-    experience: string;
-    education: string;
-    skills: string[];
-  };
-  motivation: {
-    whyApplying: string;
-    goals: string;
-    availability: string;
+  // Page 2 - Extended Application
+  extendedInfo: {
+    linkedInProfile: string; // max 300 chars
+    serviceHistory: {
+      country: ServiceCountry;
+      unit: string; // max 300 chars - text input, not dropdown
+    };
+    grandmaTest: string; // max 300 chars - One sentence company description
+    pitchDeck?: {
+      fileUrl?: string;
+      fileName?: string;
+      nodeckExplanation?: string; // max 300 chars
+    };
+    discovery: string; // max 300 chars - How did you hear about Vetted
+    timeCommitment: boolean; // Can commit 100%
+    selectedWebinarSessions: string[]; // Selected webinar IDs
   };
 }
 
@@ -91,9 +104,9 @@ export interface ApplicationUpdateRequest {
   status?: BaseApplication['status'];
   notes?: string;
   reviewerId?: string;
+  companyInfo?: Phase1Application['companyInfo'];
   personalInfo?: Phase1Application['personalInfo'];
-  backgroundInfo?: Phase1Application['backgroundInfo'];
-  motivation?: Phase1Application['motivation'];
+  extendedInfo?: Phase1Application['extendedInfo'];
   webinarFeedback?: Phase2Application['webinarFeedback'];
   commitmentLevel?: Phase2Application['commitmentLevel'];
   technicalAssessment?: Phase3Application['technicalAssessment'];

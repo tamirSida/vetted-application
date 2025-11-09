@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
 import { DocumentSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../../../services/auth.service';
@@ -1378,6 +1379,7 @@ export class AdminDashboardComponent implements OnInit {
   private cohortService = inject(CohortService);
   private userService = inject(UserService);
   private fb = inject(FormBuilder);
+  private router = inject(Router);
 
   // Signals
   currentView = signal<AdminView>('applicants');
@@ -1488,6 +1490,7 @@ export class AdminDashboardComponent implements OnInit {
   async signOut() {
     try {
       await this.authService.signOut();
+      this.router.navigate(['/auth/login']);
     } catch (error) {
       console.error('Sign out error:', error);
     }

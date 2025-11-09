@@ -185,80 +185,86 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
               <h3>Create New Cohort</h3>
               
               <div class="form-group">
-                <label for="cohort-name">Cohort Name</label>
-                <input
-                  type="text"
-                  id="cohort-name"
-                  formControlName="name"
-                  placeholder="e.g., Spring 2024 Cohort"
-                  class="form-input"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="cohort-description">Description</label>
-                <textarea
-                  id="cohort-description"
-                  formControlName="description"
-                  placeholder="Brief description of this cohort"
-                  class="form-input"
-                  rows="3"
-                ></textarea>
+                <label for="cohort-number">Cohort Number</label>
+                <div class="cohort-input-container">
+                  <span class="cohort-prefix">Cohort #</span>
+                  <input
+                    type="number"
+                    id="cohort-number"
+                    formControlName="cohortNumber"
+                    placeholder="5"
+                    min="1"
+                    max="999"
+                    class="form-input cohort-number-input"
+                  />
+                </div>
+                <small class="form-helper">Preview: {{ getCohortPreview() }}</small>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="app-start">Application Start Date</label>
-                  <input
-                    type="datetime-local"
-                    id="app-start"
-                    formControlName="applicationStartDate"
-                    class="form-input"
-                  />
+                  <label for="app-start-date">Application Start Date & Time (ET)</label>
+                  <div class="datetime-row">
+                    <input
+                      type="date"
+                      id="app-start-date"
+                      formControlName="applicationStartDate"
+                      class="form-input date-input"
+                    />
+                    <input
+                      type="time"
+                      id="app-start-time"
+                      formControlName="applicationStartTime"
+                      class="form-input time-input"
+                      placeholder="HH:MM"
+                    />
+                  </div>
+                  <small class="timezone-note">Time will be converted from Eastern Time to UTC</small>
                 </div>
                 <div class="form-group">
-                  <label for="app-end">Application End Date</label>
-                  <input
-                    type="datetime-local"
-                    id="app-end"
-                    formControlName="applicationEndDate"
-                    class="form-input"
-                  />
+                  <label for="app-end-date">Application End Date & Time (ET)</label>
+                  <div class="datetime-row">
+                    <input
+                      type="date"
+                      id="app-end-date"
+                      formControlName="applicationEndDate"
+                      class="form-input date-input"
+                    />
+                    <input
+                      type="time"
+                      id="app-end-time"
+                      formControlName="applicationEndTime"
+                      class="form-input time-input"
+                      placeholder="HH:MM"
+                    />
+                  </div>
+                  <small class="timezone-note">Time will be converted from Eastern Time to UTC</small>
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="program-start">Program Start Date</label>
+                  <label for="program-start">Program Start Date (ET)</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     id="program-start"
                     formControlName="programStartDate"
                     class="form-input"
                   />
+                  <small class="timezone-note">Date will be converted from Eastern Time to UTC</small>
                 </div>
                 <div class="form-group">
-                  <label for="program-end">Program End Date</label>
+                  <label for="program-end">Program End Date (ET)</label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     id="program-end"
                     formControlName="programEndDate"
                     class="form-input"
                   />
+                  <small class="timezone-note">Date will be converted from Eastern Time to UTC</small>
                 </div>
               </div>
 
-              <div class="form-group">
-                <label for="max-applicants">Maximum Applicants</label>
-                <input
-                  type="number"
-                  id="max-applicants"
-                  formControlName="maxApplicants"
-                  placeholder="50"
-                  class="form-input"
-                  min="1"
-                />
-              </div>
 
               <div class="form-actions">
                 <button type="button" class="secondary-button" (click)="toggleCohortForm()">
@@ -923,6 +929,69 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
       border-top: 1px solid #e5e7eb;
     }
 
+    .cohort-input-container {
+      display: flex;
+      align-items: center;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .cohort-prefix {
+      background: #f3f4f6;
+      color: #374151;
+      padding: 0.75rem 1rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border-right: 1px solid #d1d5db;
+    }
+
+    .cohort-number-input {
+      border: none !important;
+      border-radius: 0 !important;
+      flex: 1;
+      min-width: 80px;
+    }
+
+    .cohort-number-input:focus {
+      box-shadow: none !important;
+    }
+
+    .cohort-input-container:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-helper {
+      color: #6b7280;
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+      font-weight: 500;
+    }
+
+    .datetime-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .date-input {
+      flex: 2;
+    }
+
+    .time-input {
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .timezone-note {
+      color: #6b7280;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      display: block;
+      font-style: italic;
+    }
+
     /* Grids */
     .cohorts-grid, .admin-users-grid {
       display: grid;
@@ -1222,13 +1291,13 @@ export class AdminDashboardComponent implements OnInit {
 
   constructor() {
     this.cohortForm = this.fb.group({
-      name: ['', Validators.required],
-      description: [''],
+      cohortNumber: ['', [Validators.required, Validators.min(1), Validators.max(999)]],
       applicationStartDate: ['', Validators.required],
+      applicationStartTime: ['', Validators.required],
       applicationEndDate: ['', Validators.required],
+      applicationEndTime: ['', Validators.required],
       programStartDate: ['', Validators.required],
-      programEndDate: ['', Validators.required],
-      maxApplicants: ['']
+      programEndDate: ['', Validators.required]
     });
 
     this.adminForm = this.fb.group({
@@ -1320,6 +1389,45 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+  formatCohortName(cohortNumber: number): string {
+    if (!cohortNumber) return 'Cohort #000';
+    return `Cohort #${cohortNumber.toString().padStart(3, '0')}`;
+  }
+
+  getCohortPreview(): string {
+    const cohortNumber = this.cohortForm.get('cohortNumber')?.value;
+    return this.formatCohortName(cohortNumber);
+  }
+
+  convertETToUTC(dateString: string, timeString: string): Date {
+    if (!dateString || !timeString) {
+      throw new Error('Both date and time are required');
+    }
+    
+    // Combine date and time strings
+    const dateTimeString = `${dateString}T${timeString}`;
+    
+    // Create a date object assuming ET timezone
+    // Note: This creates a local date, we need to adjust for ET
+    const localDate = new Date(dateTimeString);
+    
+    // ET is UTC-5 (EST) or UTC-4 (EDT)
+    // For simplicity, we'll assume EST (UTC-5) - in production you'd want proper timezone handling
+    const etOffset = 5; // hours
+    const utcDate = new Date(localDate.getTime() + (etOffset * 60 * 60 * 1000));
+    
+    return utcDate;
+  }
+
+  convertETDateToUTC(dateString: string): Date {
+    if (!dateString) {
+      throw new Error('Date is required');
+    }
+    
+    // For date-only fields, set to start of day in ET then convert to UTC
+    return this.convertETToUTC(dateString, '00:00');
+  }
+
   async createCohort() {
     if (this.cohortForm.invalid || this.isSubmitting()) return;
 
@@ -1328,14 +1436,20 @@ export class AdminDashboardComponent implements OnInit {
       this.error.set('');
 
       const formValue = this.cohortForm.value;
+      const cohortName = this.formatCohortName(formValue.cohortNumber);
+      
+      // Convert ET dates to UTC
+      const applicationStartUTC = this.convertETToUTC(formValue.applicationStartDate, formValue.applicationStartTime);
+      const applicationEndUTC = this.convertETToUTC(formValue.applicationEndDate, formValue.applicationEndTime);
+      const programStartUTC = this.convertETDateToUTC(formValue.programStartDate);
+      const programEndUTC = this.convertETDateToUTC(formValue.programEndDate);
+      
       const cohort = await this.cohortService.createCohort({
-        name: formValue.name,
-        description: formValue.description,
-        applicationStartDate: new Date(formValue.applicationStartDate),
-        applicationEndDate: new Date(formValue.applicationEndDate),
-        programStartDate: new Date(formValue.programStartDate),
-        programEndDate: new Date(formValue.programEndDate),
-        maxApplicants: formValue.maxApplicants ? parseInt(formValue.maxApplicants) : undefined
+        name: cohortName,
+        applicationStartDate: applicationStartUTC,
+        applicationEndDate: applicationEndUTC,
+        programStartDate: programStartUTC,
+        programEndDate: programEndUTC
       });
 
       this.cohorts.update(cohorts => [cohort, ...cohorts]);

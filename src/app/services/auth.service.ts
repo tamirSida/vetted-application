@@ -147,7 +147,8 @@ export class AuthService {
     const collections = [
       APP_CONSTANTS.COLLECTIONS.ADMIN_USERS,
       APP_CONSTANTS.COLLECTIONS.VIEWER_USERS,
-      APP_CONSTANTS.COLLECTIONS.APPLICANT_USERS
+      APP_CONSTANTS.COLLECTIONS.APPLICANT_USERS,
+      'users' // Also check the main users collection from ApplicationService
     ];
 
     for (const collectionName of collections) {
@@ -155,7 +156,27 @@ export class AuthService {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        return docSnap.data() as User;
+        const userData = docSnap.data();
+        
+        // If from the 'users' collection, transform to match our User interface
+        if (collectionName === 'users') {
+          return {
+            userId: userData['uid'] || userId,
+            name: `${userData['firstName']} ${userData['lastName']}`,
+            email: userData['email'],
+            role: userData['role'],
+            phase: userData['phase'],
+            isAccepted: userData['isAccepted'],
+            webinarAttended: userData['webinarAttended'],
+            interviewerId: userData['interviewerId'],
+            cohortId: userData['cohortId'],
+            profileData: userData['profileData'],
+            createdAt: userData['createdAt'],
+            updatedAt: userData['updatedAt']
+          } as User;
+        }
+        
+        return userData as User;
       }
     }
 

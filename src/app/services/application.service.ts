@@ -4,6 +4,7 @@ import {
   collection, 
   addDoc, 
   updateDoc, 
+  setDoc,
   doc, 
   getDoc, 
   query, 
@@ -120,8 +121,8 @@ export class ApplicationService {
       // Step 4: Save application to Firestore
       const docRef = await addDoc(collection(this.firestore, 'applications'), application);
       
-      // Step 5: Create user profile document
-      await addDoc(collection(this.firestore, 'users'), {
+      // Step 5: Create user profile document using the Firebase Auth UID as the document ID
+      await setDoc(doc(this.firestore, 'users', userId), {
         uid: userId,
         role: 'APPLICANT',
         email: formData.personalInfo.email,

@@ -6,6 +6,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/admin-dashboard/admin-dashboard.component').then(c => c.AdminDashboardComponent)
   },
   {
+    path: 'dashboard',
+    loadComponent: () => import('./features/applicant/dashboard/dashboard.component').then(c => c.DashboardComponent)
+  },
+  {
     path: 'auth/login',
     loadComponent: () => import('./features/auth/login/login.component').then(c => c.LoginComponent)
   },

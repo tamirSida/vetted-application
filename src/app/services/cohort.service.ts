@@ -387,41 +387,47 @@ export class CohortService {
     lastDoc: DocumentSnapshot | null;
     hasMore: boolean;
   }> {
-    try {
-      let cohortsQuery = query(
-        collection(this.firestore, APP_CONSTANTS.COLLECTIONS.COHORTS),
-        limit(pageSize)
-      );
+    return new Promise((resolve, reject) => {
+      try {
+        let cohortsQuery = query(
+          collection(this.firestore, APP_CONSTANTS.COLLECTIONS.COHORTS),
+          limit(pageSize)
+        );
 
-      if (lastDoc) {
-        cohortsQuery = query(cohortsQuery, startAfter(lastDoc));
+        if (lastDoc) {
+          cohortsQuery = query(cohortsQuery, startAfter(lastDoc));
+        }
+
+        getDocs(cohortsQuery).then(querySnapshot => {
+          const cohorts: Cohort[] = [];
+          
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            cohorts.push({
+              id: doc.id,
+              ...data,
+              programStartDate: data['programStartDate']?.toDate() || new Date(),
+              programEndDate: data['programEndDate']?.toDate() || new Date(),
+              applicationStartDate: data['applicationStartDate']?.toDate() || new Date(),
+              applicationEndDate: data['applicationEndDate']?.toDate() || new Date(),
+              createdAt: data['createdAt']?.toDate() || new Date(),
+              updatedAt: data['updatedAt']?.toDate() || new Date(),
+            } as Cohort);
+          });
+
+          resolve({
+            cohorts,
+            lastDoc: querySnapshot.docs[querySnapshot.docs.length - 1] || null,
+            hasMore: querySnapshot.docs.length === pageSize
+          });
+        }).catch(error => {
+          console.error('Error getting paginated cohorts:', error);
+          reject(error);
+        });
+      } catch (error) {
+        console.error('Error getting paginated cohorts:', error);
+        reject(error);
       }
-
-      const querySnapshot = await getDocs(cohortsQuery);
-      const cohorts: Cohort[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        cohorts.push({
-          id: doc.id,
-          ...data,
-          programStartDate: data['programStartDate']?.toDate() || new Date(),
-          programEndDate: data['programEndDate']?.toDate() || new Date(),
-          applicationStartDate: data['applicationStartDate']?.toDate() || new Date(),
-          applicationEndDate: data['applicationEndDate']?.toDate() || new Date(),
-          createdAt: data['createdAt']?.toDate() || new Date(),
-          updatedAt: data['updatedAt']?.toDate() || new Date(),
-        } as Cohort);
-      });
-
-      return {
-        cohorts,
-        lastDoc: querySnapshot.docs[querySnapshot.docs.length - 1] || null,
-        hasMore: querySnapshot.docs.length === pageSize
-      };
-    } catch (error) {
-      console.error('Error getting paginated cohorts:', error);
-      throw error;
-    }
+    });
   }
 }

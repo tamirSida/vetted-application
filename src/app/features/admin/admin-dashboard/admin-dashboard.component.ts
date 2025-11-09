@@ -1518,8 +1518,27 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // Extract time for form display (convert from UTC back to ET)
-  private extractTimeInET(date: Date): string {
-    const etTime = date.toLocaleString('en-US', {
+  private extractTimeInET(date: Date | any): string {
+    let dateObj: Date;
+    
+    // Handle Firestore Timestamp objects
+    if (date && typeof date.toDate === 'function') {
+      dateObj = date.toDate();
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else if (date) {
+      dateObj = new Date(date);
+    } else {
+      console.error('No date provided to extractTimeInET:', date);
+      return '';
+    }
+    
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date passed to extractTimeInET:', date);
+      return '';
+    }
+    
+    const etTime = dateObj.toLocaleString('en-US', {
       timeZone: 'America/New_York',
       hour: '2-digit',
       minute: '2-digit',
@@ -1529,8 +1548,27 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // Extract date for form display (convert from UTC back to ET)
-  private extractDateInET(date: Date): string {
-    const etDate = date.toLocaleDateString('en-CA', {
+  private extractDateInET(date: Date | any): string {
+    let dateObj: Date;
+    
+    // Handle Firestore Timestamp objects
+    if (date && typeof date.toDate === 'function') {
+      dateObj = date.toDate();
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else if (date) {
+      dateObj = new Date(date);
+    } else {
+      console.error('No date provided to extractDateInET:', date);
+      return '';
+    }
+    
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date passed to extractDateInET:', date);
+      return '';
+    }
+    
+    const etDate = dateObj.toLocaleDateString('en-CA', {
       timeZone: 'America/New_York',
       year: 'numeric',
       month: '2-digit',

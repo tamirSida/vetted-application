@@ -268,26 +268,6 @@ export class ApplicationService {
     }
   }
 
-  /**
-   * Check if a user has any Phase 1 draft applications
-   * @param applicantId The applicant's user ID
-   * @returns Promise containing boolean indicating if draft exists
-   */
-  async hasPhase1Draft(applicantId: string): Promise<boolean> {
-    try {
-      // Check for drafts in draft_applications collection by applicant ID
-      const q = query(
-        collection(this.firestore, 'draft_applications'),
-        where('applicantId', '==', applicantId)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty;
-    } catch (error) {
-      console.error('Error checking for Phase 1 draft:', error);
-      return false;
-    }
-  }
 
   /**
    * Validate Phase 1 application data before submission

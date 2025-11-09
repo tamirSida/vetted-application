@@ -262,16 +262,8 @@ import { StorageService, ApplicationService, ApplicationSubmissionData, AuthServ
             </div>
 
             <div class="form-actions">
-              <button type="button" class="secondary-button" (click)="saveDraft()" [disabled]="!userCreated()">
-                <i class="fas fa-save"></i>
-                Save Draft
-              </button>
               <button type="button" class="submit-button" (click)="nextPage()" [disabled]="!isPage1Valid()">
-                @if (!userCreated() && isPage1Valid()) {
-                  Create Account & Continue
-                } @else {
-                  Next Page
-                }
+                Next Page
                 <i class="fas fa-arrow-right"></i>
               </button>
             </div>
@@ -466,10 +458,6 @@ import { StorageService, ApplicationService, ApplicationSubmissionData, AuthServ
                 <i class="fas fa-arrow-left"></i>
                 Previous
               </button>
-              <button type="button" class="secondary-button" (click)="saveDraft()">
-                <i class="fas fa-save"></i>
-                Save Draft
-              </button>
               <button type="submit" class="submit-button" [disabled]="!applicationForm.valid || isLoading()">
                 @if (isLoading()) {
                   <i class="fas fa-spinner fa-spin"></i>
@@ -504,10 +492,8 @@ export class Phase1ApplicationComponent {
   isLoading = signal(false);
   isUploading = signal(false);
   applicationId = signal<string>('');
-  sessionId = signal<string>('');
   showPassword = signal(false);
   showConfirmPassword = signal(false);
-  userCreated = signal(false);
 
   serviceCountries = [
     { value: ServiceCountry.USA, label: 'USA' },
@@ -518,8 +504,6 @@ export class Phase1ApplicationComponent {
   applicationForm: FormGroup;
 
   constructor() {
-    // Generate a unique session ID for this form session
-    this.sessionId.set(this.generateSessionId());
 
     this.applicationForm = this.fb.group({
       // Page 1 - Company Info
@@ -550,8 +534,6 @@ export class Phase1ApplicationComponent {
       validators: [this.emailMatchValidator, this.passwordMatchValidator]
     });
 
-    // Try to load existing draft on initialization
-    this.loadDraft();
   }
 
   isPage1Valid(): boolean {
@@ -559,66 +541,12 @@ export class Phase1ApplicationComponent {
     return page1Fields.every(field => this.applicationForm.get(field)?.valid);
   }
 
-  async nextPage(): Promise<void> {
+  nextPage(): void {
     if (this.isPage1Valid()) {
-      if (!this.userCreated()) {
-        await this.createUser();
-      }
-      if (this.userCreated()) {
-        this.currentPage.set(2);
-      }
+      this.currentPage.set(2);
     }
   }
 
-  async createUser(): Promise<void> {
-    try {
-      this.isLoading.set(true);
-      this.error.set('');
-
-      const email = this.applicationForm.get('email')?.value;
-      const password = this.applicationForm.get('password')?.value;
-      const firstName = this.applicationForm.get('firstName')?.value;
-      const lastName = this.applicationForm.get('lastName')?.value;
-
-      // Get the active cohort
-      const activeCohort = await this.cohortService.getActiveCohort();
-      if (!activeCohort) {
-        throw new Error('No active cohort available for registration');
-      }
-
-      // Create the user account as an applicant
-      const userCreateRequest = {
-        name: `${firstName} ${lastName}`,
-        email: email,
-        password: password,
-        role: UserRole.APPLICANT,
-        cohortId: activeCohort.id!
-      };
-
-      await this.authService.signUp(userCreateRequest);
-      
-      this.userCreated.set(true);
-      this.success.set('Account created successfully! You can now save your progress.');
-      
-      setTimeout(() => this.success.set(''), 3000);
-      
-    } catch (error: any) {
-      let errorMessage = 'Failed to create account. Please try again.';
-      
-      // Handle specific Firebase Auth errors
-      if (error.message?.includes('email-already-in-use')) {
-        errorMessage = 'An account with this email already exists. Please use a different email.';
-      } else if (error.message?.includes('weak-password')) {
-        errorMessage = 'Password is too weak. Please choose a stronger password.';
-      } else if (error.message?.includes('invalid-email')) {
-        errorMessage = 'Please enter a valid email address.';
-      }
-      
-      this.error.set(errorMessage);
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
 
   prevPage(): void {
     this.currentPage.set(1);
@@ -692,30 +620,6 @@ export class Phase1ApplicationComponent {
     this.uploadedFilePath.set('');
   }
 
-  async saveDraft(): Promise<void> {
-    try {
-      this.isLoading.set(true);
-      this.error.set('');
-
-      // Prepare form data (excluding passwords for security)
-      const formData = this.prepareFormDataForDraft();
-
-      const draftId = await this.applicationService.saveDraftPhase1Application(
-        formData, 
-        this.sessionId(),
-        this.applicationId() || undefined
-      );
-      
-      this.applicationId.set(draftId);
-      this.success.set('Draft saved successfully!');
-      
-      setTimeout(() => this.success.set(''), 3000);
-    } catch (error: any) {
-      this.error.set(error.message || 'Failed to save draft. Please try again.');
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
 
   async onSubmit(): Promise<void> {
     if (!this.applicationForm.valid) {
@@ -728,22 +632,22 @@ export class Phase1ApplicationComponent {
       this.isLoading.set(true);
       this.error.set('');
 
+      // Get the active cohort
+      const activeCohort = await this.cohortService.getActiveCohort();
+      if (!activeCohort) {
+        throw new Error('No active cohort available for registration');
+      }
+
       // Prepare complete form data for submission
       const formData = this.prepareFormData();
-      
-      // Mock cohort ID - in real app, get from route/service
-      const cohortId = 'mock-cohort-id';
 
       const result = await this.applicationService.submitPhase1Application(
         formData as ApplicationSubmissionData, 
-        cohortId
+        activeCohort.id!
       );
       
       this.applicationId.set(result.applicationId);
       this.success.set('Application submitted successfully! User account created. You will be contacted regarding next steps.');
-      
-      // Clean up draft after successful submission
-      await this.cleanupDraft();
       
       // Redirect to login after 3 seconds for user to sign in with new account
       setTimeout(() => {
@@ -878,105 +782,7 @@ export class Phase1ApplicationComponent {
     return null;
   }
 
-  /**
-   * Generate a unique session ID for draft management
-   */
-  private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  }
 
-  /**
-   * Prepare form data for drafts (excluding sensitive information)
-   */
-  private prepareFormDataForDraft(): Partial<ApplicationSubmissionData> {
-    const formValue = this.applicationForm.value;
-    
-    return {
-      companyInfo: {
-        companyName: formValue.companyName,
-        companyWebsite: formValue.companyWebsite,
-        isFounder: formValue.isFounder
-      },
-      personalInfo: {
-        firstName: formValue.firstName,
-        lastName: formValue.lastName,
-        email: formValue.email,
-        confirmEmail: formValue.confirmEmail,
-        password: '', // Never store passwords in drafts
-        confirmPassword: '',
-        phone: formValue.phone
-      },
-      extendedInfo: {
-        role: formValue.role,
-        founderCount: formValue.founderCount,
-        linkedInProfile: formValue.linkedInProfile,
-        serviceHistory: {
-          country: formValue.serviceCountry,
-          unit: formValue.serviceUnit
-        },
-        grandmaTest: formValue.grandmaTest,
-        pitchDeck: this.uploadedFileUrl() ? {
-          fileUrl: this.uploadedFileUrl(),
-          fileName: this.selectedFile()?.name
-        } : formValue.nodeckExplanation ? {
-          nodeckExplanation: formValue.nodeckExplanation
-        } : undefined,
-        discovery: formValue.discovery,
-        timeCommitment: formValue.timeCommitment
-      }
-    };
-  }
 
-  /**
-   * Load existing draft if available
-   */
-  private async loadDraft(): Promise<void> {
-    try {
-      const draft = await this.applicationService.getDraftBySessionId(this.sessionId());
-      
-      if (draft) {
-        this.applicationId.set(draft.id);
-        
-        // Populate form with draft data (passwords will remain empty)
-        this.applicationForm.patchValue({
-          ...draft.companyInfo,
-          ...draft.personalInfo,
-          role: draft.extendedInfo?.role,
-          founderCount: draft.extendedInfo?.founderCount,
-          linkedInProfile: draft.extendedInfo?.linkedInProfile,
-          serviceCountry: draft.extendedInfo?.serviceHistory?.country,
-          serviceUnit: draft.extendedInfo?.serviceHistory?.unit,
-          grandmaTest: draft.extendedInfo?.grandmaTest,
-          nodeckExplanation: draft.extendedInfo?.pitchDeck?.nodeckExplanation,
-          discovery: draft.extendedInfo?.discovery,
-          timeCommitment: draft.extendedInfo?.timeCommitment
-        });
 
-        // Restore file data if available
-        if (draft.extendedInfo?.pitchDeck?.fileUrl) {
-          this.uploadedFileUrl.set(draft.extendedInfo.pitchDeck.fileUrl);
-          // Note: Can't restore the actual File object, just the URL
-        }
-      }
-    } catch (error) {
-      console.error('Error loading draft:', error);
-      // Don't show error to user for draft loading failures
-    }
-  }
-
-  /**
-   * Clean up draft after successful submission
-   */
-  private async cleanupDraft(): Promise<void> {
-    try {
-      if (this.applicationId()) {
-        // In a real implementation, you might want to delete the draft
-        // For now, we'll just clear the local state
-        console.log('Draft cleanup completed');
-      }
-    } catch (error) {
-      console.error('Error cleaning up draft:', error);
-      // Don't throw - this shouldn't block successful submission
-    }
-  }
 }

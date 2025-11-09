@@ -2,8 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, ApplicationService } from '../../../services';
-import { UserRole, Phase } from '../../../models';
+import { AuthService } from '../../../services';
+import { UserRole } from '../../../models';
 
 @Component({
   selector: 'app-login',
@@ -143,7 +143,6 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
-  private applicationService = inject(ApplicationService);
 
   isLogin = signal(true);
   isLoading = signal(false);
@@ -178,25 +177,11 @@ export class LoginComponent {
       
       this.success.set('Login successful! Redirecting...');
       
-      // Redirect based on user role and phase
+      // Redirect based on user role
       if (user.role === UserRole.ADMIN || user.role === UserRole.VIEWER) {
         setTimeout(() => this.router.navigate(['/admin']), 1500);
-      } else if (user.role === UserRole.APPLICANT) {
-        // Check if user has an ongoing application
-        const applicantUser = user as any; // Type assertion for ApplicantUser
-        
-        if (applicantUser.phase === Phase.SIGNUP) {
-          // Check if user has a draft application
-          const hasDraft = await this.applicationService.hasPhase1Draft(user.userId);
-          if (hasDraft) {
-            setTimeout(() => this.router.navigate(['/application/phase1']), 1500);
-          } else {
-            setTimeout(() => this.router.navigate(['/dashboard']), 1500);
-          }
-        } else {
-          setTimeout(() => this.router.navigate(['/dashboard']), 1500);
-        }
       } else {
+        // All applicants go to dashboard
         setTimeout(() => this.router.navigate(['/dashboard']), 1500);
       }
       

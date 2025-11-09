@@ -2,8 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Phase1Application, ServiceCountry } from '../../../../models';
-import { StorageService, ApplicationService, ApplicationSubmissionData } from '../../../../services';
+import { Phase1Application, ServiceCountry, UserRole } from '../../../../models';
+import { StorageService, ApplicationService, ApplicationSubmissionData, AuthService, CohortService } from '../../../../services';
 
 @Component({
   selector: 'app-phase1-application',
@@ -85,22 +85,6 @@ import { StorageService, ApplicationService, ApplicationSubmissionData } from '.
                 </div>
               </div>
 
-              <div class="form-group">
-                <label for="role">Your Role in the Company *</label>
-                <div class="input-group">
-                  <i class="fas fa-user-tie"></i>
-                  <input 
-                    type="text" 
-                    id="role" 
-                    formControlName="role"
-                    maxlength="300"
-                    placeholder="CEO, CTO, etc."
-                    [class.error]="applicationForm.get('role')?.touched && applicationForm.get('role')?.errors">
-                </div>
-                @if (applicationForm.get('role')?.touched && applicationForm.get('role')?.errors) {
-                  <div class="field-error">Role is required</div>
-                }
-              </div>
 
               <div class="form-group">
                 <div class="checkbox-group">
@@ -278,12 +262,16 @@ import { StorageService, ApplicationService, ApplicationSubmissionData } from '.
             </div>
 
             <div class="form-actions">
-              <button type="button" class="secondary-button" (click)="saveDraft()">
+              <button type="button" class="secondary-button" (click)="saveDraft()" [disabled]="!userCreated()">
                 <i class="fas fa-save"></i>
                 Save Draft
               </button>
               <button type="button" class="submit-button" (click)="nextPage()" [disabled]="!isPage1Valid()">
-                Next Page
+                @if (!userCreated() && isPage1Valid()) {
+                  Create Account & Continue
+                } @else {
+                  Next Page
+                }
                 <i class="fas fa-arrow-right"></i>
               </button>
             </div>
@@ -291,6 +279,41 @@ import { StorageService, ApplicationService, ApplicationSubmissionData } from '.
             <!-- Page 2: Extended Information -->
             <div class="form-section">
               <h3>Professional Background</h3>
+              
+              <div class="form-group">
+                <label for="role">Your Role in the Company *</label>
+                <div class="input-group">
+                  <i class="fas fa-user-tie"></i>
+                  <input 
+                    type="text" 
+                    id="role" 
+                    formControlName="role"
+                    maxlength="300"
+                    placeholder="CEO, CTO, etc."
+                    [class.error]="applicationForm.get('role')?.touched && applicationForm.get('role')?.errors">
+                </div>
+                @if (applicationForm.get('role')?.touched && applicationForm.get('role')?.errors) {
+                  <div class="field-error">Role is required</div>
+                }
+              </div>
+
+              <div class="form-group">
+                <label for="founderCount">How many founders are in the company? *</label>
+                <div class="input-group">
+                  <i class="fas fa-users"></i>
+                  <input 
+                    type="number" 
+                    id="founderCount" 
+                    formControlName="founderCount"
+                    min="1"
+                    max="99"
+                    placeholder="Number of founders"
+                    [class.error]="applicationForm.get('founderCount')?.touched && applicationForm.get('founderCount')?.errors">
+                </div>
+                @if (applicationForm.get('founderCount')?.touched && applicationForm.get('founderCount')?.errors) {
+                  <div class="field-error">Number of founders is required (1-99)</div>
+                }
+              </div>
               
               <div class="form-group">
                 <label for="linkedInProfile">LinkedIn Profile URL</label>
@@ -469,6 +492,8 @@ export class Phase1ApplicationComponent {
   private router = inject(Router);
   private storageService = inject(StorageService);
   private applicationService = inject(ApplicationService);
+  private authService = inject(AuthService);
+  private cohortService = inject(CohortService);
 
   currentPage = signal(1);
   error = signal<string>('');
@@ -482,6 +507,7 @@ export class Phase1ApplicationComponent {
   sessionId = signal<string>('');
   showPassword = signal(false);
   showConfirmPassword = signal(false);
+  userCreated = signal(false);
 
   serviceCountries = [
     { value: ServiceCountry.USA, label: 'USA' },
@@ -499,7 +525,6 @@ export class Phase1ApplicationComponent {
       // Page 1 - Company Info
       companyName: ['', [Validators.required, Validators.maxLength(300)]],
       companyWebsite: ['', [Validators.maxLength(300)]],
-      role: ['', [Validators.required, Validators.maxLength(300)]],
       isFounder: [false, [Validators.requiredTrue]],
       
       // Page 1 - Personal Info
@@ -512,6 +537,8 @@ export class Phase1ApplicationComponent {
       phone: ['', [Validators.required, Validators.maxLength(300)]],
       
       // Page 2 - Extended Info
+      role: ['', [Validators.required, Validators.maxLength(300)]],
+      founderCount: ['', [Validators.required, Validators.min(1), Validators.max(99)]],
       linkedInProfile: ['', [Validators.maxLength(300)]], // Made optional
       serviceCountry: ['', [Validators.required]],
       serviceUnit: ['', [Validators.required, Validators.maxLength(300)]],
@@ -528,13 +555,68 @@ export class Phase1ApplicationComponent {
   }
 
   isPage1Valid(): boolean {
-    const page1Fields = ['companyName', 'role', 'isFounder', 'firstName', 'lastName', 'email', 'confirmEmail', 'password', 'confirmPassword', 'phone'];
+    const page1Fields = ['companyName', 'isFounder', 'firstName', 'lastName', 'email', 'confirmEmail', 'password', 'confirmPassword', 'phone'];
     return page1Fields.every(field => this.applicationForm.get(field)?.valid);
   }
 
-  nextPage(): void {
+  async nextPage(): Promise<void> {
     if (this.isPage1Valid()) {
-      this.currentPage.set(2);
+      if (!this.userCreated()) {
+        await this.createUser();
+      }
+      if (this.userCreated()) {
+        this.currentPage.set(2);
+      }
+    }
+  }
+
+  async createUser(): Promise<void> {
+    try {
+      this.isLoading.set(true);
+      this.error.set('');
+
+      const email = this.applicationForm.get('email')?.value;
+      const password = this.applicationForm.get('password')?.value;
+      const firstName = this.applicationForm.get('firstName')?.value;
+      const lastName = this.applicationForm.get('lastName')?.value;
+
+      // Get the active cohort
+      const activeCohort = await this.cohortService.getActiveCohort();
+      if (!activeCohort) {
+        throw new Error('No active cohort available for registration');
+      }
+
+      // Create the user account as an applicant
+      const userCreateRequest = {
+        name: `${firstName} ${lastName}`,
+        email: email,
+        password: password,
+        role: UserRole.APPLICANT,
+        cohortId: activeCohort.id!
+      };
+
+      await this.authService.signUp(userCreateRequest);
+      
+      this.userCreated.set(true);
+      this.success.set('Account created successfully! You can now save your progress.');
+      
+      setTimeout(() => this.success.set(''), 3000);
+      
+    } catch (error: any) {
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      // Handle specific Firebase Auth errors
+      if (error.message?.includes('email-already-in-use')) {
+        errorMessage = 'An account with this email already exists. Please use a different email.';
+      } else if (error.message?.includes('weak-password')) {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.message?.includes('invalid-email')) {
+        errorMessage = 'Please enter a valid email address.';
+      }
+      
+      this.error.set(errorMessage);
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
@@ -695,7 +777,6 @@ export class Phase1ApplicationComponent {
       companyInfo: {
         companyName: formValue.companyName,
         companyWebsite: formValue.companyWebsite,
-        role: formValue.role,
         isFounder: formValue.isFounder
       },
       personalInfo: {
@@ -708,6 +789,8 @@ export class Phase1ApplicationComponent {
         phone: formValue.phone
       },
       extendedInfo: {
+        role: formValue.role,
+        founderCount: formValue.founderCount,
         linkedInProfile: formValue.linkedInProfile,
         serviceHistory: {
           country: formValue.serviceCountry,
@@ -812,7 +895,6 @@ export class Phase1ApplicationComponent {
       companyInfo: {
         companyName: formValue.companyName,
         companyWebsite: formValue.companyWebsite,
-        role: formValue.role,
         isFounder: formValue.isFounder
       },
       personalInfo: {
@@ -825,6 +907,8 @@ export class Phase1ApplicationComponent {
         phone: formValue.phone
       },
       extendedInfo: {
+        role: formValue.role,
+        founderCount: formValue.founderCount,
         linkedInProfile: formValue.linkedInProfile,
         serviceHistory: {
           country: formValue.serviceCountry,
@@ -857,6 +941,8 @@ export class Phase1ApplicationComponent {
         this.applicationForm.patchValue({
           ...draft.companyInfo,
           ...draft.personalInfo,
+          role: draft.extendedInfo?.role,
+          founderCount: draft.extendedInfo?.founderCount,
           linkedInProfile: draft.extendedInfo?.linkedInProfile,
           serviceCountry: draft.extendedInfo?.serviceHistory?.country,
           serviceUnit: draft.extendedInfo?.serviceHistory?.unit,

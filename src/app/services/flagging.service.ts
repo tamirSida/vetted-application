@@ -97,7 +97,7 @@ export class FlaggingService {
 
     // Generic roles that might indicate lack of clarity
     const genericRoles = ['founder', 'owner', 'entrepreneur', 'boss'];
-    const role = companyInfo.role?.toLowerCase() || '';
+    const role = application.extendedInfo?.role?.toLowerCase() || '';
     
     if (genericRoles.includes(role) && role.length < 10) {
       flags.push({

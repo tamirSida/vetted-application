@@ -18,7 +18,6 @@ export interface ApplicationSubmissionData {
   companyInfo: {
     companyName: string;
     companyWebsite?: string;
-    role: string;
     isFounder: boolean;
   };
   personalInfo: {
@@ -31,6 +30,8 @@ export interface ApplicationSubmissionData {
     phone: string;
   };
   extendedInfo: {
+    role: string;
+    founderCount: number;
     linkedInProfile: string;
     serviceHistory: {
       country: ServiceCountry;
@@ -101,6 +102,8 @@ export class ApplicationService {
           phone: formData.personalInfo.phone,
         },
         extendedInfo: {
+          role: formData.extendedInfo.role,
+          founderCount: formData.extendedInfo.founderCount,
           linkedInProfile: formData.extendedInfo.linkedInProfile,
           serviceHistory: formData.extendedInfo.serviceHistory,
           grandmaTest: formData.extendedInfo.grandmaTest,
@@ -133,7 +136,7 @@ export class ApplicationService {
         interviewerId: null,
         profileData: {
           companyName: formData.companyInfo.companyName,
-          role: formData.companyInfo.role,
+          role: formData.extendedInfo.role,
           linkedIn: formData.extendedInfo.linkedInProfile
         },
         createdAt: new Date(),
@@ -266,6 +269,27 @@ export class ApplicationService {
   }
 
   /**
+   * Check if a user has any Phase 1 draft applications
+   * @param applicantId The applicant's user ID
+   * @returns Promise containing boolean indicating if draft exists
+   */
+  async hasPhase1Draft(applicantId: string): Promise<boolean> {
+    try {
+      // Check for drafts in draft_applications collection by applicant ID
+      const q = query(
+        collection(this.firestore, 'draft_applications'),
+        where('applicantId', '==', applicantId)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error('Error checking for Phase 1 draft:', error);
+      return false;
+    }
+  }
+
+  /**
    * Validate Phase 1 application data before submission
    * @param formData The form data to validate
    */
@@ -275,9 +299,6 @@ export class ApplicationService {
     // Company Info validation
     if (!formData.companyInfo.companyName?.trim()) {
       errors.push('Company name is required');
-    }
-    if (!formData.companyInfo.role?.trim()) {
-      errors.push('Your role is required');
     }
     if (!formData.companyInfo.isFounder) {
       errors.push('You must be a founder to apply');
@@ -307,7 +328,12 @@ export class ApplicationService {
     }
 
     // Extended Info validation (LinkedIn is now optional)
-    // LinkedIn profile validation removed as it's optional
+    if (!formData.extendedInfo.role?.trim()) {
+      errors.push('Your role is required');
+    }
+    if (!formData.extendedInfo.founderCount || formData.extendedInfo.founderCount < 1) {
+      errors.push('Number of founders is required');
+    }
     if (!formData.extendedInfo.serviceHistory?.country) {
       errors.push('Service country is required');
     }

@@ -2,6 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AuthService, ApplicationService } from '../../../services';
+import { UserRole, Phase } from '../../../models';
 
 @Component({
   selector: 'app-login',
@@ -140,6 +142,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 export class LoginComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private authService = inject(AuthService);
+  private applicationService = inject(ApplicationService);
 
   isLogin = signal(true);
   isLoading = signal(false);
@@ -161,30 +165,56 @@ export class LoginComponent {
     this.success.set('');
   }
 
-  onLogin(): void {
+  async onLogin(): Promise<void> {
     if (this.loginForm.invalid) return;
 
-    this.isLoading.set(true);
-    this.error.set('');
+    try {
+      this.isLoading.set(true);
+      this.error.set('');
 
-    // Mock login - replace with actual authentication service
-    const { email, password } = this.loginForm.value;
-    
-    // Mock user roles based on email for demo
-    if (email === 'admin@vetted.com' && password === 'admin123') {
-      this.success.set('Login successful! Redirecting to admin dashboard...');
-      setTimeout(() => this.router.navigate(['/admin']), 1500);
-    } else if (email === 'viewer@vetted.com' && password === 'viewer123') {
-      this.success.set('Login successful! Redirecting to admin dashboard...');
-      setTimeout(() => this.router.navigate(['/admin']), 1500);
-    } else if (email.includes('applicant') && password === 'password') {
-      this.success.set('Login successful! Redirecting to your dashboard...');
-      setTimeout(() => this.router.navigate(['/dashboard']), 1500);
-    } else {
-      this.error.set('Invalid email or password. Please try again.');
+      const { email, password } = this.loginForm.value;
+      
+      const user = await this.authService.signIn(email, password);
+      
+      this.success.set('Login successful! Redirecting...');
+      
+      // Redirect based on user role and phase
+      if (user.role === UserRole.ADMIN || user.role === UserRole.VIEWER) {
+        setTimeout(() => this.router.navigate(['/admin']), 1500);
+      } else if (user.role === UserRole.APPLICANT) {
+        // Check if user has an ongoing application
+        const applicantUser = user as any; // Type assertion for ApplicantUser
+        
+        if (applicantUser.phase === Phase.SIGNUP) {
+          // Check if user has a draft application
+          const hasDraft = await this.applicationService.hasPhase1Draft(user.userId);
+          if (hasDraft) {
+            setTimeout(() => this.router.navigate(['/application/phase1']), 1500);
+          } else {
+            setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+          }
+        } else {
+          setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+        }
+      } else {
+        setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+      }
+      
+    } catch (error: any) {
+      let errorMessage = 'Invalid email or password. Please try again.';
+      
+      if (error.message?.includes('user-not-found')) {
+        errorMessage = 'No account found with this email address.';
+      } else if (error.message?.includes('wrong-password')) {
+        errorMessage = 'Invalid password. Please try again.';
+      } else if (error.message?.includes('user-disabled')) {
+        errorMessage = 'This account has been disabled. Please contact support.';
+      }
+      
+      this.error.set(errorMessage);
+    } finally {
+      this.isLoading.set(false);
     }
-
-    this.isLoading.set(false);
   }
 
   onForgotPassword(): void {

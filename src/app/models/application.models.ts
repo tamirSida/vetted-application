@@ -20,7 +20,6 @@ export interface Phase1Application extends BaseApplication {
   companyInfo: {
     companyName: string;
     companyWebsite?: string;
-    role: string;
     isFounder: boolean;
   };
   personalInfo: {
@@ -34,6 +33,8 @@ export interface Phase1Application extends BaseApplication {
   };
   // Page 2 - Extended Application
   extendedInfo: {
+    role: string;
+    founderCount: number;
     linkedInProfile: string; // max 300 chars
     serviceHistory: {
       country: ServiceCountry;

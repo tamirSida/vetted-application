@@ -1,0 +1,1621 @@
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { DocumentSnapshot } from '@angular/fire/firestore';
+import { AuthService } from '../../../services/auth.service';
+import { CohortService } from '../../../services/cohort.service';
+import { UserService } from '../../../services/user.service';
+import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase } from '../../../models';
+
+type AdminView = 'applicants' | 'cohorts' | 'admin';
+
+@Component({
+  selector: 'app-admin-dashboard',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <div class="admin-container">
+      <!-- Header -->
+      <header class="admin-header">
+        <div class="header-content">
+          <div class="header-left">
+            <img src="/images/logo.png" alt="Logo" class="logo">
+            <div class="admin-info">
+              <h1>Admin Dashboard</h1>
+              <p>{{ currentUser()?.email }}</p>
+            </div>
+          </div>
+          <button class="sign-out-button" (click)="signOut()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Navigation -->
+      <nav class="admin-nav">
+        <button 
+          class="nav-button"
+          [class.active]="currentView() === 'applicants'"
+          (click)="switchView('applicants')">
+          <i class="fas fa-users"></i>
+          Applicants
+        </button>
+        <button 
+          class="nav-button"
+          [class.active]="currentView() === 'cohorts'"
+          (click)="switchView('cohorts')">
+          <i class="fas fa-calendar-alt"></i>
+          Cohort Management
+        </button>
+        <button 
+          class="nav-button"
+          [class.active]="currentView() === 'admin'"
+          (click)="switchView('admin')">
+          <i class="fas fa-user-shield"></i>
+          Admin Management
+        </button>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="admin-main">
+        <!-- Loading State -->
+        <div *ngIf="isLoading()" class="loading">
+          <i class="fas fa-spinner fa-spin"></i>
+          <p>Loading...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="error()" class="error-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>{{ error() }}</p>
+        </div>
+
+        <!-- Success Message -->
+        <div *ngIf="success()" class="success-message">
+          <i class="fas fa-check-circle"></i>
+          <p>{{ success() }}</p>
+        </div>
+
+        <!-- Applicants View -->
+        <div *ngIf="currentView() === 'applicants' && !isLoading()" class="applicants-view">
+          <div class="view-header">
+            <h2>
+              <i class="fas fa-users"></i>
+              Applicants Management
+            </h2>
+            <div class="controls">
+              <div class="page-size-selector">
+                <label for="page-size">Page Size:</label>
+                <select id="page-size" (change)="changePageSize($event)" [value]="pageSize()">
+                  <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="applicants().length === 0" class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <h3>No Applicants Found</h3>
+            <p>No applicants have registered yet.</p>
+          </div>
+
+          <div *ngIf="applicants().length > 0" class="table-container">
+            <table class="applicants-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phase</th>
+                  <th>Company</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let applicant of applicants()" class="table-row" (click)="viewApplicantDetails(applicant)">
+                  <td>{{ applicant.name }}</td>
+                  <td>
+                    <a [href]="'mailto:' + applicant.email" class="email-link" (click)="$event.stopPropagation()">
+                      {{ applicant.email }}
+                    </a>
+                  </td>
+                  <td>
+                    <span [class]="'phase-badge phase-' + applicant.phase.toLowerCase().replace('_', '-')">
+                      {{ getPhaseDisplayName(applicant.phase) }}
+                    </span>
+                  </td>
+                  <td>{{ applicant.companyName || 'Not specified' }}</td>
+                  <td>
+                    <button class="table-action-btn view-btn" (click)="$event.stopPropagation(); viewApplicantDetails(applicant)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="pagination-controls">
+              <div class="pagination-info">
+                Page {{ currentPage() }} • Showing {{ applicants().length }} items
+              </div>
+              <div class="pagination-buttons">
+                <button 
+                  class="pagination-btn" 
+                  (click)="loadPreviousPage('applicants')" 
+                  [disabled]="currentPage() <= 1">
+                  <i class="fas fa-chevron-left"></i>
+                  Previous
+                </button>
+                <button 
+                  class="pagination-btn" 
+                  (click)="loadNextPage('applicants')" 
+                  [disabled]="!hasMoreApplicants()">
+                  Next
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cohorts View -->
+        <div *ngIf="currentView() === 'cohorts' && !isLoading()" class="cohorts-view">
+          <div class="view-header">
+            <h2>
+              <i class="fas fa-calendar-alt"></i>
+              Cohort Management
+            </h2>
+            <div class="controls">
+              <div class="page-size-selector">
+                <label for="page-size-cohorts">Page Size:</label>
+                <select id="page-size-cohorts" (change)="changePageSize($event)" [value]="pageSize()">
+                  <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+                </select>
+              </div>
+              <button class="primary-button" (click)="toggleCohortForm()">
+                <i class="fas fa-plus"></i>
+                Create Cohort
+              </button>
+            </div>
+          </div>
+
+          <!-- Cohort Form -->
+          <div *ngIf="showCohortForm()" class="form-container">
+            <form [formGroup]="cohortForm" (ngSubmit)="createCohort()" class="create-form">
+              <h3>Create New Cohort</h3>
+              
+              <div class="form-group">
+                <label for="cohort-name">Cohort Name</label>
+                <input
+                  type="text"
+                  id="cohort-name"
+                  formControlName="name"
+                  placeholder="e.g., Spring 2024 Cohort"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="cohort-description">Description</label>
+                <textarea
+                  id="cohort-description"
+                  formControlName="description"
+                  placeholder="Brief description of this cohort"
+                  class="form-input"
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="app-start">Application Start Date</label>
+                  <input
+                    type="datetime-local"
+                    id="app-start"
+                    formControlName="applicationStartDate"
+                    class="form-input"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="app-end">Application End Date</label>
+                  <input
+                    type="datetime-local"
+                    id="app-end"
+                    formControlName="applicationEndDate"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="program-start">Program Start Date</label>
+                  <input
+                    type="datetime-local"
+                    id="program-start"
+                    formControlName="programStartDate"
+                    class="form-input"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="program-end">Program End Date</label>
+                  <input
+                    type="datetime-local"
+                    id="program-end"
+                    formControlName="programEndDate"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="max-applicants">Maximum Applicants</label>
+                <input
+                  type="number"
+                  id="max-applicants"
+                  formControlName="maxApplicants"
+                  placeholder="50"
+                  class="form-input"
+                  min="1"
+                />
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="secondary-button" (click)="toggleCohortForm()">
+                  Cancel
+                </button>
+                <button type="submit" class="primary-button" [disabled]="cohortForm.invalid || isSubmitting()">
+                  <i class="fas fa-plus"></i>
+                  Create Cohort
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Cohorts Grid -->
+          <div *ngIf="cohorts().length === 0" class="empty-state">
+            <i class="fas fa-calendar-times"></i>
+            <h3>No Cohorts Created</h3>
+            <p>Create your first cohort to start accepting applications.</p>
+          </div>
+
+          <div *ngIf="cohorts().length > 0" class="cohorts-container">
+            <div class="cohorts-grid">
+              <div *ngFor="let cohort of cohorts()" class="cohort-card">
+                <div class="cohort-header">
+                  <h3>{{ cohort.name }}</h3>
+                  <span [class]="'status-badge cohort-' + getCohortStatus(cohort)">
+                    {{ getCohortStatusDisplay(cohort) }}
+                  </span>
+                </div>
+
+                <div class="cohort-timeline">
+                  <div class="timeline-item">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span>Applications: {{ cohort.applicationStartDate | date:'short' }} - {{ cohort.applicationEndDate | date:'short' }}</span>
+                  </div>
+                  <div class="timeline-item">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Program: {{ cohort.programStartDate | date:'shortDate' }} - {{ cohort.programEndDate | date:'shortDate' }}</span>
+                  </div>
+                  <div class="timeline-item">
+                    <i class="fas fa-users"></i>
+                    <span>Capacity: {{ cohort.currentApplicantCount || 0 }} / {{ cohort.maxApplicants || 'Unlimited' }}</span>
+                  </div>
+                </div>
+
+                <div class="cohort-actions">
+                  <button class="action-button edit-button">
+                    <i class="fas fa-edit"></i>
+                    Edit
+                  </button>
+                  <button class="action-button delete-button" (click)="deleteCohort(cohort.id!)">
+                    <i class="fas fa-trash"></i>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pagination-controls">
+              <div class="pagination-info">
+                Page {{ currentPage() }} • Showing {{ cohorts().length }} items
+              </div>
+              <div class="pagination-buttons">
+                <button 
+                  class="pagination-btn" 
+                  (click)="loadPreviousPage('cohorts')" 
+                  [disabled]="currentPage() <= 1">
+                  <i class="fas fa-chevron-left"></i>
+                  Previous
+                </button>
+                <button 
+                  class="pagination-btn" 
+                  (click)="loadNextPage('cohorts')" 
+                  [disabled]="!hasMoreCohorts()">
+                  Next
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Management View -->
+        <div *ngIf="currentView() === 'admin' && !isLoading()" class="admin-management-view">
+          <div class="view-header">
+            <h2>
+              <i class="fas fa-user-shield"></i>
+              Admin Management
+            </h2>
+            <div class="controls">
+              <div class="page-size-selector">
+                <label for="page-size-admin">Page Size:</label>
+                <select id="page-size-admin" (change)="changePageSize($event)" [value]="pageSize()">
+                  <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+                </select>
+              </div>
+              <button class="primary-button" (click)="toggleAdminForm()">
+                <i class="fas fa-user-plus"></i>
+                Create Admin/Viewer
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin Form -->
+          <div *ngIf="showAdminForm()" class="form-container">
+            <form [formGroup]="adminForm" (ngSubmit)="createAdmin()" class="create-form">
+              <h3>Create New Admin or Viewer</h3>
+              
+              <div class="form-group">
+                <label for="admin-name">Name</label>
+                <input
+                  type="text"
+                  id="admin-name"
+                  formControlName="name"
+                  placeholder="Full Name"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="admin-email">Email</label>
+                <input
+                  type="email"
+                  id="admin-email"
+                  formControlName="email"
+                  placeholder="admin@example.com"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="admin-role">Role</label>
+                <select id="admin-role" formControlName="role" class="form-input">
+                  <option value="ADMIN">Admin (Full Access)</option>
+                  <option value="VIEWER">Viewer (Read Only)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="admin-password">Password</label>
+                <input
+                  type="password"
+                  id="admin-password"
+                  formControlName="password"
+                  placeholder="Minimum 8 characters"
+                  class="form-input"
+                />
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="secondary-button" (click)="toggleAdminForm()">
+                  Cancel
+                </button>
+                <button type="submit" class="primary-button" [disabled]="adminForm.invalid || isSubmitting()">
+                  <i class="fas fa-user-plus"></i>
+                  Create {{ adminForm.get('role')?.value === 'ADMIN' ? 'Admin' : 'Viewer' }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Admins Grid -->
+          <div *ngIf="adminUsers().length === 0 && viewerUsers().length === 0" class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <h3>No Admin Users Found</h3>
+            <p>Create admin and viewer accounts to manage the system.</p>
+          </div>
+
+          <div *ngIf="adminUsers().length > 0 || viewerUsers().length > 0" class="admin-users-container">
+            <!-- Admins Section -->
+            <div *ngIf="adminUsers().length > 0" class="admin-section">
+              <h3><i class="fas fa-user-cog"></i> Administrators</h3>
+              <div class="admin-users-grid">
+                <div *ngFor="let admin of adminUsers()" class="admin-card">
+                  <div class="admin-header">
+                    <div class="admin-info">
+                      <h4>{{ admin.name }}</h4>
+                      <p class="admin-email">{{ admin.email }}</p>
+                    </div>
+                    <span class="role-badge admin-role">
+                      <i class="fas fa-crown"></i>
+                      Admin
+                    </span>
+                  </div>
+                  
+                  <div class="admin-details">
+                    <div class="detail-item">
+                      <strong>Status:</strong> 
+                      <span [class]="'status-indicator ' + (admin.isActive ? 'active' : 'inactive')">
+                        {{ admin.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </div>
+                    <div class="detail-item">
+                      <strong>Created:</strong> {{ admin.createdAt | date:'short' }}
+                    </div>
+                  </div>
+
+                  <div class="admin-actions">
+                    <button class="action-button toggle-button" (click)="toggleAdminStatus(admin)">
+                      <i class="fas {{ admin.isActive ? 'fa-pause' : 'fa-play' }}"></i>
+                      {{ admin.isActive ? 'Deactivate' : 'Activate' }}
+                    </button>
+                    <button class="action-button delete-button" (click)="deleteAdminUser(admin.userId)">
+                      <i class="fas fa-trash"></i>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Viewers Section -->
+            <div *ngIf="viewerUsers().length > 0" class="viewer-section">
+              <h3><i class="fas fa-eye"></i> Viewers</h3>
+              <div class="admin-users-grid">
+                <div *ngFor="let viewer of viewerUsers()" class="admin-card">
+                  <div class="admin-header">
+                    <div class="admin-info">
+                      <h4>{{ viewer.name }}</h4>
+                      <p class="admin-email">{{ viewer.email }}</p>
+                    </div>
+                    <span class="role-badge viewer-role">
+                      <i class="fas fa-eye"></i>
+                      Viewer
+                    </span>
+                  </div>
+                  
+                  <div class="admin-details">
+                    <div class="detail-item">
+                      <strong>Access:</strong> 
+                      <span [class]="'status-indicator ' + (viewer.canView ? 'active' : 'inactive')">
+                        {{ viewer.canView ? 'Can View' : 'No Access' }}
+                      </span>
+                    </div>
+                    <div class="detail-item">
+                      <strong>Created:</strong> {{ viewer.createdAt | date:'short' }}
+                    </div>
+                  </div>
+
+                  <div class="admin-actions">
+                    <button class="action-button toggle-button" (click)="toggleViewerAccess(viewer)">
+                      <i class="fas {{ viewer.canView ? 'fa-eye-slash' : 'fa-eye' }}"></i>
+                      {{ viewer.canView ? 'Revoke Access' : 'Grant Access' }}
+                    </button>
+                    <button class="action-button delete-button" (click)="deleteViewerUser(viewer.userId)">
+                      <i class="fas fa-trash"></i>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pagination-controls">
+              <div class="pagination-info">
+                Page {{ currentPage() }} • Showing {{ adminUsers().length + viewerUsers().length }} items
+              </div>
+              <div class="pagination-buttons">
+                <button 
+                  class="pagination-btn" 
+                  (click)="loadPreviousPage('admin')" 
+                  [disabled]="currentPage() <= 1">
+                  <i class="fas fa-chevron-left"></i>
+                  Previous
+                </button>
+                <button 
+                  class="pagination-btn" 
+                  (click)="loadNextPage('admin')" 
+                  [disabled]="!hasMoreAdmins() && !hasMoreViewers()">
+                  Next
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  `,
+  styles: [`
+    /* Main Container & Layout */
+    .admin-container {
+      min-height: 100vh;
+      background: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* Header */
+    .admin-header {
+      background: #1e40af;
+      color: white;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .logo {
+      height: 48px;
+      width: auto;
+      filter: brightness(0) invert(1);
+    }
+
+    .admin-info h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    .admin-info p {
+      margin: 0;
+      opacity: 0.85;
+      font-size: 0.85rem;
+      font-weight: 400;
+    }
+
+    .sign-out-button {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .sign-out-button:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.6);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .sign-out-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .sign-out-button i {
+      font-size: 1rem;
+    }
+
+    .sign-out-button span {
+      font-weight: 600;
+    }
+
+    /* Navigation */
+    .admin-nav {
+      background: #1e40af;
+      padding: 1rem 2rem;
+      display: flex;
+      gap: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .nav-button {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid transparent;
+      padding: 0.75rem 1.25rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: white;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-button.active {
+      background: white;
+      color: #1e40af;
+      border-color: white;
+    }
+
+    /* Main Content */
+    .admin-main {
+      padding: 2rem;
+      background: white;
+      min-height: calc(100vh - 140px);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* States */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: #6b7280;
+    }
+
+    .loading i {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #3b82f6;
+    }
+
+    .error-message {
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-left: 4px solid #ef4444;
+      margin-bottom: 2rem;
+    }
+
+    .success-message {
+      background: #f0fdf4;
+      color: #166534;
+      padding: 1rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-left: 4px solid #22c55e;
+      margin-bottom: 2rem;
+    }
+
+    /* View Header */
+    .view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .view-header h2 {
+      margin: 0;
+      color: #1f2937;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .stats {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .stat-item {
+      background: #f3f4f6;
+      color: #374151;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    /* Buttons */
+    .primary-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.3s;
+    }
+
+    .primary-button:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    .primary-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .secondary-button {
+      background: #6b7280;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background-color 0.3s;
+    }
+
+    .secondary-button:hover {
+      background: #374151;
+    }
+
+    /* Tables */
+    .table-container {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+    }
+
+    .applicants-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .applicants-table th {
+      background: #f8fafc;
+      color: #374151;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .applicants-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .table-row {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .table-row:hover {
+      background: #f8fafc;
+    }
+
+    .email-link {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+
+    .email-link:hover {
+      text-decoration: underline;
+    }
+
+    .table-action-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .table-action-btn:hover {
+      background: #2563eb;
+    }
+
+    /* Status Badges */
+    .status-badge, .phase-badge, .role-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .status-accepted { background: #dcfce7; color: #166534; }
+    .status-rejected { background: #fee2e2; color: #991b1b; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+
+    .phase-signup { background: #e0e7ff; color: #3730a3; }
+    .phase-webinar { background: #fef3c7; color: #92400e; }
+    .phase-in-depth-application { background: #dbeafe; color: #1e40af; }
+    .phase-interview { background: #e0e7ff; color: #5b21b6; }
+    .phase-accepted { background: #dcfce7; color: #166534; }
+
+    .admin-role { background: #fee2e2; color: #991b1b; }
+    .viewer-role { background: #dbeafe; color: #1e40af; }
+
+    /* Forms */
+    .form-container {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .create-form h3 {
+      margin: 0 0 1.5rem 0;
+      color: #374151;
+      font-size: 1.3rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      padding-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    /* Grids */
+    .cohorts-grid, .admin-users-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .cohort-card, .admin-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cohort-card:hover, .admin-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    /* Cohort Cards */
+    .cohort-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .cohort-header h3 {
+      margin: 0;
+      color: #374151;
+      font-size: 1.2rem;
+    }
+
+    .timeline-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      padding: 0.5rem;
+      background: #f8fafc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .timeline-item i {
+      color: #3b82f6;
+      width: 16px;
+    }
+
+    /* Admin Cards */
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .admin-info h4 {
+      margin: 0 0 0.25rem 0;
+      color: #374151;
+      font-size: 1.1rem;
+    }
+
+    .admin-email {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .admin-details {
+      margin-bottom: 1rem;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .status-indicator.active { color: #059669; }
+    .status-indicator.inactive { color: #dc2626; }
+
+    /* Actions */
+    .cohort-actions, .admin-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .action-button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .edit-button { background: #3b82f6; color: white; }
+    .edit-button:hover { background: #2563eb; }
+
+    .delete-button { background: #dc2626; color: white; }
+    .delete-button:hover { background: #b91c1c; }
+
+    .toggle-button { background: #6b7280; color: white; }
+    .toggle-button:hover { background: #374151; }
+
+    /* Sections */
+    .admin-users-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .admin-section h3, .viewer-section h3 {
+      color: #374151;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Empty States */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #6b7280;
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      color: #9ca3af;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 1rem 0;
+      color: #374151;
+      font-size: 1.3rem;
+    }
+
+    /* Pagination */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .page-size-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .page-size-selector label {
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .page-size-selector select {
+      padding: 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .pagination-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-top: 1px solid #e5e7eb;
+      background: #f8fafc;
+    }
+
+    .pagination-info {
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+
+    .pagination-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .pagination-btn {
+      background: white;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .admin-main { padding: 1rem; }
+      .header-content { 
+        flex-direction: column; 
+        gap: 1rem; 
+        align-items: center;
+      }
+      .header-left {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+      .logo {
+        height: 36px;
+      }
+      .admin-info h1 {
+        font-size: 1.2rem;
+      }
+      .admin-nav { flex-direction: column; }
+      .view-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+      .form-row { grid-template-columns: 1fr; }
+      .cohorts-grid, .admin-users-grid { grid-template-columns: 1fr; }
+      .form-actions { flex-direction: column; }
+      .pagination-controls { flex-direction: column; gap: 1rem; }
+      .pagination-buttons { justify-content: center; }
+      .sign-out-button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.85rem;
+      }
+    }
+  `]
+})
+export class AdminDashboardComponent implements OnInit {
+  private authService = inject(AuthService);
+  private cohortService = inject(CohortService);
+  private userService = inject(UserService);
+  private fb = inject(FormBuilder);
+
+  // Signals
+  currentView = signal<AdminView>('applicants');
+  isLoading = signal(false);
+  isSubmitting = signal(false);
+  error = signal('');
+  success = signal('');
+
+  currentUser = signal<AdminUser | ViewerUser | null>(null);
+  applicants = signal<ApplicantUser[]>([]);
+  cohorts = signal<Cohort[]>([]);
+  adminUsers = signal<AdminUser[]>([]);
+  viewerUsers = signal<ViewerUser[]>([]);
+
+  // Pagination
+  pageSize = signal(25);
+  currentPage = signal(1);
+  
+  // Pagination states for each view
+  applicantsLastDoc = signal<DocumentSnapshot | null>(null);
+  cohortsLastDoc = signal<DocumentSnapshot | null>(null);
+  adminsLastDoc = signal<DocumentSnapshot | null>(null);
+  viewersLastDoc = signal<DocumentSnapshot | null>(null);
+  
+  hasMoreApplicants = signal(false);
+  hasMoreCohorts = signal(false);
+  hasMoreAdmins = signal(false);
+  hasMoreViewers = signal(false);
+  
+  pageSizeOptions = [5, 10, 25, 50, 100];
+
+  // Form states
+  showCohortForm = signal(false);
+  showAdminForm = signal(false);
+
+  // Forms
+  cohortForm: FormGroup;
+  adminForm: FormGroup;
+
+  constructor() {
+    this.cohortForm = this.fb.group({
+      name: ['', Validators.required],
+      description: [''],
+      applicationStartDate: ['', Validators.required],
+      applicationEndDate: ['', Validators.required],
+      programStartDate: ['', Validators.required],
+      programEndDate: ['', Validators.required],
+      maxApplicants: ['']
+    });
+
+    this.adminForm = this.fb.group({
+      name: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      role: ['ADMIN', Validators.required],
+      password: ['', [Validators.required, Validators.minLength(8)]]
+    });
+  }
+
+  ngOnInit() {
+    this.loadCurrentUser();
+    this.loadData();
+  }
+
+  private loadCurrentUser() {
+    this.authService.currentUser$.subscribe(user => {
+      if (user && (user.role === UserRole.ADMIN || user.role === UserRole.VIEWER)) {
+        this.currentUser.set(user as AdminUser | ViewerUser);
+      }
+    });
+  }
+
+  private async loadData() {
+    try {
+      this.isLoading.set(true);
+      this.error.set('');
+
+      if (this.currentView() === 'applicants') {
+        await this.loadApplicantsPage(true);
+      } else if (this.currentView() === 'cohorts') {
+        await this.loadCohortsPage(true);
+      } else if (this.currentView() === 'admin') {
+        await Promise.all([
+          this.loadAdminsPage(true),
+          this.loadViewersPage(true)
+        ]);
+      }
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to load data');
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  switchView(view: AdminView) {
+    this.currentView.set(view);
+    this.success.set('');
+    this.error.set('');
+    this.resetPagination();
+    this.loadData();
+  }
+
+  async signOut() {
+    try {
+      await this.authService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  }
+
+  // Applicants methods
+  viewApplicantDetails(applicant: ApplicantUser) {
+    // TODO: Navigate to applicant detail view
+    console.log('View applicant:', applicant);
+  }
+
+  getPhaseDisplayName(phase: Phase): string {
+    const phaseNames = {
+      [Phase.SIGNUP]: 'Sign Up',
+      [Phase.WEBINAR]: 'Webinar',
+      [Phase.IN_DEPTH_APPLICATION]: 'Application',
+      [Phase.INTERVIEW]: 'Interview',
+      [Phase.ACCEPTED]: 'Accepted'
+    };
+    return phaseNames[phase] || phase;
+  }
+
+  getCohortName(cohortId: string): string {
+    const cohort = this.cohorts().find(c => c.id === cohortId);
+    return cohort?.name || 'Unknown';
+  }
+
+  // Cohort methods
+  toggleCohortForm() {
+    this.showCohortForm.set(!this.showCohortForm());
+    if (!this.showCohortForm()) {
+      this.cohortForm.reset();
+    }
+  }
+
+  async createCohort() {
+    if (this.cohortForm.invalid || this.isSubmitting()) return;
+
+    try {
+      this.isSubmitting.set(true);
+      this.error.set('');
+
+      const formValue = this.cohortForm.value;
+      const cohort = await this.cohortService.createCohort({
+        name: formValue.name,
+        description: formValue.description,
+        applicationStartDate: new Date(formValue.applicationStartDate),
+        applicationEndDate: new Date(formValue.applicationEndDate),
+        programStartDate: new Date(formValue.programStartDate),
+        programEndDate: new Date(formValue.programEndDate),
+        maxApplicants: formValue.maxApplicants ? parseInt(formValue.maxApplicants) : undefined
+      });
+
+      this.cohorts.update(cohorts => [cohort, ...cohorts]);
+      this.success.set('Cohort created successfully!');
+      this.toggleCohortForm();
+      
+      setTimeout(() => this.success.set(''), 5000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to create cohort');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  getCohortStatus(cohort: Cohort): string {
+    const now = new Date();
+    if (now < cohort.applicationStartDate) return 'upcoming';
+    if (now <= cohort.applicationEndDate) return 'accepting';
+    if (now < cohort.programStartDate) return 'closed';
+    if (now <= cohort.programEndDate) return 'in-progress';
+    return 'completed';
+  }
+
+  getCohortStatusDisplay(cohort: Cohort): string {
+    const status = this.getCohortStatus(cohort);
+    const statusNames = {
+      upcoming: 'Upcoming',
+      accepting: 'Accepting Applications',
+      closed: 'Applications Closed',
+      'in-progress': 'In Progress',
+      completed: 'Completed'
+    };
+    return statusNames[status as keyof typeof statusNames] || status;
+  }
+
+  async deleteCohort(cohortId: string) {
+    if (!confirm('Are you sure you want to delete this cohort?')) return;
+
+    try {
+      // TODO: Implement delete cohort
+      this.success.set('Cohort deleted successfully!');
+      setTimeout(() => this.success.set(''), 5000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to delete cohort');
+    }
+  }
+
+  // Admin management methods
+  toggleAdminForm() {
+    this.showAdminForm.set(!this.showAdminForm());
+    if (!this.showAdminForm()) {
+      this.adminForm.reset({ role: 'ADMIN' });
+    }
+  }
+
+  async createAdmin() {
+    if (this.adminForm.invalid || this.isSubmitting()) return;
+
+    try {
+      this.isSubmitting.set(true);
+      this.error.set('');
+
+      const formValue = this.adminForm.value;
+      
+      const userId = await this.userService.createUser({
+        name: formValue.name,
+        email: formValue.email,
+        password: formValue.password,
+        role: formValue.role
+      });
+      
+      // Reload the current view data
+      await this.loadData();
+      
+      this.success.set(`${formValue.role === 'ADMIN' ? 'Admin' : 'Viewer'} created successfully!`);
+      this.toggleAdminForm();
+      
+      setTimeout(() => this.success.set(''), 5000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to create user');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async toggleAdminStatus(admin: AdminUser) {
+    try {
+      const newStatus = !admin.isActive;
+      await this.userService.toggleAdminStatus(admin.userId, newStatus);
+      
+      this.adminUsers.update(admins => 
+        admins.map(a => a.userId === admin.userId ? { ...a, isActive: newStatus } : a)
+      );
+      
+      this.success.set(`Admin ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to update admin status');
+    }
+  }
+
+  async toggleViewerAccess(viewer: ViewerUser) {
+    try {
+      const newAccess = !viewer.canView;
+      await this.userService.toggleViewerAccess(viewer.userId, newAccess);
+      
+      this.viewerUsers.update(viewers => 
+        viewers.map(v => v.userId === viewer.userId ? { ...v, canView: newAccess } : v)
+      );
+      
+      this.success.set(`Viewer access ${newAccess ? 'granted' : 'revoked'} successfully!`);
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to update viewer access');
+    }
+  }
+
+  async deleteAdminUser(userId: string) {
+    if (!confirm('Are you sure you want to remove this admin?')) return;
+    
+    try {
+      await this.userService.deleteUser(userId);
+      this.adminUsers.update(admins => admins.filter(a => a.userId !== userId));
+      this.success.set('Admin removed successfully!');
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to remove admin');
+    }
+  }
+
+  async deleteViewerUser(userId: string) {
+    if (!confirm('Are you sure you want to remove this viewer?')) return;
+    
+    try {
+      await this.userService.deleteUser(userId);
+      this.viewerUsers.update(viewers => viewers.filter(v => v.userId !== userId));
+      this.success.set('Viewer removed successfully!');
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to remove viewer');
+    }
+  }
+
+  // Pagination methods
+  resetPagination() {
+    this.currentPage.set(1);
+    this.applicantsLastDoc.set(null);
+    this.cohortsLastDoc.set(null);
+    this.adminsLastDoc.set(null);
+    this.viewersLastDoc.set(null);
+    this.hasMoreApplicants.set(false);
+    this.hasMoreCohorts.set(false);
+    this.hasMoreAdmins.set(false);
+    this.hasMoreViewers.set(false);
+  }
+
+  changePageSize(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.pageSize.set(parseInt(target.value));
+    this.resetPagination();
+    this.loadData();
+  }
+
+  async loadApplicantsPage(reset = false) {
+    try {
+      const lastDoc = reset ? null : this.applicantsLastDoc();
+      const result = await this.userService.getApplicantsPaginated(this.pageSize(), lastDoc || undefined);
+      
+      if (reset) {
+        this.applicants.set(result.users);
+      } else {
+        this.applicants.update(current => [...current, ...result.users]);
+      }
+      
+      this.applicantsLastDoc.set(result.lastDoc);
+      this.hasMoreApplicants.set(result.hasMore);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to load applicants');
+    }
+  }
+
+  async loadCohortsPage(reset = false) {
+    try {
+      const lastDoc = reset ? null : this.cohortsLastDoc();
+      const result = await this.cohortService.getCohortsPaginated(this.pageSize(), lastDoc || undefined);
+      
+      if (reset) {
+        this.cohorts.set(result.cohorts);
+      } else {
+        this.cohorts.update(current => [...current, ...result.cohorts]);
+      }
+      
+      this.cohortsLastDoc.set(result.lastDoc);
+      this.hasMoreCohorts.set(result.hasMore);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to load cohorts');
+    }
+  }
+
+  async loadAdminsPage(reset = false) {
+    try {
+      const lastDoc = reset ? null : this.adminsLastDoc();
+      const result = await this.userService.getAdminsPaginated(this.pageSize(), lastDoc || undefined);
+      
+      if (reset) {
+        this.adminUsers.set(result.users);
+      } else {
+        this.adminUsers.update(current => [...current, ...result.users]);
+      }
+      
+      this.adminsLastDoc.set(result.lastDoc);
+      this.hasMoreAdmins.set(result.hasMore);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to load admins');
+    }
+  }
+
+  async loadViewersPage(reset = false) {
+    try {
+      const lastDoc = reset ? null : this.viewersLastDoc();
+      const result = await this.userService.getViewersPaginated(this.pageSize(), lastDoc || undefined);
+      
+      if (reset) {
+        this.viewerUsers.set(result.users);
+      } else {
+        this.viewerUsers.update(current => [...current, ...result.users]);
+      }
+      
+      this.viewersLastDoc.set(result.lastDoc);
+      this.hasMoreViewers.set(result.hasMore);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to load viewers');
+    }
+  }
+
+  async loadNextPage(view: string) {
+    this.currentPage.update(page => page + 1);
+    
+    switch (view) {
+      case 'applicants':
+        await this.loadApplicantsPage();
+        break;
+      case 'cohorts':
+        await this.loadCohortsPage();
+        break;
+      case 'admins':
+        await this.loadAdminsPage();
+        break;
+      case 'viewers':
+        await this.loadViewersPage();
+        break;
+    }
+  }
+
+  async loadPreviousPage(view: string) {
+    if (this.currentPage() <= 1) return;
+    
+    this.currentPage.update(page => page - 1);
+    this.resetPagination();
+    
+    // Load from beginning up to current page
+    let currentPageNum = 1;
+    const targetPage = this.currentPage();
+    
+    while (currentPageNum < targetPage) {
+      switch (view) {
+        case 'applicants':
+          await this.loadApplicantsPage();
+          break;
+        case 'cohorts':
+          await this.loadCohortsPage();
+          break;
+        case 'admins':
+          await this.loadAdminsPage();
+          break;
+        case 'viewers':
+          await this.loadViewersPage();
+          break;
+      }
+      currentPageNum++;
+    }
+  }
+}

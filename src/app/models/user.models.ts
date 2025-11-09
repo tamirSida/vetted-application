@@ -29,6 +29,7 @@ export interface ApplicantUser extends BaseUser {
   webinarAttended: number | null;
   interviewerId?: string;
   cohortId: string;
+  companyName?: string;
   profileData?: {
     phone?: string;
     linkedIn?: string;

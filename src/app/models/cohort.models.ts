@@ -34,6 +34,7 @@ export interface CohortUpdateRequest {
   name?: string;
   description?: string;
   maxApplicants?: number;
+  currentApplicantCount?: number;
   isActive?: boolean;
 }
 

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, orderBy, Timestamp } from '@angular/fire/firestore';
+import { Firestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, addDoc, Timestamp, limit, startAfter, DocumentSnapshot } from '@angular/fire/firestore';
 import { Observable, from } from 'rxjs';
 import { Cohort, CohortCreateRequest, CohortUpdateRequest, CohortOverlapCheck, CohortValidationError } from '../models/cohort.models';
 import { Webinar } from '../models/webinar.models';
@@ -117,8 +117,7 @@ export class CohortService {
   async getAllCohorts(): Promise<Cohort[]> {
     try {
       const cohortsQuery = query(
-        collection(this.firestore, APP_CONSTANTS.COLLECTIONS.COHORTS),
-        orderBy('createdAt', 'desc')
+        collection(this.firestore, APP_CONSTANTS.COLLECTIONS.COHORTS)
       );
       
       const querySnapshot = await getDocs(cohortsQuery);
@@ -380,6 +379,49 @@ export class CohortService {
       }
     } catch (error) {
       console.error('Error activating cohort:', error);
+      throw error;
+    }
+  }
+
+  async getCohortsPaginated(pageSize: number, lastDoc?: DocumentSnapshot): Promise<{
+    cohorts: Cohort[];
+    lastDoc: DocumentSnapshot | null;
+    hasMore: boolean;
+  }> {
+    try {
+      let cohortsQuery = query(
+        collection(this.firestore, APP_CONSTANTS.COLLECTIONS.COHORTS),
+        limit(pageSize)
+      );
+
+      if (lastDoc) {
+        cohortsQuery = query(cohortsQuery, startAfter(lastDoc));
+      }
+
+      const querySnapshot = await getDocs(cohortsQuery);
+      const cohorts: Cohort[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        cohorts.push({
+          id: doc.id,
+          ...data,
+          programStartDate: data['programStartDate']?.toDate() || new Date(),
+          programEndDate: data['programEndDate']?.toDate() || new Date(),
+          applicationStartDate: data['applicationStartDate']?.toDate() || new Date(),
+          applicationEndDate: data['applicationEndDate']?.toDate() || new Date(),
+          createdAt: data['createdAt']?.toDate() || new Date(),
+          updatedAt: data['updatedAt']?.toDate() || new Date(),
+        } as Cohort);
+      });
+
+      return {
+        cohorts,
+        lastDoc: querySnapshot.docs[querySnapshot.docs.length - 1] || null,
+        hasMore: querySnapshot.docs.length === pageSize
+      };
+    } catch (error) {
+      console.error('Error getting paginated cohorts:', error);
       throw error;
     }
   }

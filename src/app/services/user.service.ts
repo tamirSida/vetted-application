@@ -33,10 +33,24 @@ export class UserService {
       );
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(doc => ({
-        userId: doc.id,
-        ...doc.data()
-      })) as ApplicantUser[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Transform data to match ApplicantUser interface
+        return {
+          userId: doc.id,
+          name: `${data['firstName'] || ''} ${data['lastName'] || ''}`.trim() || data['name'],
+          email: data['email'],
+          role: data['role'],
+          isAccepted: data['isAccepted'],
+          phase: data['phase'],
+          webinarAttended: data['webinarAttended'],
+          interviewerId: data['interviewerId'],
+          cohortId: data['cohortId'],
+          profileData: data['profileData'],
+          createdAt: data['createdAt'],
+          updatedAt: data['updatedAt']
+        };
+      }) as ApplicantUser[];
     } catch (error) {
       console.error('Error loading applicants:', error);
       throw new Error('Failed to load applicants');
@@ -110,10 +124,24 @@ export class UserService {
       );
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(doc => ({
-        userId: doc.id,
-        ...doc.data()
-      })) as ApplicantUser[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Transform data to match ApplicantUser interface
+        return {
+          userId: doc.id,
+          name: `${data['firstName'] || ''} ${data['lastName'] || ''}`.trim() || data['name'],
+          email: data['email'],
+          role: data['role'],
+          isAccepted: data['isAccepted'],
+          phase: data['phase'],
+          webinarAttended: data['webinarAttended'],
+          interviewerId: data['interviewerId'],
+          cohortId: data['cohortId'],
+          profileData: data['profileData'],
+          createdAt: data['createdAt'],
+          updatedAt: data['updatedAt']
+        };
+      }) as ApplicantUser[];
     } catch (error) {
       console.error('Error loading cohort applicants:', error);
       throw new Error('Failed to load cohort applicants');
@@ -217,10 +245,24 @@ export class UserService {
 
       const snapshot = await getDocs(q);
       
-      const users = snapshot.docs.map(doc => ({
-        userId: doc.id,
-        ...doc.data()
-      })) as ApplicantUser[];
+      const users = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Transform data to match ApplicantUser interface
+        return {
+          userId: doc.id,
+          name: `${data['firstName'] || ''} ${data['lastName'] || ''}`.trim() || data['name'],
+          email: data['email'],
+          role: data['role'],
+          isAccepted: data['isAccepted'],
+          phase: data['phase'],
+          webinarAttended: data['webinarAttended'],
+          interviewerId: data['interviewerId'],
+          cohortId: data['cohortId'],
+          profileData: data['profileData'],
+          createdAt: data['createdAt'],
+          updatedAt: data['updatedAt']
+        };
+      }) as ApplicantUser[];
 
       return {
         users,

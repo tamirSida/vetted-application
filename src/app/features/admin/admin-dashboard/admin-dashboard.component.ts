@@ -125,7 +125,7 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                       {{ getPhaseDisplayName(applicant.phase) }}
                     </span>
                   </td>
-                  <td>{{ applicant.companyName || 'Not specified' }}</td>
+                  <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
                   <td>
                     <button class="table-action-btn view-btn" (click)="$event.stopPropagation(); viewApplicantDetails(applicant)">
                       <i class="fas fa-eye"></i>

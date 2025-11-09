@@ -162,7 +162,7 @@ export class AuthService {
         if (collectionName === 'users') {
           return {
             userId: userData['uid'] || userId,
-            name: `${userData['firstName']} ${userData['lastName']}`,
+            name: `${userData['firstName'] || ''} ${userData['lastName'] || ''}`.trim(),
             email: userData['email'],
             role: userData['role'],
             phase: userData['phase'],

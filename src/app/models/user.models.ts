@@ -31,6 +31,7 @@ export interface ApplicantUser extends BaseUser {
   cohortId: string;
   companyName?: string;
   profileData?: {
+    companyName?: string;
     phone?: string;
     linkedIn?: string;
     resume?: string;

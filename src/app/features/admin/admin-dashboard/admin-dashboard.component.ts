@@ -550,13 +550,13 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
     .admin-header {
       background: #1e40af;
       color: white;
-      padding: 1.5rem 2rem;
+      padding: 1.5rem 0;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .header-content {
-      max-width: 1400px;
-      margin: 0 auto;
+      width: 100%;
+      padding: 0 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;

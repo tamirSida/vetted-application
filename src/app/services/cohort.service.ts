@@ -277,14 +277,6 @@ export class CohortService {
       });
     }
 
-    // All dates should be in the future (for new cohorts)
-    const now = new Date();
-    if (appStart < now) {
-      errors.push({
-        field: 'applicationStartDate',
-        message: 'Application start date should be in the future'
-      });
-    }
 
     return errors;
   }

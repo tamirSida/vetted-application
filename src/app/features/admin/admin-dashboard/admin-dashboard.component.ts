@@ -1616,8 +1616,7 @@ export class AdminDashboardComponent implements OnInit {
 
   // Applicants methods
   viewApplicantDetails(applicant: ApplicantUser) {
-    // TODO: Navigate to applicant detail view
-    console.log('View applicant:', applicant);
+    this.router.navigate(['/admin/applicant', applicant.userId]);
   }
 
   getPhaseDisplayName(phase: Phase): string {

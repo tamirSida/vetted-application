@@ -95,11 +95,15 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
           <div class="profile-grid">
             <div class="profile-item">
               <label>Name</label>
-              <span>{{ applicant()?.name }}</span>
+              <span>{{ getApplicantName() }}</span>
+            </div>
+            <div class="profile-item">
+              <label>Current Phase</label>
+              <span class="phase-display">{{ getCurrentPhaseDisplay() }}</span>
             </div>
             <div class="profile-item">
               <label>Company</label>
-              <span>{{ applicant()?.profileData?.companyName || 'Not specified' }}</span>
+              <span>{{ getCompanyName() || 'Not specified' }}</span>
             </div>
             <div class="profile-item">
               <label>Title</label>
@@ -689,6 +693,17 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
       font-size: 1rem;
     }
 
+    .phase-display {
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
     /* Application Content */
     .application-content {
       padding: 1.5rem;
@@ -1230,6 +1245,30 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   // Profile helper methods
+  getApplicantName(): string {
+    const applicant = this.applicant();
+    if (applicant?.name) {
+      return applicant.name;
+    }
+    // Fallback to Phase 1 application name if available
+    const phase1 = this.phase1Application();
+    if (phase1?.personalInfo?.firstName && phase1?.personalInfo?.lastName) {
+      return `${phase1.personalInfo.firstName} ${phase1.personalInfo.lastName}`;
+    }
+    return 'Not specified';
+  }
+
+  getCurrentPhaseDisplay(): string {
+    const status = this.applicant()?.status;
+    return this.statusMessageService.getAdminDisplayName(status || ApplicationStatus.PHASE_1);
+  }
+
+  getCompanyName(): string {
+    return this.applicant()?.profileData?.companyName || 
+           this.phase1Application()?.companyInfo?.companyName || 
+           '';
+  }
+
   getPhoneNumber(): string {
     return this.applicant()?.profileData?.phone || this.phase1Application()?.personalInfo?.phone || '';
   }

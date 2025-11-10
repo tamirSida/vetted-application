@@ -45,8 +45,49 @@ import { FlaggingResult } from '../../../services/flagging.service';
       <!-- Main Content -->
       <main class="detail-main" *ngIf="!isLoading() && applicant()">
         
-        <!-- Profile Section -->
-        <section class="profile-section">
+        <!-- Tab Navigation -->
+        <nav class="tab-navigation">
+          <button 
+            [class]="'tab-button ' + (activeTab() === 'profile' ? 'active' : '')"
+            (click)="setActiveTab('profile')">
+            <i class="fas fa-user"></i>
+            Profile
+          </button>
+          <button 
+            *ngIf="shouldShowPhase1()"
+            [class]="'tab-button ' + (activeTab() === 'phase1' ? 'active' : '')"
+            (click)="setActiveTab('phase1')">
+            <i class="fas fa-clipboard-list"></i>
+            Phase 1
+          </button>
+          <button 
+            *ngIf="shouldShowPhase2()"
+            [class]="'tab-button ' + (activeTab() === 'phase2' ? 'active' : '')"
+            (click)="setActiveTab('phase2')">
+            <i class="fas fa-video"></i>
+            Phase 2
+          </button>
+          <button 
+            *ngIf="shouldShowPhase3()"
+            [class]="'tab-button ' + (activeTab() === 'phase3' ? 'active' : '')"
+            (click)="setActiveTab('phase3')">
+            <i class="fas fa-file-alt"></i>
+            Phase 3
+          </button>
+          <button 
+            *ngIf="shouldShowPhase4()"
+            [class]="'tab-button ' + (activeTab() === 'phase4' ? 'active' : '')"
+            (click)="setActiveTab('phase4')">
+            <i class="fas fa-handshake"></i>
+            Phase 4
+          </button>
+        </nav>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+        
+          <!-- Profile Section -->
+          <section class="profile-section tab-panel" *ngIf="activeTab() === 'profile'">
           <div class="section-header">
             <h2><i class="fas fa-user"></i> Profile</h2>
           </div>
@@ -109,8 +150,8 @@ import { FlaggingResult } from '../../../services/flagging.service';
           </div>
         </section>
 
-        <!-- Phase 1 Section -->
-        <section class="phase-section" *ngIf="shouldShowPhase1()">
+          <!-- Phase 1 Section -->
+          <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase1'">
           <div class="section-header">
             <h2><i class="fas fa-clipboard-list"></i> Phase 1 Application</h2>
             <div class="phase-actions" *ngIf="canAdvanceFromPhase1()">
@@ -265,8 +306,8 @@ import { FlaggingResult } from '../../../services/flagging.service';
           </div>
         </section>
 
-        <!-- Phase 2 Section -->
-        <section class="phase-section" *ngIf="shouldShowPhase2()">
+          <!-- Phase 2 Section -->
+          <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase2'">
           <div class="section-header">
             <h2><i class="fas fa-video"></i> Phase 2 - Webinar Attendance</h2>
             <div class="phase-actions" *ngIf="canAdvanceFromPhase2()">
@@ -289,8 +330,8 @@ import { FlaggingResult } from '../../../services/flagging.service';
           </div>
         </section>
 
-        <!-- Phase 3 Section -->
-        <section class="phase-section" *ngIf="shouldShowPhase3()">
+          <!-- Phase 3 Section -->
+          <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase3'">
           <div class="section-header">
             <h2><i class="fas fa-file-alt"></i> Phase 3 - In-Depth Application</h2>
             <div class="phase-actions" *ngIf="canAdvanceFromPhase3()">
@@ -306,8 +347,8 @@ import { FlaggingResult } from '../../../services/flagging.service';
           </div>
         </section>
 
-        <!-- Phase 4 Section -->
-        <section class="phase-section" *ngIf="shouldShowPhase4()">
+          <!-- Phase 4 Section -->
+          <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase4'">
           <div class="section-header">
             <h2><i class="fas fa-handshake"></i> Phase 4 - Interview</h2>
             <div class="phase-actions" *ngIf="canAdvanceFromPhase4()">
@@ -367,6 +408,7 @@ import { FlaggingResult } from '../../../services/flagging.service';
           </div>
         </section>
 
+        </div> <!-- Close tab-content -->
       </main>
     </div>
   `,
@@ -454,7 +496,69 @@ import { FlaggingResult } from '../../../services/flagging.service';
       padding: 2rem;
       display: flex;
       flex-direction: column;
-      gap: 2rem;
+      gap: 0;
+    }
+
+    /* Tab Navigation */
+    .tab-navigation {
+      display: flex;
+      background: white;
+      border-radius: 12px 12px 0 0;
+      border: 1px solid #e5e7eb;
+      border-bottom: none;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .tab-navigation::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-button {
+      background: none;
+      border: none;
+      padding: 1rem 1.5rem;
+      color: #6b7280;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+      min-width: max-content;
+      white-space: nowrap;
+    }
+
+    .tab-button:hover {
+      color: #374151;
+      background: #f9fafb;
+    }
+
+    .tab-button.active {
+      color: #3b82f6;
+      background: #f8fafc;
+      border-bottom-color: #3b82f6;
+    }
+
+    .tab-button i {
+      font-size: 0.9rem;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      background: white;
+      border-radius: 0 0 12px 12px;
+      border: 1px solid #e5e7eb;
+      border-top: none;
+    }
+
+    .tab-panel {
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      margin: 0;
     }
 
     /* States */
@@ -893,6 +997,19 @@ import { FlaggingResult } from '../../../services/flagging.service';
         align-items: flex-start;
         gap: 1rem;
       }
+
+      .tab-navigation {
+        border-radius: 8px 8px 0 0;
+      }
+
+      .tab-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+      }
+
+      .tab-content {
+        border-radius: 0 0 8px 8px;
+      }
       
       .profile-grid, .info-grid {
         grid-template-columns: 1fr;
@@ -902,6 +1019,7 @@ import { FlaggingResult } from '../../../services/flagging.service';
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+        padding: 1rem;
       }
       
       .phase-actions {
@@ -911,6 +1029,14 @@ import { FlaggingResult } from '../../../services/flagging.service';
       .advance-button {
         flex: 1;
         justify-content: center;
+      }
+
+      .application-content {
+        padding: 1rem;
+      }
+
+      .interview-management {
+        padding: 1rem;
       }
     }
   `]
@@ -929,6 +1055,7 @@ export class ApplicantDetailComponent implements OnInit {
   flaggingResult = signal<FlaggingResult | null>(null);
   isLoading = signal(true);
   error = signal('');
+  activeTab = signal<string>('profile');
 
   // Form
   notesForm: FormGroup;
@@ -978,6 +1105,9 @@ export class ApplicantDetailComponent implements OnInit {
         // TODO: Load interview notes when implemented
       }
 
+      // Set initial tab based on applicant status
+      this.setInitialTab();
+
     } catch (error: any) {
       this.error.set(error.message || 'Failed to load applicant details');
     } finally {
@@ -1013,15 +1143,14 @@ export class ApplicantDetailComponent implements OnInit {
 
   // Phase visibility methods
   shouldShowPhase1(): boolean {
-    const status = this.applicant()?.status;
-    return status !== undefined && status !== ApplicationStatus.PHASE_1;
+    // Always show Phase 1 tab for any applicant
+    return this.applicant() !== null;
   }
 
   shouldShowPhase2(): boolean {
     const status = this.applicant()?.status;
     return status !== undefined && 
-           status !== ApplicationStatus.PHASE_1 && 
-           status !== ApplicationStatus.PHASE_2;
+           status !== ApplicationStatus.PHASE_1;
   }
 
   shouldShowPhase3(): boolean {
@@ -1138,5 +1267,45 @@ export class ApplicantDetailComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  // Tab management methods
+  setActiveTab(tab: string) {
+    this.activeTab.set(tab);
+  }
+
+  setInitialTab() {
+    const status = this.applicant()?.status;
+    
+    if (!status) {
+      this.activeTab.set('profile');
+      return;
+    }
+
+    // Set initial tab based on current phase
+    switch (status) {
+      case ApplicationStatus.PHASE_1:
+        this.activeTab.set(this.shouldShowPhase1() ? 'phase1' : 'profile');
+        break;
+      case ApplicationStatus.PHASE_2:
+        this.activeTab.set(this.shouldShowPhase1() ? 'phase1' : 'profile');
+        break;
+      case ApplicationStatus.PHASE_3_IN_PROGRESS:
+      case ApplicationStatus.PHASE_3_SUBMITTED:
+      case ApplicationStatus.PHASE_3_REJECTED:
+        this.activeTab.set(this.shouldShowPhase2() ? 'phase2' : 'profile');
+        break;
+      case ApplicationStatus.PHASE_4:
+      case ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED:
+      case ApplicationStatus.PHASE_4_POST_INTERVIEW:
+      case ApplicationStatus.PHASE_4_REJECTED:
+        this.activeTab.set(this.shouldShowPhase3() ? 'phase3' : 'profile');
+        break;
+      case ApplicationStatus.ACCEPTED:
+        this.activeTab.set(this.shouldShowPhase4() ? 'phase4' : 'profile');
+        break;
+      default:
+        this.activeTab.set('profile');
+    }
   }
 }

@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Phase1Application } from '../models';
+import { UserService } from './user.service';
 
 export interface ApplicationFlag {
   type: 'YELLOW' | 'RED';
@@ -19,6 +20,7 @@ export interface FlaggingResult {
   providedIn: 'root'
 })
 export class FlaggingService {
+  private userService = inject(UserService);
 
   /**
    * Analyze a Phase 1 application and flag potential issues
@@ -163,5 +165,33 @@ export class FlaggingService {
     
     const action = result.autoAdvance ? 'Auto-advance to Phase 2' : 'Manual review required';
     return `Application flagged with ${summary}. ${action}.`;
+  }
+
+  /**
+   * Analyze application and handle auto-advancement if eligible
+   */
+  async analyzeAndProcessApplication(application: Phase1Application, applicantId: string): Promise<FlaggingResult> {
+    const result = this.analyzeApplication(application);
+    
+    // Auto-advance if no red flags
+    if (result.autoAdvance) {
+      console.log(`Application ${application.id} is eligible for auto-advancement`);
+      console.log(`Attempting to auto-advance applicant: ${applicantId}`);
+      
+      try {
+        const advanced = await this.userService.processAutoAdvancement(applicantId);
+        if (advanced) {
+          console.log(`Successfully auto-advanced applicant ${applicantId} to Phase 2`);
+        } else {
+          console.log(`Failed to auto-advance applicant ${applicantId} - processAutoAdvancement returned false`);
+        }
+      } catch (error) {
+        console.error(`Error during auto-advancement for applicant ${applicantId}:`, error);
+      }
+    } else {
+      console.log(`Application ${application.id} requires manual review due to red flags`);
+    }
+    
+    return result;
   }
 }

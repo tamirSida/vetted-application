@@ -15,7 +15,7 @@ import {
   startAfter,
   DocumentSnapshot
 } from '@angular/fire/firestore';
-import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus } from '../models';
+import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus, Phase } from '../models';
 import { UserRole } from '../models/enums';
 
 @Injectable({
@@ -245,6 +245,46 @@ export class UserService {
 
   async toggleViewerAccess(userId: string, canView: boolean): Promise<void> {
     return this.updateUser(userId, { canView });
+  }
+
+  /**
+   * Auto-advance applicant from Phase 1 to Phase 2 if eligible
+   */
+  async processAutoAdvancement(applicantId: string): Promise<boolean> {
+    try {
+      console.log(`Processing auto-advancement for applicant: ${applicantId}`);
+      
+      const applicant = await this.getUserById(applicantId) as ApplicantUser;
+      console.log(`Current applicant status:`, applicant?.status);
+      
+      if (!applicant) {
+        console.log(`Applicant not found: ${applicantId}`);
+        return false;
+      }
+      
+      // Handle cases where status is undefined (old records) - assume Phase 1 if undefined
+      const currentStatus = applicant.status || ApplicationStatus.PHASE_1;
+      console.log(`Treating undefined status as Phase 1 for backward compatibility`);
+      
+      if (currentStatus !== ApplicationStatus.PHASE_1) {
+        console.log(`Applicant ${applicantId} is not in Phase 1 (current: ${currentStatus})`);
+        return false;
+      }
+
+      console.log(`Updating applicant ${applicantId} to Phase 2...`);
+      
+      // Update to Phase 2
+      await this.updateUser(applicantId, {
+        phase: Phase.WEBINAR,
+        status: ApplicationStatus.PHASE_2
+      });
+
+      console.log(`Auto-advanced applicant ${applicantId} to Phase 2`);
+      return true;
+    } catch (error) {
+      console.error('Error in auto-advancement:', error);
+      return false;
+    }
   }
 
   // Pagination methods

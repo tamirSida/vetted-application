@@ -1197,6 +1197,12 @@ export class ApplicantDetailComponent implements OnInit {
         // Calculate fresh flagging results using new logic
         const flagging = this.flaggingService.analyzeApplication(phase1App);
         this.flaggingResult.set(flagging);
+
+        // Auto-advance if no red flags and still in Phase 1
+        if (flagging.autoAdvance && this.applicant()?.status === ApplicationStatus.PHASE_1) {
+          console.log('Auto-advancing to Phase 2 on load...');
+          await this.advanceToPhase2();
+        }
       }
 
       // Load interview notes if in Phase 4
@@ -1283,6 +1289,7 @@ export class ApplicantDetailComponent implements OnInit {
     const flagging = this.flaggingResult();
     
     // Only show advance button if in Phase 1 and has red flags (manual review required)
+    // If auto-advance is true, they should already be in Phase 2
     return status === ApplicationStatus.PHASE_1 && flagging?.needsReview === true;
   }
 
@@ -1302,9 +1309,32 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   // Phase advancement actions
-  advanceToPhase2() {
-    // TODO: Implement phase advancement
-    console.log('Advance to Phase 2');
+  async advanceToPhase2() {
+    const applicant = this.applicant();
+    if (!applicant) return;
+
+    try {
+      // Update applicant status to Phase 2
+      await this.userService.updateUser(applicant.userId, {
+        phase: Phase.WEBINAR,
+        status: ApplicationStatus.PHASE_2
+      });
+
+      // Update local state
+      this.applicant.set({
+        ...applicant,
+        phase: Phase.WEBINAR,
+        status: ApplicationStatus.PHASE_2
+      });
+
+      console.log('Successfully advanced to Phase 2');
+      
+      // Refresh the current view
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error advancing to Phase 2:', error);
+    }
   }
 
   advanceToPhase3() {
@@ -1383,12 +1413,21 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   // Flagging methods
-  recalculateFlags() {
+  async recalculateFlags() {
     const phase1App = this.phase1Application();
-    if (phase1App) {
-      const result = this.flaggingService.analyzeApplication(phase1App);
+    const applicant = this.applicant();
+    
+    if (phase1App && applicant) {
+      // Use the new method that handles both analysis and auto-advancement
+      const result = await this.flaggingService.analyzeAndProcessApplication(phase1App, applicant.userId);
       this.flaggingResult.set(result);
       console.log('Flags recalculated:', result);
+
+      // Refresh page if applicant was auto-advanced
+      if (result.autoAdvance && applicant.status === ApplicationStatus.PHASE_1) {
+        console.log('Applicant was auto-advanced, refreshing page...');
+        setTimeout(() => window.location.reload(), 1000);
+      }
     }
   }
 

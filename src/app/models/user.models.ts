@@ -57,6 +57,7 @@ export interface UserUpdateRequest {
   isActive?: boolean;
   canView?: boolean;
   phase?: Phase;
+  status?: ApplicationStatus;
   isAccepted?: boolean | null;
   interviewerId?: string;
   profileData?: ApplicantUser['profileData'];

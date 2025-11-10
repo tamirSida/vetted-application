@@ -221,7 +221,12 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                 </div>
                 <div class="info-item">
                   <label>Email</label>
-                  <span>{{ phase1Application()?.personalInfo?.email }}</span>
+                  <span class="value-with-flag">
+                    {{ phase1Application()?.personalInfo?.email }}
+                    <i *ngIf="hasFlag('email')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('email')" 
+                       [title]="getFlagMessage('email')"></i>
+                  </span>
                 </div>
                 <div class="info-item">
                   <label>Phone</label>
@@ -245,11 +250,16 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                 </div>
                 <div class="info-item">
                   <label>Number of Founders</label>
-                  <span>{{ phase1Application()?.extendedInfo?.founderCount }}</span>
+                  <span class="value-with-flag">
+                    {{ phase1Application()?.extendedInfo?.founderCount }}
+                    <i *ngIf="hasFlag('founderCount')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('founderCount')" 
+                       [title]="getFlagMessage('founderCount')"></i>
+                  </span>
                 </div>
                 <div class="info-item">
                   <label>LinkedIn Profile</label>
-                  <span>
+                  <span class="value-with-flag">
                     <a *ngIf="phase1Application()?.extendedInfo?.linkedInProfile" 
                        [href]="phase1Application()?.extendedInfo?.linkedInProfile" 
                        target="_blank">
@@ -257,11 +267,22 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                       <i class="fas fa-external-link-alt"></i>
                     </a>
                     <span *ngIf="!phase1Application()?.extendedInfo?.linkedInProfile">Not provided</span>
+                    <i *ngIf="hasFlag('linkedInProfile')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('linkedInProfile')" 
+                       [title]="getFlagMessage('linkedInProfile')"></i>
                   </span>
                 </div>
                 <div class="info-item full-width">
                   <label>Service History</label>
-                  <span>{{ phase1Application()?.extendedInfo?.serviceHistory?.country }} - {{ phase1Application()?.extendedInfo?.serviceHistory?.unit }}</span>
+                  <span class="value-with-flag">
+                    {{ phase1Application()?.extendedInfo?.serviceHistory?.country }} - {{ phase1Application()?.extendedInfo?.serviceHistory?.unit }}
+                    <i *ngIf="hasFlag('serviceHistory')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('serviceHistory')" 
+                       [title]="getFlagMessage('serviceHistory')"></i>
+                    <i *ngIf="hasFlag('serviceUnit')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('serviceUnit')" 
+                       [title]="getFlagMessage('serviceUnit')"></i>
+                  </span>
                 </div>
                 <div class="info-item full-width">
                   <label>Company Description (Grandma Test)</label>
@@ -280,6 +301,26 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                   <label>Time Commitment Confirmed</label>
                   <span>{{ phase1Application()?.extendedInfo?.timeCommitment ? 'Yes' : 'No' }}</span>
                 </div>
+                <div class="info-item full-width">
+                  <label>Pitch Deck</label>
+                  <span class="value-with-flag">
+                    <a *ngIf="phase1Application()?.extendedInfo?.pitchDeck?.fileUrl" 
+                       [href]="phase1Application()?.extendedInfo?.pitchDeck?.fileUrl" 
+                       target="_blank">
+                      View Pitch Deck
+                      <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <span *ngIf="!phase1Application()?.extendedInfo?.pitchDeck?.fileUrl && phase1Application()?.extendedInfo?.pitchDeck?.nodeckExplanation">
+                      No deck - {{ phase1Application()?.extendedInfo?.pitchDeck?.nodeckExplanation }}
+                    </span>
+                    <span *ngIf="!phase1Application()?.extendedInfo?.pitchDeck?.fileUrl && !phase1Application()?.extendedInfo?.pitchDeck?.nodeckExplanation">
+                      Not provided
+                    </span>
+                    <i *ngIf="hasFlag('pitchDeck')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('pitchDeck')" 
+                       [title]="getFlagMessage('pitchDeck')"></i>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -297,7 +338,7 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                      [class]="'flag-item flag-' + flag.type.toLowerCase()">
                   <i [class]="'fas fa-flag flag-' + flag.type.toLowerCase()"></i>
                   <div class="flag-content">
-                    <strong>{{ flag.field }}:</strong>
+                    <strong>{{ getFieldDisplayName(flag.field || '') }}:</strong>
                     <span>{{ flag.message }}</span>
                   </div>
                 </div>
@@ -727,6 +768,14 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
       color: #10b981;
     }
 
+    .flag-icon.flag-1, .flag-icon.flag-2, .flag-icon.flag-3 {
+      color: #f59e0b; /* Yellow for old severity levels */
+    }
+
+    .flag-icon.flag-4, .flag-icon.flag-5 {
+      color: #dc2626; /* Red for old severity levels */
+    }
+
     /* Flagging Summary */
     .flagging-summary {
       margin-top: 2rem;
@@ -797,6 +846,17 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
       border-left-color: #10b981;
     }
 
+    /* Handle old flag types */
+    .flag-item.flag-warning, .flag-item.flag-info {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+    }
+
+    .flag-item.flag-error {
+      background: #fef2f2;
+      border-left-color: #dc2626;
+    }
+
     .flag-content {
       flex: 1;
     }
@@ -808,6 +868,23 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
     .flag-content span {
       color: #6b7280;
       font-size: 0.9rem;
+    }
+
+    /* Flag icon colors in summary */
+    .fas.flag-warning, .fas.flag-info {
+      color: #f59e0b;
+    }
+
+    .fas.flag-error {
+      color: #dc2626;
+    }
+
+    .fas.flag-yellow {
+      color: #f59e0b;
+    }
+
+    .fas.flag-red {
+      color: #dc2626;
     }
 
     .no-flags {
@@ -1117,11 +1194,9 @@ export class ApplicantDetailComponent implements OnInit {
       if (phase1App) {
         this.phase1Application.set(phase1App);
         
-        // Load flagging results
-        const flagging = await this.applicationService.getFlaggingResults(phase1App.id!);
-        if (flagging) {
-          this.flaggingResult.set(flagging);
-        }
+        // Calculate fresh flagging results using new logic
+        const flagging = this.flaggingService.analyzeApplication(phase1App);
+        this.flaggingResult.set(flagging);
       }
 
       // Load interview notes if in Phase 4
@@ -1260,6 +1335,20 @@ export class ApplicantDetailComponent implements OnInit {
   getFlagMessage(field: string): string {
     const flag = this.flaggingResult()?.flags?.find(f => f.field === field);
     return flag?.message || '';
+  }
+
+  getFieldDisplayName(field: string): string {
+    const fieldNames: { [key: string]: string } = {
+      'linkedInProfile': 'LinkedIn Profile',
+      'companyWebsite': 'Company Website',
+      'email': 'Email Domain',
+      'founderCount': 'Number of Founders',
+      'serviceHistory': 'Military Service',
+      'serviceUnit': 'Combat Unit Service',
+      'pitchDeck': 'Pitch Deck',
+      'grandmaTest': 'Company Description'
+    };
+    return fieldNames[field] || field;
   }
 
   // Interview management

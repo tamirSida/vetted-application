@@ -6,7 +6,7 @@ import { UserService } from '../../../services/user.service';
 import { ApplicationService } from '../../../services/application.service';
 import { StatusMessageService } from '../../../services/status-message.service';
 import { ApplicantUser, Phase1Application, ApplicationStatus, Phase } from '../../../models';
-import { FlaggingResult } from '../../../services/flagging.service';
+import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 
 @Component({
   selector: 'app-applicant-detail',
@@ -154,10 +154,14 @@ import { FlaggingResult } from '../../../services/flagging.service';
           <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase1'">
           <div class="section-header">
             <h2><i class="fas fa-clipboard-list"></i> Phase 1 Application</h2>
-            <div class="phase-actions" *ngIf="canAdvanceFromPhase1()">
-              <button class="advance-button" (click)="advanceToPhase2()">
+            <div class="phase-actions">
+              <button *ngIf="canAdvanceFromPhase1()" class="advance-button" (click)="advanceToPhase2()">
                 <i class="fas fa-arrow-right"></i>
                 Advance to Phase 2
+              </button>
+              <button class="recalc-button" (click)="recalculateFlags()">
+                <i class="fas fa-sync"></i>
+                Recalculate Flags
               </button>
             </div>
           </div>
@@ -284,14 +288,14 @@ import { FlaggingResult } from '../../../services/flagging.service';
               <h3>
                 <i class="fas fa-flag"></i>
                 Flagging Analysis
-                <span [class]="'risk-badge risk-' + flaggingResult()?.overallRisk">
-                  {{ flaggingResult()?.overallRisk }} Risk
+                <span [class]="'risk-badge risk-' + (flaggingResult()?.needsReview ? 'high' : 'low')">
+                  {{ flaggingResult()?.needsReview ? 'Manual Review Required' : 'Auto-Advance' }}
                 </span>
               </h3>
               <div class="flags-list" *ngIf="flaggingResult()?.flags && (flaggingResult()?.flags?.length || 0) > 0">
                 <div *ngFor="let flag of flaggingResult()?.flags" 
-                     [class]="'flag-item flag-' + flag.severity">
-                  <i [class]="'fas fa-flag flag-' + flag.severity"></i>
+                     [class]="'flag-item flag-' + flag.type.toLowerCase()">
+                  <i [class]="'fas fa-flag flag-' + flag.type.toLowerCase()"></i>
                   <div class="flag-content">
                     <strong>{{ flag.field }}:</strong>
                     <span>{{ flag.message }}</span>
@@ -862,6 +866,25 @@ import { FlaggingResult } from '../../../services/flagging.service';
       background: #047857;
     }
 
+    .recalc-button {
+      background: #f59e0b;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.3s;
+    }
+
+    .recalc-button:hover {
+      background: #d97706;
+    }
+
     /* Phase-specific styles */
     .webinar-status {
       padding: 1.5rem;
@@ -1047,6 +1070,7 @@ export class ApplicantDetailComponent implements OnInit {
   private userService = inject(UserService);
   private applicationService = inject(ApplicationService);
   private statusMessageService = inject(StatusMessageService);
+  private flaggingService = inject(FlaggingService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -1184,7 +1208,7 @@ export class ApplicantDetailComponent implements OnInit {
     const flagging = this.flaggingResult();
     
     // Only show advance button if in Phase 1 and has red flags (manual review required)
-    return status === ApplicationStatus.PHASE_1 && flagging?.overallRisk === 'HIGH';
+    return status === ApplicationStatus.PHASE_1 && flagging?.needsReview === true;
   }
 
   canAdvanceFromPhase2(): boolean {
@@ -1267,6 +1291,16 @@ export class ApplicantDetailComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  // Flagging methods
+  recalculateFlags() {
+    const phase1App = this.phase1Application();
+    if (phase1App) {
+      const result = this.flaggingService.analyzeApplication(phase1App);
+      this.flaggingResult.set(result);
+      console.log('Flags recalculated:', result);
+    }
   }
 
   // Tab management methods

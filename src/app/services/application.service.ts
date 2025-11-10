@@ -348,7 +348,7 @@ export class ApplicationService {
       await addDoc(collection(this.firestore, 'application_flags'), {
         applicationId,
         flags: flaggingResult.flags,
-        overallRisk: flaggingResult.overallRisk,
+        autoAdvance: flaggingResult.autoAdvance,
         needsReview: flaggingResult.needsReview,
         summary: this.flaggingService.generateFlagSummary(flaggingResult),
         analyzedAt: new Date()
@@ -358,7 +358,7 @@ export class ApplicationService {
       const appRef = doc(this.firestore, 'applications', applicationId);
       await updateDoc(appRef, {
         flagging: {
-          overallRisk: flaggingResult.overallRisk,
+          autoAdvance: flaggingResult.autoAdvance,
           needsReview: flaggingResult.needsReview,
           flagCount: flaggingResult.flags.length,
           lastAnalyzed: new Date()
@@ -394,7 +394,7 @@ export class ApplicationService {
       return {
         applicationId: data['applicationId'],
         flags: data['flags'],
-        overallRisk: data['overallRisk'],
+        autoAdvance: data['autoAdvance'],
         needsReview: data['needsReview']
       };
     } catch (error) {

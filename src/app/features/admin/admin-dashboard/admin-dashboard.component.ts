@@ -127,8 +127,8 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                   </td>
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
                   <td>
-                    <button class="table-action-btn view-btn" (click)="$event.stopPropagation(); viewApplicantDetails(applicant)">
-                      <i class="fas fa-eye"></i>
+                    <button class="table-action-btn delete-btn" (click)="$event.stopPropagation(); deleteApplicant(applicant)">
+                      <i class="fas fa-trash"></i>
                     </button>
                   </td>
                 </tr>
@@ -1929,6 +1929,26 @@ export class AdminDashboardComponent implements OnInit {
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to remove viewer');
+    }
+  }
+
+  async deleteApplicant(applicant: ApplicantUser) {
+    const confirmMessage = `Are you sure you want to delete applicant "${applicant.name}"?\n\nThis will permanently remove:\n- Their user account\n- Their application data\n- All associated records\n\nThis action cannot be undone.`;
+    
+    if (!confirm(confirmMessage)) return;
+    
+    try {
+      // TODO: Also delete associated application data when implemented
+      await this.userService.deleteUser(applicant.userId);
+      
+      // Update the local state
+      this.applicants.update(apps => apps.filter(a => a.userId !== applicant.userId));
+      
+      this.success.set(`Applicant "${applicant.name}" deleted successfully!`);
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to delete applicant');
+      setTimeout(() => this.error.set(''), 5000);
     }
   }
 

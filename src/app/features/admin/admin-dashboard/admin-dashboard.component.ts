@@ -295,6 +295,18 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                       </button>
                     </div>
                     
+                    <div class="webinar-code-display" *ngIf="getWebinarCode(i)">
+                      <div class="code-section">
+                        <label>Webinar Code:</label>
+                        <div class="code-value">
+                          <span class="code">{{ getWebinarCode(i) }}</span>
+                          <button type="button" class="copy-btn" (click)="copyWebinarCode(getWebinarCode(i)!)" title="Copy code">
+                            <i class="fas fa-copy"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div class="form-row">
                       <div class="form-group">
                         <label [for]="'webinar-date-' + i">Date & Time (ET)</label>
@@ -1134,6 +1146,57 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
       font-weight: 600;
     }
 
+    .webinar-code-display {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+
+    .code-section label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .code-value {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .code-value .code {
+      font-family: 'Courier New', monospace;
+      font-size: 1.25rem;
+      font-weight: bold;
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      letter-spacing: 0.1em;
+    }
+
+    .copy-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: #2563eb;
+    }
+
+    .copy-btn i {
+      font-size: 0.875rem;
+    }
+
     /* Grids */
     .cohorts-grid, .admin-users-grid {
       display: grid;
@@ -1721,6 +1784,27 @@ export class AdminDashboardComponent implements OnInit {
 
   removeWebinar(index: number) {
     this.webinars.removeAt(index);
+  }
+
+  getWebinarCode(index: number): string | null {
+    // For existing webinars from database - check if we're editing a cohort
+    const editingCohort = this.editingCohort();
+    if (editingCohort?.webinars && editingCohort.webinars[index]) {
+      return editingCohort.webinars[index].code || null;
+    }
+    return null;
+  }
+
+  async copyWebinarCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      this.success.set('Webinar code copied to clipboard!');
+      setTimeout(() => this.success.set(''), 2000);
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      this.success.set(`Webinar code: ${code}`);
+      setTimeout(() => this.success.set(''), 5000);
+    }
   }
 
   async saveCohort() {

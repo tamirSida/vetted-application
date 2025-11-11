@@ -45,9 +45,9 @@ import { combineLatest } from 'rxjs';
             </div>
             <div class="progress-label">{{ overallProgress }}% Complete - {{ getProgressMessage() }}</div>
           </div>
-          
+
           <div class="tab-navigation">
-            <button 
+            <button
               *ngFor="let title of tabTitles; let i = index"
               class="tab-button"
               [class.active]="currentTab === i"
@@ -75,7 +75,7 @@ import { combineLatest } from 'rxjs';
           <i class="fas fa-check-circle"></i>
           {{ successMessage }}
         </div>
-        
+
         <div *ngIf="errorMessage" class="alert alert-error">
           <i class="fas fa-exclamation-circle"></i>
           {{ errorMessage }}
@@ -107,14 +107,14 @@ import { combineLatest } from 'rxjs';
                     Live with non-paying/beta users
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="productStage" value="EARLY_PROTOTYPE">
+                    <input type="radio" formControlName="productStage" value="FUNCTIONAL_PROTOTYPE">
                     <span class="checkmark"></span>
-                    Early prototype/MVP
+                    Functional prototype (MVP)
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="productStage" value="IDEA_STAGE">
+                    <input type="radio" formControlName="productStage" value="PRE_PROTOTYPE">
                     <span class="checkmark"></span>
-                    Idea stage
+                    Pre-prototype / Idea stage
                   </label>
                 </div>
               </div>
@@ -122,14 +122,14 @@ import { combineLatest } from 'rxjs';
               <!-- Traction Details -->
               <div class="form-group">
                 <label for="tractionDetails" class="form-label">
-                  Traction Details: Describe your traction (users, revenue, partnerships, etc.) (max 300 words)
+                  Traction Details: Describe the traction as of above, for example 100 unpaid users within 3 months of beta launch / five paying customers with average ACV of $20K/year/ launching MVP in Q3 of this year.
                 </label>
-                <textarea 
-                  id="tractionDetails" 
-                  formControlName="tractionDetails" 
-                  rows="4" 
+                <textarea
+                  id="tractionDetails"
+                  formControlName="tractionDetails"
+                  rows="4"
                   class="form-textarea"
-                  placeholder="Share your key metrics, user growth, revenue figures, partnerships..."></textarea>
+                  placeholder="Describe your current traction metrics..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('tractionDetails') }}/300 words
                 </div>
@@ -138,14 +138,14 @@ import { combineLatest } from 'rxjs';
               <!-- Problem & Customer -->
               <div class="form-group">
                 <label for="problemCustomer" class="form-label">
-                  Problem & Customer: What problem are you solving and for whom? (max 300 words)
+                  Problem & Customer: Who is the exact person you're helping, and what problem do they face? Be specific — not just a company or age group, but a real role or situation. (Example: "New moms recovering from childbirth who struggle to find time for healthy meals" or "Office managers at small law firms who waste hours ordering supplies.")
                 </label>
-                <textarea 
-                  id="problemCustomer" 
-                  formControlName="problemCustomer" 
-                  rows="4" 
+                <textarea
+                  id="problemCustomer"
+                  formControlName="problemCustomer"
+                  rows="4"
                   class="form-textarea"
-                  placeholder="Describe the specific problem, target customers, and market opportunity..."></textarea>
+                  placeholder="Describe the specific person and problem you're solving..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('problemCustomer') }}/300 words
                 </div>
@@ -154,14 +154,15 @@ import { combineLatest } from 'rxjs';
               <!-- Video Pitch -->
               <div class="form-group">
                 <label for="videoPitch" class="form-label">
-                  Video Pitch: Please provide a link to a video pitch (optional)
+                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building.
                 </label>
-                <input 
-                  type="url" 
-                  id="videoPitch" 
-                  formControlName="videoPitch" 
+                <input
+                  type="url"
+                  id="videoPitch"
+                  formControlName="videoPitch"
                   class="form-input"
-                  placeholder="https://...">
+                  placeholder="https://www.youtube.com/..."
+                  required>
               </div>
             </div>
 
@@ -175,12 +176,12 @@ import { combineLatest } from 'rxjs';
               <!-- Co-Founders -->
               <div class="form-group">
                 <label for="coFounders" class="form-label">
-                  Co-Founders: Please list all co-founders, their roles, and LinkedIn profiles (max 300 words)
+                  Co-Founders: Please list all co-founders, their roles, and a link to their LinkedIn profiles.
                 </label>
-                <textarea 
-                  id="coFounders" 
-                  formControlName="coFounders" 
-                  rows="4" 
+                <textarea
+                  id="coFounders"
+                  formControlName="coFounders"
+                  rows="4"
                   class="form-textarea"
                   placeholder="List each co-founder with their role and LinkedIn profile..."></textarea>
                 <div class="word-count">
@@ -200,20 +201,34 @@ import { combineLatest } from 'rxjs';
                   <label class="radio-option">
                     <input type="radio" formControlName="capacity" value="OTHER">
                     <span class="checkmark"></span>
-                    Other (explain)
+                    Other
                   </label>
+                </div>
+                
+                <!-- Conditional text input when "Other" is selected -->
+                <div *ngIf="applicationForm.get('capacity')?.value === 'OTHER'" class="conditional-field">
+                  <label for="capacityOther" class="form-label">
+                    Please explain:
+                  </label>
+                  <textarea
+                    id="capacityOther"
+                    formControlName="capacityOther"
+                    rows="3"
+                    class="form-textarea"
+                    placeholder="Explain the current capacity of you and your co-founders..."
+                    required></textarea>
                 </div>
               </div>
 
               <!-- Previous Collaboration -->
               <div class="form-group">
                 <label for="previousCollaboration" class="form-label">
-                  Have any team members worked together before? If so, describe how. (max 300 words)
+                  Have any team members worked together before? If so, describe how.
                 </label>
-                <textarea 
-                  id="previousCollaboration" 
-                  formControlName="previousCollaboration" 
-                  rows="3" 
+                <textarea
+                  id="previousCollaboration"
+                  formControlName="previousCollaboration"
+                  rows="3"
                   class="form-textarea"
                   placeholder="Describe any previous working relationships..."></textarea>
                 <div class="word-count">
@@ -236,17 +251,31 @@ import { combineLatest } from 'rxjs';
                     No
                   </label>
                 </div>
+
+                <!-- Conditional explanation when "Yes" is selected -->
+                <div *ngIf="applicationForm.get('previousFounders')?.value === 'true'" class="conditional-field">
+                  <label for="previousFoundersExplanation" class="form-label">
+                    If yes, please briefly explain the circumstances of their departure and any severance or equity agreements that were made.
+                  </label>
+                  <textarea
+                    id="previousFoundersExplanation"
+                    formControlName="previousFoundersExplanation"
+                    rows="3"
+                    class="form-textarea"
+                    placeholder="Explain the circumstances of departure and any agreements..."
+                    required></textarea>
+                </div>
               </div>
 
               <!-- Equity Split & Roles -->
               <div class="form-group">
                 <label for="equitySplitRoles" class="form-label">
-                  Equity Split & Roles: Please briefly describe how you decided on the equity split between the founders and on the role each one would have (max 300 words)
+                  Equity Split + Roles: Please briefly describe how you decided on the equity split between the founders and on the role each one would have.
                 </label>
-                <textarea 
-                  id="equitySplitRoles" 
-                  formControlName="equitySplitRoles" 
-                  rows="4" 
+                <textarea
+                  id="equitySplitRoles"
+                  formControlName="equitySplitRoles"
+                  rows="4"
                   class="form-textarea"
                   placeholder="Describe the decision process for equity distribution and role assignments..."></textarea>
                 <div class="word-count">
@@ -257,12 +286,12 @@ import { combineLatest } from 'rxjs';
               <!-- Additional Team Members -->
               <div class="form-group">
                 <label for="additionalTeamMembers" class="form-label">
-                  Additional team members who are not founders: List the roles (max 300 words)
+                  Additional team members who are not founders: List the roles
                 </label>
-                <textarea 
-                  id="additionalTeamMembers" 
-                  formControlName="additionalTeamMembers" 
-                  rows="3" 
+                <textarea
+                  id="additionalTeamMembers"
+                  formControlName="additionalTeamMembers"
+                  rows="3"
                   class="form-textarea"
                   placeholder="List non-founder team members and their roles..."></textarea>
                 <div class="word-count">
@@ -280,7 +309,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Has Raised Capital -->
               <div class="form-group">
-                <label class="form-label">Has Raised Capital: Have you raised any capital?</label>
+                <label class="form-label">Funding History: Have you raised any capital to date?</label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input type="radio" formControlName="hasRaisedCapital" value="true">
@@ -293,28 +322,29 @@ import { combineLatest } from 'rxjs';
                     No
                   </label>
                 </div>
-              </div>
 
-              <!-- Funding Details -->
-              <div class="form-group">
-                <label for="fundingDetails" class="form-label">
-                  Funding Details: If yes, please provide details about funding rounds, investors, amounts (max 300 words)
-                </label>
-                <textarea 
-                  id="fundingDetails" 
-                  formControlName="fundingDetails" 
-                  rows="4" 
-                  class="form-textarea"
-                  placeholder="Describe funding rounds, investor types, amounts raised..."></textarea>
-                <div class="word-count">
-                  {{ getWordCount('fundingDetails') }}/300 words
+                <!-- Conditional funding details when "Yes" is selected -->
+                <div *ngIf="applicationForm.get('hasRaisedCapital')?.value === 'true'" class="conditional-field">
+                  <label for="fundingDetails" class="form-label">
+                    What is the total amount of capital you have raised to date and on what terms (e.g. $150K on a post-money safe with a $XM cap)?
+                  </label>
+                  <textarea
+                    id="fundingDetails"
+                    formControlName="fundingDetails"
+                    rows="4"
+                    class="form-textarea"
+                    placeholder="e.g. $150K on a post-money safe with a $XM cap"
+                    required></textarea>
+                  <div class="word-count">
+                    {{ getWordCount('fundingDetails') }}/300 words
+                  </div>
                 </div>
               </div>
 
               <!-- Equity Breakdown Table -->
               <div class="form-group">
                 <label class="form-label">Equity Breakdown: Please provide a simple CAP table or equity breakdown</label>
-                <app-equity-table 
+                <app-equity-table
                   [equityRows]="equityRows"
                   (rowsChanged)="onEquityRowsChanged($event)">
                 </app-equity-table>
@@ -325,12 +355,12 @@ import { combineLatest } from 'rxjs';
             <div *ngIf="currentTab === 3" class="tab-panel active">
               <div class="tab-header">
                 <h3><i class="fas fa-balance-scale"></i> Legal & Corporate Structure</h3>
-                <p>Your company's legal structure and incorporation status</p>
+                <p>Ensuring your company is set up for venture-scale success is a core part of the Vetted program. Please answer the following questions honestly.</p>
               </div>
 
               <!-- Is Incorporated -->
               <div class="form-group">
-                <label class="form-label">Is Incorporated: Is your company incorporated?</label>
+                <label class="form-label">Is your company incorporated?</label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input type="radio" formControlName="isIncorporated" value="true">
@@ -347,78 +377,124 @@ import { combineLatest } from 'rxjs';
 
               <!-- Corporation Details -->
               <div *ngIf="applicationForm.get('isIncorporated')?.value === 'true'" class="conditional-section">
-                <!-- Corporation Type -->
+                <!-- Incorporation Location -->
                 <div class="form-group">
-                  <label class="form-label">Corporation Type: What type of corporation?</label>
-                  <div class="checkbox-group">
-                    <label class="checkbox-option" *ngFor="let type of corporationTypes">
-                      <input type="checkbox" 
-                             [value]="type.value" 
-                             (change)="onCorporationTypeChange($event, type.value)">
-                      <span class="checkmark"></span>
-                      {{ type.label }}
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Other Corporation Type -->
-                <div *ngIf="hasOtherCorporationType()" class="form-group">
-                  <label for="otherCorporationType" class="form-label">
-                    Other Corporation Type: Please specify
+                  <label for="incorporationLocation" class="form-label">
+                    Where is the company incorporated? (State or Country)
                   </label>
-                  <input 
-                    type="text" 
-                    id="otherCorporationType" 
-                    formControlName="otherCorporationType" 
-                    class="form-input">
-                </div>
-
-                <!-- Jurisdiction -->
-                <div class="form-group">
-                  <label for="jurisdiction" class="form-label">
-                    Jurisdiction: Where is the company incorporated?
-                  </label>
-                  <input 
-                    type="text" 
-                    id="jurisdiction" 
-                    formControlName="jurisdiction" 
+                  <input
+                    type="text"
+                    id="incorporationLocation"
+                    formControlName="incorporationLocation"
                     class="form-input"
-                    placeholder="e.g., Delaware, California, etc.">
+                    placeholder="e.g., Delaware, California, etc."
+                    required>
                 </div>
 
-                <!-- Corporate Structure Details -->
-                <div *ngIf="!hasAllCorporateStructures()" class="conditional-field">
+                <!-- Venture Standard Terms -->
+                <div class="venture-terms-section">
+                  <h4 class="section-subtitle">Venture Standard Terms</h4>
+                  <p class="section-description">Does your company currently have the following venture standard terms in place?</p>
+                  
+                  <!-- IP Assignment -->
                   <div class="form-group">
-                    <label for="corporateStructureDetails" class="form-label">
-                      Corporate Structure Details: Please provide more details about your corporate structure (max 300 words)
-                    </label>
-                    <textarea 
-                      id="corporateStructureDetails" 
-                      formControlName="corporateStructureDetails" 
-                      rows="3" 
-                      class="form-textarea"
-                      placeholder="Describe your corporate structure in detail..."></textarea>
-                    <div class="word-count">
-                      {{ getWordCount('corporateStructureDetails') }}/300 words
+                    <label class="form-label">Intellectual Property Assignment Agreements (PIIA) for all founders and employees?</label>
+                    <div class="radio-group">
+                      <label class="radio-option">
+                        <input type="radio" formControlName="hasIpAssignment" value="true">
+                        <span class="checkmark"></span>
+                        Yes
+                      </label>
+                      <label class="radio-option">
+                        <input type="radio" formControlName="hasIpAssignment" value="false">
+                        <span class="checkmark"></span>
+                        No
+                      </label>
                     </div>
+                  </div>
+
+                  <!-- Founder Vesting -->
+                  <div class="form-group">
+                    <label class="form-label">Founder vesting schedules (typically 4 years with a 1-year cliff)?</label>
+                    <div class="radio-group">
+                      <label class="radio-option">
+                        <input type="radio" formControlName="hasFounderVesting" value="true">
+                        <span class="checkmark"></span>
+                        Yes
+                      </label>
+                      <label class="radio-option">
+                        <input type="radio" formControlName="hasFounderVesting" value="false">
+                        <span class="checkmark"></span>
+                        No
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Board Structure -->
+                  <div class="form-group">
+                    <label class="form-label">Board structure appropriate for venture funding (typically odd number of directors with investor representation)?</label>
+                    <div class="radio-group">
+                      <label class="radio-option">
+                        <input type="radio" formControlName="hasBoardStructure" value="true">
+                        <span class="checkmark"></span>
+                        Yes
+                      </label>
+                      <label class="radio-option">
+                        <input type="radio" formControlName="hasBoardStructure" value="false">
+                        <span class="checkmark"></span>
+                        No
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Amendment Willingness -->
+                  <div class="form-group">
+                    <label class="form-label">If any of the above are missing, would you be willing to amend your corporate documents to include these terms?</label>
+                    <div class="radio-group">
+                      <label class="radio-option">
+                        <input type="radio" formControlName="willAmendDocuments" value="true">
+                        <span class="checkmark"></span>
+                        Yes
+                      </label>
+                      <label class="radio-option">
+                        <input type="radio" formControlName="willAmendDocuments" value="false">
+                        <span class="checkmark"></span>
+                        No
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Amendment Explanation -->
+                  <div *ngIf="applicationForm.get('willAmendDocuments')?.value === 'false'" class="conditional-field">
+                    <label for="amendDocumentsExplanation" class="form-label">
+                      Please explain why you would not be willing to make these amendments:
+                    </label>
+                    <textarea
+                      id="amendDocumentsExplanation"
+                      formControlName="amendDocumentsExplanation"
+                      rows="3"
+                      class="form-textarea"
+                      placeholder="Explain your concerns about amending corporate documents..."
+                      required></textarea>
                   </div>
                 </div>
               </div>
 
-              <!-- Not Incorporated -->
+              <!-- Not Incorporated Section -->
               <div *ngIf="applicationForm.get('isIncorporated')?.value === 'false'" class="conditional-section">
                 <div class="form-group">
-                  <label for="incorporationPlans" class="form-label">
-                    Incorporation Plans: Please explain your plans for incorporation (max 300 words)
-                  </label>
-                  <textarea 
-                    id="incorporationPlans" 
-                    formControlName="incorporationPlans" 
-                    rows="4" 
-                    class="form-textarea"
-                    placeholder="Describe your incorporation timeline and plans..."></textarea>
-                  <div class="word-count">
-                    {{ getWordCount('incorporationPlans') }}/300 words
+                  <label class="form-label">If accepted into the program, would you be willing to incorporate as a Delaware C-Corp with venture standard terms?</label>
+                  <div class="radio-group">
+                    <label class="radio-option">
+                      <input type="radio" formControlName="agreesToIncorporate" value="AGREE">
+                      <span class="checkmark"></span>
+                      Yes, I agree to incorporate as a Delaware C-Corp
+                    </label>
+                    <label class="radio-option">
+                      <input type="radio" formControlName="agreesToIncorporate" value="DISCUSS">
+                      <span class="checkmark"></span>
+                      I'd like to discuss alternative structures
+                    </label>
                   </div>
                 </div>
               </div>
@@ -427,10 +503,10 @@ import { combineLatest } from 'rxjs';
 
           <!-- Tab Navigation -->
           <div class="tab-navigation-bottom">
-            <button 
-              type="button" 
-              class="nav-btn secondary" 
-              (click)="previousTab()" 
+            <button
+              type="button"
+              class="nav-btn secondary"
+              (click)="previousTab()"
               [disabled]="currentTab === 0">
               <i class="fas fa-chevron-left"></i>
               Previous
@@ -440,20 +516,20 @@ import { combineLatest } from 'rxjs';
               {{ currentTab + 1 }} of {{ totalTabs }}
             </div>
 
-            <button 
-              *ngIf="currentTab < totalTabs - 1" 
-              type="button" 
-              class="nav-btn primary" 
+            <button
+              *ngIf="currentTab < totalTabs - 1"
+              type="button"
+              class="nav-btn primary"
               (click)="nextTab()"
               [disabled]="!canProceedToNext()">
               Next
               <i class="fas fa-chevron-right"></i>
             </button>
 
-            <button 
-              *ngIf="currentTab === totalTabs - 1" 
-              type="button" 
-              class="nav-btn success" 
+            <button
+              *ngIf="currentTab === totalTabs - 1"
+              type="button"
+              class="nav-btn success"
               (click)="submitApplication()"
               [disabled]="isSubmitting || !applicationForm.valid">
               <i *ngIf="isSubmitting" class="fas fa-spinner fa-spin"></i>
@@ -468,7 +544,7 @@ import { combineLatest } from 'rxjs';
       <footer class="app-footer">
         <div class="footer-content">
           <div class="footer-left">
-            <p>&copy; 2024 Vetted Accelerator. All rights reserved.</p>
+            <p>&copy; 2025 Vetted Accelerator. All rights reserved.</p>
           </div>
           <div class="footer-right">
             <button type="button" class="save-draft-btn" (click)="saveDraft()" [disabled]="isSaving">
@@ -844,6 +920,24 @@ import { combineLatest } from 'rxjs';
       padding-left: 1rem;
     }
 
+    .venture-terms-section {
+      margin-top: 1.5rem;
+    }
+
+    .section-subtitle {
+      margin: 1.5rem 0 0.5rem 0;
+      color: #1f2937;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .section-description {
+      margin: 0 0 1.5rem 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
     /* Tab Navigation Bottom */
     .tab-navigation-bottom {
       display: flex;
@@ -900,7 +994,7 @@ import { combineLatest } from 'rxjs';
 
     /* Footer */
     .app-footer {
-      background: #1f2937;
+      background: #1e40af;
       color: white;
       padding: 1.5rem 0;
     }
@@ -997,11 +1091,11 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
   applicationForm!: FormGroup;
   equityRows: EquityBreakdownRow[] = [];
-  
+
   isLoading = true;
   isSaving = false;
   isSubmitting = false;
-  
+
   // Tab navigation and gamification
   currentTab = 0;
   totalTabs = 4;
@@ -1011,24 +1105,15 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     'Funding',
     'Legal & Corporate Structure'
   ];
-  
+
   // Progress tracking for gamification
   tabProgress: boolean[] = [false, false, false, false];
   overallProgress = 0;
   successMessage = '';
   errorMessage = '';
-  
+
   existingApplication?: Phase3Application;
   autoSaveInterval?: any;
-
-  corporationTypes = [
-    { value: 'C_CORP', label: 'C-Corporation' },
-    { value: 'S_CORP', label: 'S-Corporation' },
-    { value: 'LLC', label: 'LLC' },
-    { value: 'PARTNERSHIP', label: 'Partnership' },
-    { value: 'SOLE_PROPRIETORSHIP', label: 'Sole Proprietorship' },
-    { value: 'OTHER', label: 'Other' }
-  ];
 
   ngOnInit() {
     this.initializeForm();
@@ -1045,7 +1130,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           if (!authInitialized) {
             return;
           }
-          
+
           if (user && user.role === 'APPLICANT') {
             this.applicant = user as ApplicantUser;
             await this.loadExistingApplication();
@@ -1066,16 +1151,16 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private async loadExistingApplication() {
     try {
       this.isLoading = true;
-      
+
       if (!this.applicant) {
         throw new Error('Applicant data not available');
       }
-      
+
       const existingApp = await this.applicationService.getPhase3Application(
         this.applicant.userId,
         this.applicant.cohortId
       );
-      
+
       if (existingApp) {
         this.existingApplication = existingApp;
         this.populateFormFromApplication(existingApp);
@@ -1094,13 +1179,15 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       productStage: ['', Validators.required],
       tractionDetails: ['', [Validators.required, this.wordCountValidator(300)]],
       problemCustomer: ['', [Validators.required, this.wordCountValidator(300)]],
-      videoPitch: [''],
+      videoPitch: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
 
       // Team (Tab 2)
       coFounders: ['', [Validators.required, this.wordCountValidator(300)]],
       capacity: ['', Validators.required],
+      capacityOther: [''],
       previousCollaboration: ['', this.wordCountValidator(300)],
       previousFounders: ['', Validators.required],
+      previousFoundersExplanation: [''],
       equitySplitRoles: ['', [Validators.required, this.wordCountValidator(300)]],
       additionalTeamMembers: ['', this.wordCountValidator(300)],
 
@@ -1110,16 +1197,84 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       // Legal (Tab 4)
       isIncorporated: ['', Validators.required],
-      corporationType: this.fb.array([]),
-      otherCorporationType: [''],
-      jurisdiction: [''],
-      corporateStructureDetails: ['', this.wordCountValidator(300)],
-      incorporationPlans: ['', this.wordCountValidator(300)]
+      incorporationLocation: [''],
+      hasIpAssignment: [''],
+      hasFounderVesting: [''],
+      hasBoardStructure: [''],
+      willAmendDocuments: [''],
+      amendDocumentsExplanation: [''],
+      agreesToIncorporate: ['']
     });
 
     if (!this.equityRows || this.equityRows.length === 0) {
       this.equityRows = [];
     }
+
+    // Setup conditional validation for capacityOther
+    this.applicationForm.get('capacity')?.valueChanges.subscribe(value => {
+      const capacityOtherControl = this.applicationForm.get('capacityOther');
+      if (value === 'OTHER') {
+        capacityOtherControl?.setValidators([Validators.required]);
+      } else {
+        capacityOtherControl?.clearValidators();
+      }
+      capacityOtherControl?.updateValueAndValidity();
+    });
+
+    // Setup conditional validation for previousFoundersExplanation
+    this.applicationForm.get('previousFounders')?.valueChanges.subscribe(value => {
+      const explanationControl = this.applicationForm.get('previousFoundersExplanation');
+      if (value === 'true') {
+        explanationControl?.setValidators([Validators.required]);
+      } else {
+        explanationControl?.clearValidators();
+      }
+      explanationControl?.updateValueAndValidity();
+    });
+
+    // Setup conditional validation for fundingDetails
+    this.applicationForm.get('hasRaisedCapital')?.valueChanges.subscribe(value => {
+      const fundingDetailsControl = this.applicationForm.get('fundingDetails');
+      if (value === 'true') {
+        fundingDetailsControl?.setValidators([Validators.required, this.wordCountValidator(300)]);
+      } else {
+        fundingDetailsControl?.clearValidators();
+      }
+      fundingDetailsControl?.updateValueAndValidity();
+    });
+
+    // Setup conditional validation for incorporationLocation
+    this.applicationForm.get('isIncorporated')?.valueChanges.subscribe(value => {
+      const incorporationLocationControl = this.applicationForm.get('incorporationLocation');
+      if (value === 'true') {
+        incorporationLocationControl?.setValidators([Validators.required]);
+      } else {
+        incorporationLocationControl?.clearValidators();
+      }
+      incorporationLocationControl?.updateValueAndValidity();
+    });
+
+    // Setup conditional validation for amendDocumentsExplanation
+    this.applicationForm.get('willAmendDocuments')?.valueChanges.subscribe(value => {
+      const explanationControl = this.applicationForm.get('amendDocumentsExplanation');
+      if (value === 'false') {
+        explanationControl?.setValidators([Validators.required]);
+      } else {
+        explanationControl?.clearValidators();
+      }
+      explanationControl?.updateValueAndValidity();
+    });
+
+    // Setup conditional validation for agreesToIncorporate
+    this.applicationForm.get('isIncorporated')?.valueChanges.subscribe(value => {
+      const agreesToIncorporateControl = this.applicationForm.get('agreesToIncorporate');
+      if (value === 'false') {
+        agreesToIncorporateControl?.setValidators([Validators.required]);
+      } else {
+        agreesToIncorporateControl?.clearValidators();
+      }
+      agreesToIncorporateControl?.updateValueAndValidity();
+    });
   }
 
   // Tab navigation methods
@@ -1155,9 +1310,11 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     const formValue = this.applicationForm.value;
     switch (this.currentTab) {
       case 0: // Product & Traction
-        return !!(formValue.productStage && formValue.tractionDetails && formValue.problemCustomer);
+        return !!(formValue.productStage && formValue.tractionDetails && formValue.problemCustomer && formValue.videoPitch);
       case 1: // Team
-        return !!(formValue.coFounders && formValue.capacity);
+        const hasCapacity = formValue.capacity;
+        const hasCapacityExplanation = formValue.capacity !== 'OTHER' || formValue.capacityOther;
+        return !!(formValue.coFounders && hasCapacity && hasCapacityExplanation);
       case 2: // Funding
         return !!(formValue.hasRaisedCapital !== null && this.equityRows.length > 0);
       case 3: // Legal
@@ -1189,29 +1346,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     return value.trim().split(/\s+/).filter((word: string) => word.length > 0).length;
   }
 
-  // Corporation type methods
-  onCorporationTypeChange(event: any, type: string) {
-    const corporationTypeArray = this.applicationForm.get('corporationType') as FormArray;
-    
-    if (event.target.checked) {
-      corporationTypeArray.push(this.fb.control(type));
-    } else {
-      const index = corporationTypeArray.controls.findIndex(control => control.value === type);
-      if (index >= 0) {
-        corporationTypeArray.removeAt(index);
-      }
-    }
-  }
-
-  hasOtherCorporationType(): boolean {
-    const corporationTypeArray = this.applicationForm.get('corporationType') as FormArray;
-    return corporationTypeArray.controls.some(control => control.value === 'OTHER');
-  }
-
-  hasAllCorporateStructures(): boolean {
-    const corporationTypeArray = this.applicationForm.get('corporationType') as FormArray;
-    return corporationTypeArray.controls.length > 0;
-  }
 
   // Equity table methods
   onEquityRowsChanged(rows: EquityBreakdownRow[]) {
@@ -1222,20 +1356,20 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   // Form submission methods
   async saveDraft() {
     if (!this.canSave()) return;
-    
+
     try {
       this.isSaving = true;
       this.errorMessage = '';
-      
+
       const applicationData = this.buildApplicationData('DRAFT');
-      
+
       if (this.existingApplication?.id) {
         await this.applicationService.updatePhase3Application(this.existingApplication.id, applicationData);
       } else {
         const created = await this.applicationService.createPhase3Application(applicationData);
         this.existingApplication = created;
       }
-      
+
       this.successMessage = 'Draft saved successfully!';
       setTimeout(() => this.successMessage = '', 3000);
     } catch (error: any) {
@@ -1247,22 +1381,22 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
   async submitApplication() {
     if (!this.applicationForm.valid) return;
-    
+
     try {
       this.isSubmitting = true;
       this.errorMessage = '';
-      
+
       const applicationData = this.buildApplicationData('SUBMITTED');
-      
+
       if (this.existingApplication?.id) {
         await this.applicationService.updatePhase3Application(this.existingApplication.id, applicationData);
       } else {
         await this.applicationService.createPhase3Application(applicationData);
       }
-      
+
       this.successMessage = 'Application submitted successfully!';
       this.phaseCompleted.emit();
-      
+
       setTimeout(() => {
         this.router.navigate(['/dashboard']);
       }, 2000);
@@ -1281,9 +1415,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     if (!this.applicant) {
       throw new Error('Applicant data is required to build application');
     }
-    
+
     const formValue = this.applicationForm.value;
-    
+
     return {
       applicantId: this.applicant.userId,
       cohortId: this.applicant.cohortId,
@@ -1298,8 +1432,10 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       teamInfo: {
         coFounders: formValue.coFounders,
         capacity: formValue.capacity,
+        capacityOther: formValue.capacityOther,
         previousCollaboration: formValue.previousCollaboration,
         previousFounders: formValue.previousFounders === 'true',
+        previousFoundersExplanation: formValue.previousFoundersExplanation,
         equitySplitRoles: formValue.equitySplitRoles,
         additionalTeamMembers: formValue.additionalTeamMembers
       },
@@ -1310,11 +1446,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       },
       legalInfo: {
         isIncorporated: formValue.isIncorporated === 'true',
-        corporationType: formValue.corporationType || [],
-        otherCorporationType: formValue.otherCorporationType,
-        jurisdiction: formValue.jurisdiction,
-        corporateStructureDetails: formValue.corporateStructureDetails,
-        incorporationPlans: formValue.incorporationPlans
+        incorporationLocation: formValue.incorporationLocation,
+        hasIpAssignment: formValue.hasIpAssignment === 'true',
+        hasFounderVesting: formValue.hasFounderVesting === 'true',
+        hasBoardStructure: formValue.hasBoardStructure === 'true',
+        willAmendDocuments: formValue.willAmendDocuments === 'true',
+        amendDocumentsExplanation: formValue.amendDocumentsExplanation,
+        agreesToIncorporate: formValue.agreesToIncorporate
       },
       submittedAt: status === 'SUBMITTED' ? new Date() : undefined,
       createdAt: new Date(),
@@ -1328,35 +1466,33 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       tractionDetails: app.productInfo.tractionDetails,
       problemCustomer: app.productInfo.problemCustomer,
       videoPitch: app.productInfo.videoPitch,
-      
+
       coFounders: app.teamInfo.coFounders,
       capacity: app.teamInfo.capacity,
+      capacityOther: app.teamInfo.capacityOther,
       previousCollaboration: app.teamInfo.previousCollaboration,
       previousFounders: app.teamInfo.previousFounders ? 'true' : 'false',
+      previousFoundersExplanation: app.teamInfo.previousFoundersExplanation,
       equitySplitRoles: app.teamInfo.equitySplitRoles,
       additionalTeamMembers: app.teamInfo.additionalTeamMembers,
-      
+
       hasRaisedCapital: app.fundingInfo.hasRaisedCapital ? 'true' : 'false',
       fundingDetails: app.fundingInfo.fundingDetails,
-      
+
       isIncorporated: app.legalInfo.isIncorporated ? 'true' : 'false',
-      otherCorporationType: app.legalInfo.otherCorporationType,
-      jurisdiction: app.legalInfo.jurisdiction,
-      corporateStructureDetails: app.legalInfo.corporateStructureDetails,
-      incorporationPlans: app.legalInfo.incorporationPlans
+      incorporationLocation: app.legalInfo.incorporationLocation,
+      hasIpAssignment: app.legalInfo.hasIpAssignment ? 'true' : 'false',
+      hasFounderVesting: app.legalInfo.hasFounderVesting ? 'true' : 'false',
+      hasBoardStructure: app.legalInfo.hasBoardStructure ? 'true' : 'false',
+      willAmendDocuments: app.legalInfo.willAmendDocuments ? 'true' : 'false',
+      amendDocumentsExplanation: app.legalInfo.amendDocumentsExplanation,
+      agreesToIncorporate: app.legalInfo.agreesToIncorporate
     });
 
     if (app.fundingInfo.equityBreakdown && app.fundingInfo.equityBreakdown.length > 0) {
       this.equityRows = [...app.fundingInfo.equityBreakdown];
     }
 
-    // Set corporation types
-    if (app.legalInfo.corporationType && app.legalInfo.corporationType.length > 0) {
-      const corporationTypeArray = this.applicationForm.get('corporationType') as FormArray;
-      app.legalInfo.corporationType.forEach(type => {
-        corporationTypeArray.push(this.fb.control(type));
-      });
-    }
   }
 
   private setupAutoSave() {
@@ -1377,7 +1513,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private wordCountValidator(maxWords: number) {
     return (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
-      
+
       const wordCount = control.value.trim().split(/\s+/).filter((word: string) => word.length > 0).length;
       return wordCount > maxWords ? { wordCount: { max: maxWords, actual: wordCount } } : null;
     };

@@ -376,34 +376,57 @@ export class FlaggingService {
       });
     }
 
-    // Yellow Flag: Unusual corporate structure
-    if (legalInfo.isIncorporated && legalInfo.corporationType) {
-      const hasStandardTypes = legalInfo.corporationType.some(type => 
-        ['C_CORP', 'S_CORP', 'LLC'].includes(type)
-      );
-      
-      if (!hasStandardTypes) {
+    // Yellow Flag: Missing venture standard terms
+    if (legalInfo.isIncorporated) {
+      if (!legalInfo.hasIpAssignment) {
         flags.push({
           type: 'YELLOW',
-          message: 'Non-standard corporate structure may need review',
-          field: 'corporationType',
+          message: 'Missing IP Assignment Agreements - may need legal review',
+          field: 'hasIpAssignment',
+          severity: 'yellow'
+        });
+      }
+
+      if (!legalInfo.hasFounderVesting) {
+        flags.push({
+          type: 'YELLOW',
+          message: 'Missing founder vesting schedules - may need legal review',
+          field: 'hasFounderVesting',
+          severity: 'yellow'
+        });
+      }
+
+      if (!legalInfo.hasBoardStructure) {
+        flags.push({
+          type: 'YELLOW',
+          message: 'Board structure may not be suitable for venture funding',
+          field: 'hasBoardStructure',
+          severity: 'yellow'
+        });
+      }
+
+      if (legalInfo.willAmendDocuments === false) {
+        flags.push({
+          type: 'YELLOW',
+          message: 'Company unwilling to amend corporate documents for venture terms',
+          field: 'willAmendDocuments',
           severity: 'yellow'
         });
       }
     }
 
     // Yellow Flag: Incorporation outside common jurisdictions
-    if (legalInfo.isIncorporated && legalInfo.jurisdiction) {
+    if (legalInfo.isIncorporated && legalInfo.incorporationLocation) {
       const commonJurisdictions = ['Delaware', 'California', 'Nevada', 'New York'];
       const isCommonJurisdiction = commonJurisdictions.some(jurisdiction => 
-        legalInfo.jurisdiction?.toLowerCase().includes(jurisdiction.toLowerCase())
+        legalInfo.incorporationLocation?.toLowerCase().includes(jurisdiction.toLowerCase())
       );
       
       if (!isCommonJurisdiction) {
         flags.push({
           type: 'YELLOW',
           message: 'Incorporation in uncommon jurisdiction may need review',
-          field: 'jurisdiction',
+          field: 'incorporationLocation',
           severity: 'yellow'
         });
       }

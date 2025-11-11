@@ -109,11 +109,13 @@ export interface Phase3Application extends BaseApplication {
   // Part 4: Legal & Corporate
   legalInfo: {
     isIncorporated: boolean;
-    corporationType?: string[]; // array of corporation types
-    otherCorporationType?: string; // when 'OTHER' is selected
-    jurisdiction?: string; // where incorporated
-    corporateStructureDetails?: string; // additional details
-    incorporationPlans?: string; // for non-incorporated companies
+    incorporationLocation?: string; // conditional - required if incorporated
+    hasIpAssignment?: boolean; // conditional - only for incorporated companies
+    hasFounderVesting?: boolean; // conditional - only for incorporated companies
+    hasBoardStructure?: boolean; // conditional - only for incorporated companies
+    willAmendDocuments?: boolean; // conditional - only for incorporated companies
+    amendDocumentsExplanation?: string; // conditional - required if willAmendDocuments is false
+    agreesToIncorporate?: 'AGREE' | 'DISCUSS'; // conditional - required if not incorporated
   };
 
   // LLM Analysis

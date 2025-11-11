@@ -318,33 +318,36 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  async ngOnInit() {
-    await this.loadUserData();
-    await this.loadWebinars();
+  ngOnInit() {
+    // Wait for auth state to be initialized before loading user data
+    this.authService.currentUser$.subscribe(user => {
+      if (user && user.role === 'APPLICANT') {
+        this.loadUserData(user as ApplicantUser);
+        this.loadWebinars();
+      } else if (user === null) {
+        // User is not authenticated, redirect to login
+        this.router.navigate(['/auth/login']);
+      }
+      // If user exists but is not an applicant, do nothing (let them stay on the page)
+    });
   }
 
-  private async loadUserData() {
+  private async loadUserData(user: ApplicantUser) {
     try {
-      const user = this.authService.getCurrentUser();
-      if (user && user.role === 'APPLICANT') {
-        const applicantUser = user as ApplicantUser;
-        this.applicant.set(applicantUser);
-        this.currentPhase.set(applicantUser.phase);
-        
-        // Mock application status - in real app, fetch from application service
-        if (applicantUser.phase === 'SIGNUP') {
-          this.applicationStatus.set('SUBMITTED');
-        } else if (applicantUser.phase === 'IN_DEPTH_APPLICATION') {
-          this.applicationStatus.set('DRAFT'); // or 'SUBMITTED' based on actual status
-        }
+      this.applicant.set(user);
+      this.currentPhase.set(user.phase);
+      
+      // Mock application status - in real app, fetch from application service
+      if (user.phase === 'SIGNUP') {
+        this.applicationStatus.set('SUBMITTED');
+      } else if (user.phase === 'IN_DEPTH_APPLICATION') {
+        this.applicationStatus.set('DRAFT'); // or 'SUBMITTED' based on actual status
+      }
 
-        // Mock interviewer and interview status
-        if (applicantUser.phase === 'INTERVIEW') {
-          this.interviewer.set(applicantUser.interviewerId || 'TBD');
-          this.interviewCompleted.set(false); // This would come from backend
-        }
-      } else {
-        this.router.navigate(['/auth/login']);
+      // Mock interviewer and interview status
+      if (user.phase === 'INTERVIEW') {
+        this.interviewer.set(user.interviewerId || 'TBD');
+        this.interviewCompleted.set(false); // This would come from backend
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -389,7 +392,11 @@ export class DashboardComponent implements OnInit {
         
         // Refresh user data to get updated phase
         setTimeout(async () => {
-          await this.loadUserData();
+          // Reload user from auth service to get updated data
+          const updatedUser = this.authService.getCurrentUser();
+          if (updatedUser && updatedUser.role === 'APPLICANT') {
+            await this.loadUserData(updatedUser as ApplicantUser);
+          }
           this.success.set('');
         }, 2000);
       } else {

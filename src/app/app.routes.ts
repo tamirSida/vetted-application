@@ -22,6 +22,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/applicant/application/phase1/phase1-application.component').then(c => c.Phase1ApplicationComponent)
   },
   {
+    path: 'application/phase3',
+    loadComponent: () => import('./features/applicant/phase3-application/phase3-application.component').then(c => c.Phase3ApplicationComponent)
+  },
+  {
     path: '',
     redirectTo: '/auth/login',
     pathMatch: 'full'

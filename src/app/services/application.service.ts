@@ -12,7 +12,7 @@ import {
   getDocs 
 } from '@angular/fire/firestore';
 import { Auth, createUserWithEmailAndPassword, updateProfile } from '@angular/fire/auth';
-import { Phase1Application, Phase, ServiceCountry, ApplicationStatus } from '../models';
+import { Phase1Application, Phase3Application, Phase, ServiceCountry, ApplicationStatus } from '../models';
 import { FlaggingService, FlaggingResult } from './flagging.service';
 
 export interface ApplicationSubmissionData {
@@ -416,5 +416,182 @@ export class ApplicationService {
     }
     
     return flaggingResult;
+  }
+
+  /**
+   * Get Phase 3 application by applicant ID and cohort ID
+   * @param applicantId The applicant's user ID
+   * @param cohortId The cohort ID
+   * @returns Promise containing the Phase 3 application or null if not found
+   */
+  async getPhase3Application(applicantId: string, cohortId: string): Promise<Phase3Application | null> {
+    try {
+      const q = query(
+        collection(this.firestore, 'phase3_applications'),
+        where('applicantId', '==', applicantId),
+        where('cohortId', '==', cohortId)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return null;
+      }
+
+      const doc = querySnapshot.docs[0];
+      return {
+        id: doc.id,
+        ...doc.data()
+      } as Phase3Application;
+    } catch (error) {
+      console.error('Error fetching Phase 3 application:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new Phase 3 application
+   * @param applicationData The Phase 3 application data
+   * @returns Promise containing the created application
+   */
+  async createPhase3Application(applicationData: Omit<Phase3Application, 'id'>): Promise<Phase3Application> {
+    try {
+      const docRef = await addDoc(collection(this.firestore, 'phase3_applications'), {
+        ...applicationData,
+        phase: Phase.IN_DEPTH_APPLICATION,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      const createdApp = { ...applicationData, id: docRef.id };
+      
+      // Run Phase 3 flagging analysis if submitted
+      if (applicationData.status === 'SUBMITTED') {
+        const flaggingResult = this.flaggingService.analyzePhase3Application(createdApp);
+        await this.savePhase3FlaggingResults(docRef.id, flaggingResult);
+      }
+      
+      return createdApp;
+    } catch (error) {
+      console.error('Error creating Phase 3 application:', error);
+      throw new Error('Failed to create Phase 3 application. Please try again.');
+    }
+  }
+
+  /**
+   * Update an existing Phase 3 application
+   * @param applicationId The application ID
+   * @param updateData Partial application data to update
+   * @returns Promise that resolves when update is complete
+   */
+  async updatePhase3Application(applicationId: string, updateData: Partial<Phase3Application>): Promise<void> {
+    try {
+      const docRef = doc(this.firestore, 'phase3_applications', applicationId);
+      const updatedData = {
+        ...updateData,
+        updatedAt: new Date()
+      };
+      
+      await updateDoc(docRef, updatedData);
+      
+      // Re-run flagging analysis if submitted
+      if (updateData.status === 'SUBMITTED') {
+        const fullApp = await this.getPhase3ApplicationById(applicationId);
+        if (fullApp) {
+          const flaggingResult = this.flaggingService.analyzePhase3Application(fullApp);
+          await this.savePhase3FlaggingResults(applicationId, flaggingResult);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating Phase 3 application:', error);
+      throw new Error('Failed to update Phase 3 application. Please try again.');
+    }
+  }
+
+  /**
+   * Get Phase 3 application by ID
+   * @param applicationId The application ID
+   * @returns Promise containing the application or null if not found
+   */
+  private async getPhase3ApplicationById(applicationId: string): Promise<Phase3Application | null> {
+    try {
+      const docRef = doc(this.firestore, 'phase3_applications', applicationId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Phase3Application;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching Phase 3 application by ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save Phase 3 flagging results to Firestore
+   * @param applicationId The Phase 3 application ID
+   * @param flaggingResult The flagging analysis result
+   */
+  private async savePhase3FlaggingResults(applicationId: string, flaggingResult: FlaggingResult): Promise<void> {
+    try {
+      // Save to flagging collection
+      await addDoc(collection(this.firestore, 'phase3_application_flags'), {
+        applicationId,
+        flags: flaggingResult.flags,
+        autoAdvance: flaggingResult.autoAdvance,
+        needsReview: flaggingResult.needsReview,
+        summary: this.flaggingService.generatePhase3FlagSummary(flaggingResult),
+        analyzedAt: new Date()
+      });
+
+      // Update the application document with flagging metadata
+      const appRef = doc(this.firestore, 'phase3_applications', applicationId);
+      await updateDoc(appRef, {
+        flagging: {
+          autoAdvance: flaggingResult.autoAdvance,
+          needsReview: flaggingResult.needsReview,
+          flagCount: flaggingResult.flags.length,
+          lastAnalyzed: new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error saving Phase 3 flagging results:', error);
+      // Don't throw here - flagging failure shouldn't prevent application submission
+    }
+  }
+
+  /**
+   * Get Phase 3 flagging results for an application
+   * @param applicationId The application ID
+   * @returns Promise containing the flagging result or null
+   */
+  async getPhase3FlaggingResults(applicationId: string): Promise<FlaggingResult | null> {
+    try {
+      const q = query(
+        collection(this.firestore, 'phase3_application_flags'),
+        where('applicationId', '==', applicationId)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        return null;
+      }
+
+      const doc = querySnapshot.docs[0];
+      const data = doc.data();
+      
+      return {
+        applicationId: data['applicationId'],
+        flags: data['flags'],
+        autoAdvance: data['autoAdvance'],
+        needsReview: data['needsReview']
+      };
+    } catch (error) {
+      console.error('Error fetching Phase 3 flagging results:', error);
+      return null;
+    }
   }
 }

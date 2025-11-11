@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Phase1Application } from '../models';
+import { Phase1Application, Phase3Application, EquityBreakdownRow } from '../models';
 import { UserService } from './user.service';
 
 export interface ApplicationFlag {
@@ -193,5 +193,241 @@ export class FlaggingService {
     }
     
     return result;
+  }
+
+  /**
+   * Analyze a Phase 3 application and flag potential issues
+   * @param application The Phase 3 application to analyze
+   * @returns FlaggingResult containing all flags
+   */
+  analyzePhase3Application(application: Phase3Application): FlaggingResult {
+    const flags: ApplicationFlag[] = [];
+
+    // Check Phase 3 Yellow Flags
+    this.checkPhase3YellowFlags(application, flags);
+    
+    // No red flags for Phase 3 - only yellow flags for admin review
+    const hasRedFlags = false; // Phase 3 doesn't have auto-blocking red flags
+    const autoAdvance = false; // Phase 3 applications always need manual review
+    const needsReview = true;   // Always needs manual review
+
+    return {
+      applicationId: application.id || '',
+      flags,
+      autoAdvance,
+      needsReview
+    };
+  }
+
+  /**
+   * Check for Phase 3 Yellow Flags according to the specified criteria
+   */
+  private checkPhase3YellowFlags(application: Phase3Application, flags: ApplicationFlag[]): void {
+    // Yellow Flag: Problem & Customer analysis (placeholder for LLM analysis)
+    // This will be handled by the LLM service, but we can add a flag if no analysis exists
+    if (!application.llmAnalysis?.problemCustomerScore) {
+      flags.push({
+        type: 'YELLOW',
+        message: 'Problem & Customer description needs LLM analysis',
+        field: 'problemCustomer',
+        severity: 'yellow'
+      });
+    } else if (application.llmAnalysis.problemCustomerScore < 7) { // Assuming 1-10 scale
+      flags.push({
+        type: 'YELLOW',
+        message: 'Problem & Customer description may be too vague or off-target',
+        field: 'problemCustomer',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: Capacity not all full-time
+    if (application.teamInfo.capacity !== 'ALL_FULLTIME') {
+      flags.push({
+        type: 'YELLOW',
+        message: 'Team capacity is not all full-time',
+        field: 'capacity',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: Previous founders who left
+    if (application.teamInfo.previousFounders === true) {
+      flags.push({
+        type: 'YELLOW',
+        message: 'Has previous co-founders who are no longer with the company',
+        field: 'previousFounders',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: Equity breakdown issues
+    this.checkEquityBreakdownFlags(application.fundingInfo.equityBreakdown, flags);
+
+    // Yellow Flag: Corporate structure issues
+    this.checkCorporateStructureFlags(application, flags);
+  }
+
+  /**
+   * Check equity breakdown for potential issues
+   */
+  private checkEquityBreakdownFlags(equityBreakdown: EquityBreakdownRow[], flags: ApplicationFlag[]): void {
+    if (!equityBreakdown || equityBreakdown.length === 0) {
+      flags.push({
+        type: 'YELLOW',
+        message: 'No equity breakdown provided',
+        field: 'equityBreakdown',
+        severity: 'yellow'
+      });
+      return;
+    }
+
+    // Calculate total percentages by category
+    const founderRows = equityBreakdown.filter(row => row.category === 'founder');
+    const employeeRows = equityBreakdown.filter(row => row.category === 'employee');
+    const investorRows = equityBreakdown.filter(row => row.category === 'investor');
+
+    const totalFounderPercentage = founderRows.reduce((sum, row) => sum + (row.percentage || 0), 0);
+    const totalInvestorPercentage = investorRows.reduce((sum, row) => sum + (row.percentage || 0), 0);
+    const totalPercentage = equityBreakdown.reduce((sum, row) => sum + (row.percentage || 0), 0);
+
+    // Yellow Flag: Founders collectively own <70%
+    if (totalFounderPercentage < 70) {
+      flags.push({
+        type: 'YELLOW',
+        message: `Founders collectively own ${totalFounderPercentage.toFixed(1)}% (should be ≥70%)`,
+        field: 'equityBreakdown',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: Single founder with no other team members and owns <80%
+    if (founderRows.length === 1 && totalFounderPercentage < 80) {
+      flags.push({
+        type: 'YELLOW',
+        message: `Single founder owns ${totalFounderPercentage.toFixed(1)}% (should be ≥80% for solo founders)`,
+        field: 'equityBreakdown',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: More than 5 investors already on cap table
+    if (investorRows.length > 5) {
+      flags.push({
+        type: 'YELLOW',
+        message: `${investorRows.length} investors on cap table (suggests poor fundraising hygiene)`,
+        field: 'equityBreakdown',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: Uneven founder ownership
+    if (founderRows.length === 2) {
+      const [founder1, founder2] = founderRows.sort((a, b) => (b.percentage || 0) - (a.percentage || 0));
+      const difference = (founder1.percentage || 0) - (founder2.percentage || 0);
+      if (difference > 20) {
+        flags.push({
+          type: 'YELLOW',
+          message: `Founder equity split is uneven (${difference.toFixed(1)}% difference)`,
+          field: 'equityBreakdown',
+          severity: 'yellow'
+        });
+      }
+    } else if (founderRows.length >= 3) {
+      const sortedFounders = founderRows.sort((a, b) => (b.percentage || 0) - (a.percentage || 0));
+      for (let i = 0; i < sortedFounders.length - 1; i++) {
+        const difference = (sortedFounders[i].percentage || 0) - (sortedFounders[i + 1].percentage || 0);
+        if (difference > 15) {
+          flags.push({
+            type: 'YELLOW',
+            message: `Founder equity split is uneven (max ${difference.toFixed(1)}% difference between founders)`,
+            field: 'equityBreakdown',
+            severity: 'yellow'
+          });
+          break;
+        }
+      }
+    }
+
+    // Yellow Flag: Total doesn't equal 100%
+    if (Math.abs(totalPercentage - 100) > 0.1) {
+      flags.push({
+        type: 'YELLOW',
+        message: `Total ownership is ${totalPercentage.toFixed(1)}% (should be 100%)`,
+        field: 'equityBreakdown',
+        severity: 'yellow'
+      });
+    }
+  }
+
+  /**
+   * Check corporate structure for potential issues
+   */
+  private checkCorporateStructureFlags(application: Phase3Application, flags: ApplicationFlag[]): void {
+    const legalInfo = application.legalInfo;
+
+    // Yellow Flag: Not incorporated and doesn't agree to incorporate
+    if (!legalInfo.isIncorporated && legalInfo.agreesToIncorporate === 'DISCUSS') {
+      flags.push({
+        type: 'YELLOW',
+        message: 'Not incorporated and wants to discuss incorporation terms',
+        field: 'agreesToIncorporate',
+        severity: 'yellow'
+      });
+    }
+
+    // Yellow Flag: Incorporated but missing standard venture terms
+    if (legalInfo.isIncorporated) {
+      const missingTerms = [];
+      
+      if (!legalInfo.hasIpAssignment) {
+        missingTerms.push('IP Assignment');
+      }
+      
+      if (!legalInfo.hasFounderVesting) {
+        missingTerms.push('Founder Vesting');
+      }
+      
+      if (!legalInfo.hasBoardStructure) {
+        missingTerms.push('Board Structure');
+      }
+
+      if (missingTerms.length > 0) {
+        // Yellow Flag: Missing terms but won't amend documents
+        if (legalInfo.willAmendDocuments === false) {
+          flags.push({
+            type: 'YELLOW',
+            message: `Missing standard venture terms (${missingTerms.join(', ')}) and unwilling to amend documents`,
+            field: 'willAmendDocuments',
+            severity: 'yellow'
+          });
+        } else {
+          flags.push({
+            type: 'YELLOW',
+            message: `Missing standard venture terms: ${missingTerms.join(', ')}`,
+            field: 'corporateStructure',
+            severity: 'yellow'
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Generate a human-readable summary for Phase 3 flags
+   */
+  generatePhase3FlagSummary(result: FlaggingResult): string {
+    if (result.flags.length === 0) {
+      return 'Phase 3 application appears clean with no issues detected. Ready for manual review.';
+    }
+
+    const yellowCount = result.flags.filter(f => f.type === 'YELLOW').length;
+    
+    if (yellowCount > 0) {
+      const flagList = result.flags.map(f => f.message).join('; ');
+      return `Phase 3 application flagged with ${yellowCount} yellow flag${yellowCount > 1 ? 's' : ''}. Issues: ${flagList}. Manual review required.`;
+    }
+
+    return 'Phase 3 application ready for manual review.';
   }
 }

@@ -1376,19 +1376,90 @@ export class ApplicantDetailComponent implements OnInit {
     }
   }
 
-  advanceToPhase3() {
-    // TODO: Implement phase advancement
-    console.log('Advance to Phase 3');
+  async advanceToPhase3() {
+    const applicant = this.applicant();
+    if (!applicant) return;
+
+    try {
+      // Update applicant status to Phase 3
+      await this.userService.updateUser(applicant.userId, {
+        phase: Phase.IN_DEPTH_APPLICATION,
+        status: ApplicationStatus.PHASE_3
+      });
+
+      // Update local state
+      this.applicant.set({
+        ...applicant,
+        phase: Phase.IN_DEPTH_APPLICATION,
+        status: ApplicationStatus.PHASE_3
+      });
+
+      console.log('Successfully advanced to Phase 3');
+      
+      // Refresh the current view
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error advancing to Phase 3:', error);
+    }
   }
 
-  advanceToPhase4() {
-    // TODO: Implement phase advancement
-    console.log('Advance to Phase 4');
+  async advanceToPhase4() {
+    const applicant = this.applicant();
+    if (!applicant) return;
+
+    try {
+      // Update applicant status to Phase 4
+      await this.userService.updateUser(applicant.userId, {
+        phase: Phase.INTERVIEW,
+        status: ApplicationStatus.PHASE_4
+      });
+
+      // Update local state
+      this.applicant.set({
+        ...applicant,
+        phase: Phase.INTERVIEW,
+        status: ApplicationStatus.PHASE_4
+      });
+
+      console.log('Successfully advanced to Phase 4');
+      
+      // Refresh the current view
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error advancing to Phase 4:', error);
+    }
   }
 
-  acceptToProgram() {
-    // TODO: Implement program acceptance
-    console.log('Accept to Program');
+  async acceptToProgram() {
+    const applicant = this.applicant();
+    if (!applicant) return;
+
+    try {
+      // Update applicant status to Accepted
+      await this.userService.updateUser(applicant.userId, {
+        phase: Phase.ACCEPTED,
+        status: ApplicationStatus.ACCEPTED,
+        isAccepted: true
+      });
+
+      // Update local state
+      this.applicant.set({
+        ...applicant,
+        phase: Phase.ACCEPTED,
+        status: ApplicationStatus.ACCEPTED,
+        isAccepted: true
+      });
+
+      console.log('Successfully accepted to program');
+      
+      // Refresh the current view
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error accepting to program:', error);
+    }
   }
 
   // Flagging methods

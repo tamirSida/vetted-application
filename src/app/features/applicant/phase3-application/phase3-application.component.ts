@@ -97,22 +97,34 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Product Stage: How far along are you in building the service or product?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input type="radio" formControlName="productStage" value="LIVE_PAYING">
+                    <input 
+                      type="radio" 
+                      [checked]="applicationForm.get('productStage')?.value === 'LIVE_PAYING'"
+                      (click)="toggleRadioButton('productStage', 'LIVE_PAYING')">
                     <span class="checkmark"></span>
                     Live with paying customers
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="productStage" value="LIVE_BETA">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('productStage')?.value === 'LIVE_BETA'"
+                      (click)="toggleRadioButton('productStage', 'LIVE_BETA')">
                     <span class="checkmark"></span>
                     Live with non-paying/beta users
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="productStage" value="FUNCTIONAL_PROTOTYPE">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('productStage')?.value === 'FUNCTIONAL_PROTOTYPE'"
+                      (click)="toggleRadioButton('productStage', 'FUNCTIONAL_PROTOTYPE')">
                     <span class="checkmark"></span>
                     Functional prototype (MVP)
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="productStage" value="PRE_PROTOTYPE">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('productStage')?.value === 'PRE_PROTOTYPE'"
+                      (click)="toggleRadioButton('productStage', 'PRE_PROTOTYPE')">
                     <span class="checkmark"></span>
                     Pre-prototype / Idea stage
                   </label>
@@ -194,12 +206,18 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Capacity: What are you and your co-founders current capacity?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input type="radio" formControlName="capacity" value="ALL_FULLTIME">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('capacity')?.value === 'ALL_FULLTIME'"
+                      (click)="toggleRadioButton('capacity', 'ALL_FULLTIME')">
                     <span class="checkmark"></span>
                     All full-time
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="capacity" value="OTHER">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('capacity')?.value === 'OTHER'"
+                      (click)="toggleRadioButton('capacity', 'OTHER')">
                     <span class="checkmark"></span>
                     Other
                   </label>
@@ -241,12 +259,18 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Previous Founders: Have you had any co-founders who are no longer with the company?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input type="radio" formControlName="previousFounders" value="true">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('previousFounders')?.value === 'true'"
+                      (click)="toggleRadioButton('previousFounders', 'true')">
                     <span class="checkmark"></span>
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="previousFounders" value="false">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('previousFounders')?.value === 'false'"
+                      (click)="toggleRadioButton('previousFounders', 'false')">
                     <span class="checkmark"></span>
                     No
                   </label>
@@ -312,12 +336,18 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Funding History: Have you raised any capital to date?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input type="radio" formControlName="hasRaisedCapital" value="true">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('hasRaisedCapital')?.value === 'true'"
+                      (click)="toggleRadioButton('hasRaisedCapital', 'true')">
                     <span class="checkmark"></span>
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="hasRaisedCapital" value="false">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('hasRaisedCapital')?.value === 'false'"
+                      (click)="toggleRadioButton('hasRaisedCapital', 'false')">
                     <span class="checkmark"></span>
                     No
                   </label>
@@ -363,12 +393,18 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Is your company incorporated?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input type="radio" formControlName="isIncorporated" value="true">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('isIncorporated')?.value === 'true'"
+                      (click)="toggleRadioButton('isIncorporated', 'true')">
                     <span class="checkmark"></span>
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input type="radio" formControlName="isIncorporated" value="false">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('isIncorporated')?.value === 'false'"
+                      (click)="toggleRadioButton('isIncorporated', 'false')">
                     <span class="checkmark"></span>
                     No
                   </label>
@@ -401,12 +437,18 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">Intellectual Property Assignment Agreements (PIIA) for all founders and employees?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input type="radio" formControlName="hasIpAssignment" value="true">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('hasIpAssignment')?.value === 'true'"
+                          (click)="toggleRadioButton('hasIpAssignment', 'true')">
                         <span class="checkmark"></span>
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input type="radio" formControlName="hasIpAssignment" value="false">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('hasIpAssignment')?.value === 'false'"
+                          (click)="toggleRadioButton('hasIpAssignment', 'false')">
                         <span class="checkmark"></span>
                         No
                       </label>
@@ -418,12 +460,18 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">Founder vesting schedules (typically 4 years with a 1-year cliff)?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input type="radio" formControlName="hasFounderVesting" value="true">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('hasFounderVesting')?.value === 'true'"
+                          (click)="toggleRadioButton('hasFounderVesting', 'true')">
                         <span class="checkmark"></span>
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input type="radio" formControlName="hasFounderVesting" value="false">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('hasFounderVesting')?.value === 'false'"
+                          (click)="toggleRadioButton('hasFounderVesting', 'false')">
                         <span class="checkmark"></span>
                         No
                       </label>
@@ -435,12 +483,18 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">Board structure appropriate for venture funding (typically odd number of directors with investor representation)?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input type="radio" formControlName="hasBoardStructure" value="true">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('hasBoardStructure')?.value === 'true'"
+                          (click)="toggleRadioButton('hasBoardStructure', 'true')">
                         <span class="checkmark"></span>
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input type="radio" formControlName="hasBoardStructure" value="false">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('hasBoardStructure')?.value === 'false'"
+                          (click)="toggleRadioButton('hasBoardStructure', 'false')">
                         <span class="checkmark"></span>
                         No
                       </label>
@@ -452,12 +506,18 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">If any of the above are missing, would you be willing to amend your corporate documents to include these terms?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input type="radio" formControlName="willAmendDocuments" value="true">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('willAmendDocuments')?.value === 'true'"
+                          (click)="toggleRadioButton('willAmendDocuments', 'true')">
                         <span class="checkmark"></span>
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input type="radio" formControlName="willAmendDocuments" value="false">
+                        <input 
+                          type="radio"
+                          [checked]="applicationForm.get('willAmendDocuments')?.value === 'false'"
+                          (click)="toggleRadioButton('willAmendDocuments', 'false')">
                         <span class="checkmark"></span>
                         No
                       </label>
@@ -486,12 +546,18 @@ import { combineLatest } from 'rxjs';
                   <label class="form-label">If accepted into the program, would you be willing to incorporate as a Delaware C-Corp with venture standard terms?</label>
                   <div class="radio-group">
                     <label class="radio-option">
-                      <input type="radio" formControlName="agreesToIncorporate" value="AGREE">
+                      <input 
+                        type="radio"
+                        [checked]="applicationForm.get('agreesToIncorporate')?.value === 'AGREE'"
+                        (click)="toggleRadioButton('agreesToIncorporate', 'AGREE')">
                       <span class="checkmark"></span>
                       Yes, I agree to incorporate as a Delaware C-Corp
                     </label>
                     <label class="radio-option">
-                      <input type="radio" formControlName="agreesToIncorporate" value="DISCUSS">
+                      <input 
+                        type="radio"
+                        [checked]="applicationForm.get('agreesToIncorporate')?.value === 'DISCUSS'"
+                        (click)="toggleRadioButton('agreesToIncorporate', 'DISCUSS')">
                       <span class="checkmark"></span>
                       I'd like to discuss alternative structures
                     </label>
@@ -1176,34 +1242,34 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private initializeForm() {
     this.applicationForm = this.fb.group({
       // Product & Traction (Tab 1)
-      productStage: ['', Validators.required],
+      productStage: [null, Validators.required],
       tractionDetails: ['', [Validators.required, this.wordCountValidator(300)]],
       problemCustomer: ['', [Validators.required, this.wordCountValidator(300)]],
       videoPitch: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
 
       // Team (Tab 2)
       coFounders: ['', [Validators.required, this.wordCountValidator(300)]],
-      capacity: ['', Validators.required],
+      capacity: [null, Validators.required],
       capacityOther: [''],
       previousCollaboration: ['', this.wordCountValidator(300)],
-      previousFounders: ['', Validators.required],
+      previousFounders: [null, Validators.required],
       previousFoundersExplanation: [''],
       equitySplitRoles: ['', [Validators.required, this.wordCountValidator(300)]],
       additionalTeamMembers: ['', this.wordCountValidator(300)],
 
       // Funding (Tab 3)
-      hasRaisedCapital: ['', Validators.required],
+      hasRaisedCapital: [null, Validators.required],
       fundingDetails: ['', this.wordCountValidator(300)],
 
       // Legal (Tab 4)
-      isIncorporated: ['', Validators.required],
+      isIncorporated: [null, Validators.required],
       incorporationLocation: [''],
-      hasIpAssignment: [''],
-      hasFounderVesting: [''],
-      hasBoardStructure: [''],
-      willAmendDocuments: [''],
+      hasIpAssignment: [null],
+      hasFounderVesting: [null],
+      hasBoardStructure: [null],
+      willAmendDocuments: [null],
       amendDocumentsExplanation: [''],
-      agreesToIncorporate: ['']
+      agreesToIncorporate: [null]
     });
 
     if (!this.equityRows || this.equityRows.length === 0) {
@@ -1312,13 +1378,20 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       case 0: // Product & Traction
         return !!(formValue.productStage && formValue.tractionDetails && formValue.problemCustomer && formValue.videoPitch);
       case 1: // Team
-        const hasCapacity = formValue.capacity;
+        const hasCapacity = formValue.capacity !== null;
         const hasCapacityExplanation = formValue.capacity !== 'OTHER' || formValue.capacityOther;
-        return !!(formValue.coFounders && hasCapacity && hasCapacityExplanation);
+        const hasPreviousFoundersAnswer = formValue.previousFounders !== null;
+        const hasPreviousFoundersExplanation = formValue.previousFounders !== 'true' || formValue.previousFoundersExplanation;
+        return !!(formValue.coFounders && hasCapacity && hasCapacityExplanation && hasPreviousFoundersAnswer && hasPreviousFoundersExplanation && formValue.equitySplitRoles);
       case 2: // Funding
-        return !!(formValue.hasRaisedCapital !== null && this.equityRows.length > 0);
+        const hasFundingAnswer = formValue.hasRaisedCapital !== null;
+        const hasFundingDetails = formValue.hasRaisedCapital !== 'true' || formValue.fundingDetails;
+        return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0);
       case 3: // Legal
-        return !!(formValue.isIncorporated !== null);
+        const hasIncorporationAnswer = formValue.isIncorporated !== null;
+        const hasIncorporationLocation = formValue.isIncorporated !== 'true' || formValue.incorporationLocation;
+        const hasAgreesToIncorporate = formValue.isIncorporated !== 'false' || formValue.agreesToIncorporate !== null;
+        return !!(hasIncorporationAnswer && hasIncorporationLocation && hasAgreesToIncorporate);
       default:
         return false;
     }
@@ -1344,6 +1417,18 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   getWordCount(fieldName: string): number {
     const value = this.applicationForm.get(fieldName)?.value || '';
     return value.trim().split(/\s+/).filter((word: string) => word.length > 0).length;
+  }
+
+  // Radio button toggle helper
+  toggleRadioButton(fieldName: string, value: string) {
+    const currentValue = this.applicationForm.get(fieldName)?.value;
+    if (currentValue === value) {
+      // If the same value is selected, deselect it
+      this.applicationForm.get(fieldName)?.setValue(null);
+    } else {
+      // Otherwise, select the new value
+      this.applicationForm.get(fieldName)?.setValue(value);
+    }
   }
 
 

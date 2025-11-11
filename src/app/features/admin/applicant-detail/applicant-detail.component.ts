@@ -5,7 +5,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { UserService } from '../../../services/user.service';
 import { ApplicationService } from '../../../services/application.service';
 import { StatusMessageService } from '../../../services/status-message.service';
-import { ApplicantUser, Phase1Application, ApplicationStatus, Phase } from '../../../models';
+import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus, Phase } from '../../../models';
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 
 @Component({
@@ -391,8 +391,278 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
             </div>
           </div>
           
-          <div class="phase3-placeholder">
-            <p><i class="fas fa-info-circle"></i> Phase 3 application view will be implemented here</p>
+          <div *ngIf="phase3Application()" class="application-content">
+            <!-- Product & Traction -->
+            <div class="info-group">
+              <h3>Product & Traction</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Product Stage</label>
+                  <span class="value-with-flag">
+                    {{ getProductStageDisplay(phase3Application()?.productInfo?.productStage) }}
+                    <i *ngIf="hasFlag('productStage')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('productStage')" 
+                       [title]="getFlagMessage('productStage')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width">
+                  <label>Video Pitch URL</label>
+                  <span class="value-with-flag">
+                    <a *ngIf="phase3Application()?.productInfo?.videoPitch" 
+                       [href]="phase3Application()?.productInfo?.videoPitch" 
+                       target="_blank">
+                      View Video Pitch
+                      <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <span *ngIf="!phase3Application()?.productInfo?.videoPitch">Not provided</span>
+                    <i *ngIf="hasFlag('videoPitch')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('videoPitch')" 
+                       [title]="getFlagMessage('videoPitch')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width">
+                  <label>Traction Details</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.productInfo?.tractionDetails }}
+                    <i *ngIf="hasFlag('tractionDetails')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('tractionDetails')" 
+                       [title]="getFlagMessage('tractionDetails')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width">
+                  <label>Problem & Customer Description</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.productInfo?.problemCustomer }}
+                    <i *ngIf="hasFlag('problemCustomer')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('problemCustomer')" 
+                       [title]="getFlagMessage('problemCustomer')"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Information -->
+            <div class="info-group">
+              <h3>Team Information</h3>
+              <div class="info-grid">
+                <div class="info-item full-width">
+                  <label>Co-Founders</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.teamInfo?.coFounders }}
+                    <i *ngIf="hasFlag('coFounders')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('coFounders')" 
+                       [title]="getFlagMessage('coFounders')"></i>
+                  </span>
+                </div>
+                <div class="info-item">
+                  <label>Team Capacity</label>
+                  <span class="value-with-flag">
+                    {{ getCapacityDisplay(phase3Application()?.teamInfo?.capacity) }}
+                    <span *ngIf="phase3Application()?.teamInfo?.capacity === 'OTHER' && phase3Application()?.teamInfo?.capacityOther">
+                      - {{ phase3Application()?.teamInfo?.capacityOther }}
+                    </span>
+                    <i *ngIf="hasFlag('capacity')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('capacity')" 
+                       [title]="getFlagMessage('capacity')"></i>
+                  </span>
+                </div>
+                <div class="info-item">
+                  <label>Previous Team Collaboration</label>
+                  <span class="value-with-flag">
+                    {{ phase3Application()?.teamInfo?.hasPreviousCollaboration ? 'Yes' : 'No' }}
+                    <i *ngIf="hasFlag('hasPreviousCollaboration')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('hasPreviousCollaboration')" 
+                       [title]="getFlagMessage('hasPreviousCollaboration')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width" *ngIf="phase3Application()?.teamInfo?.hasPreviousCollaboration && phase3Application()?.teamInfo?.previousCollaboration">
+                  <label>Previous Collaboration Details</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.teamInfo?.previousCollaboration }}
+                  </span>
+                </div>
+                <div class="info-item">
+                  <label>Previous Co-Founders Left</label>
+                  <span class="value-with-flag">
+                    {{ phase3Application()?.teamInfo?.previousFounders ? 'Yes' : 'No' }}
+                    <i *ngIf="hasFlag('previousFounders')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('previousFounders')" 
+                       [title]="getFlagMessage('previousFounders')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width" *ngIf="phase3Application()?.teamInfo?.previousFounders && phase3Application()?.teamInfo?.previousFoundersExplanation">
+                  <label>Previous Founders Departure Explanation</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.teamInfo?.previousFoundersExplanation }}
+                  </span>
+                </div>
+                <div class="info-item full-width">
+                  <label>Equity Split & Roles</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.teamInfo?.equitySplitRoles }}
+                    <i *ngIf="hasFlag('equitySplitRoles')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('equitySplitRoles')" 
+                       [title]="getFlagMessage('equitySplitRoles')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width" *ngIf="phase3Application()?.teamInfo?.additionalTeamMembers">
+                  <label>Additional Team Members</label>
+                  <span class="long-text">{{ phase3Application()?.teamInfo?.additionalTeamMembers }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Funding Information -->
+            <div class="info-group">
+              <h3>Funding Information</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Has Raised Capital</label>
+                  <span class="value-with-flag">
+                    {{ phase3Application()?.fundingInfo?.hasRaisedCapital ? 'Yes' : 'No' }}
+                    <i *ngIf="hasFlag('hasRaisedCapital')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('hasRaisedCapital')" 
+                       [title]="getFlagMessage('hasRaisedCapital')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width" *ngIf="phase3Application()?.fundingInfo?.hasRaisedCapital && phase3Application()?.fundingInfo?.fundingDetails">
+                  <label>Funding Details</label>
+                  <span class="value-with-flag long-text">
+                    {{ phase3Application()?.fundingInfo?.fundingDetails }}
+                    <i *ngIf="hasFlag('fundingDetails')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('fundingDetails')" 
+                       [title]="getFlagMessage('fundingDetails')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width" *ngIf="phase3Application()?.fundingInfo?.equityBreakdown && (phase3Application()?.fundingInfo?.equityBreakdown || []).length > 0">
+                  <label>Equity Breakdown</label>
+                  <div class="equity-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Shares</th>
+                          <th>Percentage</th>
+                          <th>Category</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let row of phase3Application()?.fundingInfo?.equityBreakdown" 
+                            [class]="'equity-row equity-' + row.category">
+                          <td>{{ row.name }}</td>
+                          <td>{{ formatNumber(row.shares) }}</td>
+                          <td>{{ row.percentage.toFixed(1) }}%</td>
+                          <td>{{ getEquityCategoryDisplay(row.category) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Legal & Corporate Structure -->
+            <div class="info-group">
+              <h3>Legal & Corporate Structure</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Company Incorporated</label>
+                  <span class="value-with-flag">
+                    {{ phase3Application()?.legalInfo?.isIncorporated ? 'Yes' : 'No' }}
+                    <i *ngIf="hasFlag('isIncorporated')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('isIncorporated')" 
+                       [title]="getFlagMessage('isIncorporated')"></i>
+                  </span>
+                </div>
+                <div class="info-item" *ngIf="phase3Application()?.legalInfo?.isIncorporated && phase3Application()?.legalInfo?.incorporationLocation">
+                  <label>Incorporation Location</label>
+                  <span class="value-with-flag">
+                    {{ phase3Application()?.legalInfo?.incorporationLocation }}
+                    <i *ngIf="hasFlag('incorporationLocation')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('incorporationLocation')" 
+                       [title]="getFlagMessage('incorporationLocation')"></i>
+                  </span>
+                </div>
+                <div class="info-item" *ngIf="phase3Application()?.legalInfo?.isIncorporated">
+                  <label>IP Assignment Agreements</label>
+                  <span>{{ getBooleanDisplay(phase3Application()?.legalInfo?.hasIpAssignment) }}</span>
+                </div>
+                <div class="info-item" *ngIf="phase3Application()?.legalInfo?.isIncorporated">
+                  <label>Founder Vesting</label>
+                  <span>{{ getBooleanDisplay(phase3Application()?.legalInfo?.hasFounderVesting) }}</span>
+                </div>
+                <div class="info-item" *ngIf="phase3Application()?.legalInfo?.isIncorporated">
+                  <label>Board Structure</label>
+                  <span>{{ getBooleanDisplay(phase3Application()?.legalInfo?.hasBoardStructure) }}</span>
+                </div>
+                <div class="info-item" *ngIf="phase3Application()?.legalInfo?.isIncorporated">
+                  <label>Will Amend Documents</label>
+                  <span>{{ getBooleanDisplay(phase3Application()?.legalInfo?.willAmendDocuments) }}</span>
+                </div>
+                <div class="info-item full-width" *ngIf="phase3Application()?.legalInfo?.isIncorporated && phase3Application()?.legalInfo?.willAmendDocuments === false && phase3Application()?.legalInfo?.amendDocumentsExplanation">
+                  <label>Amendment Concerns</label>
+                  <span class="long-text">{{ phase3Application()?.legalInfo?.amendDocumentsExplanation }}</span>
+                </div>
+                <div class="info-item" *ngIf="!phase3Application()?.legalInfo?.isIncorporated && phase3Application()?.legalInfo?.agreesToIncorporate">
+                  <label>Agrees to Incorporate</label>
+                  <span>{{ getIncorporationAgreementDisplay(phase3Application()?.legalInfo?.agreesToIncorporate) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- LLM Analysis (if available) -->
+            <div class="info-group" *ngIf="phase3Application()?.llmAnalysis">
+              <h3>AI Analysis</h3>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Problem & Customer Score</label>
+                  <span class="ai-score">{{ phase3Application()?.llmAnalysis?.problemCustomerScore || 0 }}/10</span>
+                </div>
+                <div class="info-item full-width">
+                  <label>AI Feedback</label>
+                  <span class="long-text ai-feedback">{{ phase3Application()?.llmAnalysis?.problemCustomerFeedback }}</span>
+                </div>
+                <div class="info-item">
+                  <label>Analyzed On</label>
+                  <span>{{ formatDate(phase3Application()?.llmAnalysis?.analyzedAt) }}</span>
+                </div>
+                <div class="info-item">
+                  <label>AI Model</label>
+                  <span>{{ phase3Application()?.llmAnalysis?.gradingModel }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Flagging Summary for Phase 3 (if available) -->
+            <div class="flagging-summary" *ngIf="phase3FlaggingResult()">
+              <h3>
+                <i class="fas fa-flag"></i>
+                Phase 3 Flagging Analysis
+                <span [class]="'risk-badge risk-' + (phase3FlaggingResult()?.needsReview ? 'high' : 'low')">
+                  {{ phase3FlaggingResult()?.needsReview ? 'Manual Review Required' : 'Auto-Advance' }}
+                </span>
+              </h3>
+              <div class="flags-list" *ngIf="phase3FlaggingResult()?.flags && (phase3FlaggingResult()?.flags?.length || 0) > 0">
+                <div *ngFor="let flag of phase3FlaggingResult()?.flags" 
+                     [class]="'flag-item flag-' + flag.type.toLowerCase()">
+                  <i [class]="'fas fa-flag flag-' + flag.type.toLowerCase()"></i>
+                  <div class="flag-content">
+                    <strong>{{ getFieldDisplayName(flag.field || '') }}:</strong>
+                    <span>{{ flag.message }}</span>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="!phase3FlaggingResult()?.flags || (phase3FlaggingResult()?.flags?.length || 0) === 0" class="no-flags">
+                <i class="fas fa-check-circle"></i>
+                <span>No flags detected - application looks good!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- No Application Message -->
+          <div *ngIf="!phase3Application()" class="no-application">
+            <i class="fas fa-file-alt"></i>
+            <p>No Phase 3 application found for this applicant.</p>
           </div>
         </section>
 
@@ -1018,6 +1288,82 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
       gap: 2rem;
     }
 
+    /* Equity Table */
+    .equity-table {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .equity-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .equity-table th,
+    .equity-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .equity-table th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .equity-table td {
+      color: #1f2937;
+      font-size: 0.9rem;
+    }
+
+    .equity-row.equity-total,
+    .equity-row.equity-grandTotal {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+
+    .equity-row.equity-grandTotal {
+      border-top: 2px solid #d1d5db;
+    }
+
+    /* AI Analysis */
+    .ai-score {
+      font-weight: 600;
+      color: #3b82f6;
+      font-size: 1.1rem;
+    }
+
+    .ai-feedback {
+      background: #f0f9ff;
+      padding: 0.75rem;
+      border-radius: 6px;
+      border-left: 4px solid #3b82f6;
+      font-style: italic;
+    }
+
+    /* No Application Message */
+    .no-application {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    .no-application i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #d1d5db;
+    }
+
+    .no-application p {
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
     .interviewer-section h3, .notes-section h3, .interview-date-section h3 {
       color: #374151;
       font-size: 1rem;
@@ -1168,7 +1514,9 @@ export class ApplicantDetailComponent implements OnInit {
   // Signals
   applicant = signal<ApplicantUser | null>(null);
   phase1Application = signal<Phase1Application | null>(null);
+  phase3Application = signal<Phase3Application | null>(null);
   flaggingResult = signal<FlaggingResult | null>(null);
+  phase3FlaggingResult = signal<FlaggingResult | null>(null);
   isLoading = signal(true);
   error = signal('');
   activeTab = signal<string>('profile');
@@ -1218,6 +1566,21 @@ export class ApplicantDetailComponent implements OnInit {
           console.log('Auto-advancing to Phase 2 on load...');
           await this.advanceToPhase2();
         }
+      }
+
+      // Load Phase 3 application if exists
+      try {
+        const phase3App = await this.applicationService.getPhase3Application(applicantId, (applicantData as ApplicantUser).cohortId);
+        if (phase3App) {
+          this.phase3Application.set(phase3App);
+          
+          // Calculate flagging results for Phase 3 if available
+          // TODO: Implement Phase 3 flagging service when available
+          // const phase3Flagging = this.flaggingService.analyzePhase3Application(phase3App);
+          // this.phase3FlaggingResult.set(phase3Flagging);
+        }
+      } catch (error) {
+        console.warn('Phase 3 application not found or error loading:', error);
       }
 
       // Load interview notes if in Phase 4
@@ -1578,6 +1941,59 @@ export class ApplicantDetailComponent implements OnInit {
         break;
       default:
         this.activeTab.set('profile');
+    }
+  }
+
+  // Phase 3 application helper methods
+  getProductStageDisplay(stage?: string): string {
+    const stages: { [key: string]: string } = {
+      'LIVE_PAYING': 'Live with paying customers',
+      'LIVE_BETA': 'Live with non-paying/beta users',
+      'FUNCTIONAL_PROTOTYPE': 'Functional prototype (MVP)',
+      'PRE_PROTOTYPE': 'Pre-prototype / Idea stage'
+    };
+    return stages[stage || ''] || stage || 'Not specified';
+  }
+
+  getCapacityDisplay(capacity?: string): string {
+    if (capacity === 'ALL_FULLTIME') return 'All full-time';
+    if (capacity === 'OTHER') return 'Other';
+    return capacity || 'Not specified';
+  }
+
+  getBooleanDisplay(value?: boolean): string {
+    if (value === true) return 'Yes';
+    if (value === false) return 'No';
+    return 'Not specified';
+  }
+
+  getIncorporationAgreementDisplay(agreement?: string): string {
+    if (agreement === 'AGREE') return 'Agrees to incorporate as Delaware C-Corp';
+    if (agreement === 'DISCUSS') return 'Would like to discuss alternative structures';
+    return agreement || 'Not specified';
+  }
+
+  getEquityCategoryDisplay(category: string): string {
+    const categories: { [key: string]: string } = {
+      'founder': 'Founder',
+      'employee': 'Employee',
+      'investor': 'Investor',
+      'total': 'Total',
+      'grandTotal': 'Grand Total'
+    };
+    return categories[category] || category;
+  }
+
+  formatNumber(num: number): string {
+    return num.toLocaleString();
+  }
+
+  formatDate(date?: Date): string {
+    if (!date) return 'Not available';
+    try {
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
     }
   }
 }

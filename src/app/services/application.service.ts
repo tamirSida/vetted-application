@@ -69,10 +69,15 @@ export class ApplicationService {
     cohortId: string
   ): Promise<{ applicationId: string; userId: string }> {
     try {
+      console.log('Starting Phase 1 application submission for:', formData.personalInfo.email);
+      console.log('Target cohort ID:', cohortId);
+      
       // Validate required fields
+      console.log('Validating form data...');
       this.validatePhase1Data(formData);
 
       // Step 1: Create Firebase Auth user account
+      console.log('Creating Firebase Auth user...');
       const userCredential = await createUserWithEmailAndPassword(
         this.auth,
         formData.personalInfo.email,
@@ -80,8 +85,10 @@ export class ApplicationService {
       );
 
       const userId = userCredential.user.uid;
+      console.log('User created successfully with ID:', userId);
 
       // Step 2: Update user profile
+      console.log('Updating user profile...');
       await updateProfile(userCredential.user, {
         displayName: `${formData.personalInfo.firstName} ${formData.personalInfo.lastName}`
       });
@@ -120,9 +127,12 @@ export class ApplicationService {
       };
 
       // Step 4: Save application to Firestore
+      console.log('Saving application to Firestore...');
       const docRef = await addDoc(collection(this.firestore, 'applications'), application);
+      console.log('Application saved with ID:', docRef.id);
       
       // Step 5: Create user profile document using the Firebase Auth UID as the document ID
+      console.log('Creating user profile document...');
       await setDoc(doc(this.firestore, 'users', userId), {
         uid: userId,
         role: 'APPLICANT',
@@ -145,13 +155,21 @@ export class ApplicationService {
         createdAt: new Date(),
         updatedAt: new Date()
       });
+      console.log('User profile created successfully');
       
       // Step 6: Run flagging analysis on the submitted application
+      console.log('Running flagging analysis...');
       const applicationWithId = { ...application, id: docRef.id };
       const flaggingResult = this.flaggingService.analyzeApplication(applicationWithId);
       
       // Step 7: Save flagging results
+      console.log('Saving flagging results...');
       await this.saveFlaggingResults(docRef.id, flaggingResult);
+      
+      console.log('Phase 1 application submission completed successfully');
+      
+      // Note: createUserWithEmailAndPassword automatically signs in the new user
+      // The auth service will pick up this change and update the current user
       
       return { applicationId: docRef.id, userId };
     } catch (error) {

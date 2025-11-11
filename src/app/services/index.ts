@@ -5,3 +5,4 @@ export * from './phase-progression.service';
 export * from './storage.service';
 export * from './application.service';
 export * from './flagging.service';
+export * from './user.service';

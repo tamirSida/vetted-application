@@ -19,6 +19,7 @@ import { StorageService, ApplicationService, ApplicationSubmissionData, AuthServ
           </button>
           <h1>Phase 1 Application</h1>
           <p>{{ currentPage() === 1 ? 'Company & Personal Information' : 'Extended Information' }}</p>
+          <p class="form-note">This will create your user account and sign you in automatically.</p>
         </header>
 
         <!-- Progress Indicator -->
@@ -647,16 +648,16 @@ export class Phase1ApplicationComponent {
       );
       
       this.applicationId.set(result.applicationId);
-      this.success.set('Application submitted successfully! User account created. You will be contacted regarding next steps.');
+      this.success.set('Application submitted successfully! Redirecting to your applicant dashboard...');
       
-      // Redirect to login after 3 seconds for user to sign in with new account
+      // The user is now automatically signed in with their new account
+      // Redirect to their applicant dashboard
       setTimeout(() => {
-        this.router.navigate(['/auth/login'], { 
-          queryParams: { message: 'Account created successfully! Please sign in with your new credentials.' }
-        });
-      }, 3000);
+        this.router.navigate(['/dashboard']);
+      }, 2000);
       
     } catch (error: any) {
+      console.error('Phase 1 submission error:', error);
       let errorMessage = 'Failed to submit application. Please try again.';
       
       // Handle specific Firebase Auth errors
@@ -666,6 +667,9 @@ export class Phase1ApplicationComponent {
         errorMessage = 'Password is too weak. Please choose a stronger password.';
       } else if (error.message?.includes('invalid-email')) {
         errorMessage = 'Please enter a valid email address.';
+      } else {
+        // Show the actual error message for debugging
+        errorMessage = error.message || 'Failed to submit application. Please try again.';
       }
       
       this.error.set(errorMessage);

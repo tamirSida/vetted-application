@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, WebinarService, ApplicationService } from '../../../services';
+import { AuthService, WebinarService, ApplicationService, UserService } from '../../../services';
 import { combineLatest } from 'rxjs';
 import { ApplicantUser, Phase, Webinar, ApplicationStatus } from '../../../models';
 
@@ -302,6 +302,7 @@ export class DashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private webinarService = inject(WebinarService);
   private applicationService = inject(ApplicationService);
+  private userService = inject(UserService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -391,24 +392,42 @@ export class DashboardComponent implements OnInit {
       this.isLoading.set(true);
       this.error.set('');
 
-      const code = this.webinarForm.get('webinarCode')?.value?.toUpperCase();
-      const cohortId = this.applicant()?.cohortId;
-
-      if (!cohortId) {
-        throw new Error('Cohort information not found');
+      const codeValue = this.webinarForm.get('webinarCode')?.value;
+      const applicant = this.applicant();
+      
+      if (!codeValue || !codeValue.trim()) {
+        throw new Error('Please enter a webinar code');
+      }
+      
+      if (!applicant) {
+        throw new Error('Applicant information not found');
       }
 
-      const result = await this.webinarService.validateWebinarCode(code);
+      const result = await this.webinarService.validateWebinarCode({
+        code: codeValue.toUpperCase().trim(),
+        applicantId: applicant.userId
+      });
       
       if (result.isValid) {
-        this.success.set('Webinar attendance verified! Redirecting to next phase...');
+        this.success.set('Webinar attendance verified! You have been promoted to Phase 3!');
         
-        // Refresh user data to get updated phase
+        // Clear the form
+        this.webinarForm.reset();
+        
+        // Refresh user data to get updated phase from database
         setTimeout(async () => {
-          // Reload user from auth service to get updated data
-          const updatedUser = this.authService.getCurrentUser();
-          if (updatedUser && updatedUser.role === 'APPLICANT') {
-            await this.loadUserData(updatedUser as ApplicantUser);
+          try {
+            const currentUser = this.authService.getCurrentUser();
+            if (currentUser && currentUser.role === 'APPLICANT') {
+              // Reload user data from database to get latest phase/status
+              const refreshedUser = await this.userService.getUserById(currentUser.userId);
+              if (refreshedUser && refreshedUser.role === 'APPLICANT') {
+                await this.loadUserData(refreshedUser as ApplicantUser);
+                console.log('✅ User data refreshed after webinar validation');
+              }
+            }
+          } catch (error) {
+            console.error('Error refreshing user data:', error);
           }
           this.success.set('');
         }, 2000);

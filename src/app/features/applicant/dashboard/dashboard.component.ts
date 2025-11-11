@@ -329,22 +329,30 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
+    console.log('🔍 Dashboard: ngOnInit called');
+    
     // Wait for auth initialization AND user data before making routing decisions
     combineLatest([
       this.authService.authInitialized$,
       this.authService.currentUser$
     ]).subscribe(([authInitialized, user]) => {
+      console.log('🔍 Dashboard: Auth state update - initialized:', authInitialized, 'user:', user);
+      
       if (!authInitialized) {
-        // Auth not initialized yet, don't make any decisions
+        console.log('⏳ Dashboard: Auth not initialized yet');
         return;
       }
       
       if (user && user.role === 'APPLICANT') {
+        console.log('✅ Dashboard: User is an applicant, loading data');
         this.loadUserData(user as ApplicantUser);
         this.loadWebinars();
       } else if (user === null) {
+        console.log('❌ Dashboard: No user found, redirecting to login');
         // Auth is initialized and user is null - redirect to login
         this.router.navigate(['/auth/login']);
+      } else {
+        console.log('❌ Dashboard: User exists but not an applicant, role:', user?.role);
       }
       // If user exists but is not an applicant, do nothing (let them stay on the page)
     });
@@ -352,11 +360,18 @@ export class DashboardComponent implements OnInit {
 
   private async loadUserData(user: ApplicantUser) {
     try {
+      console.log('🔍 Dashboard: Loading user data:', user);
+      console.log('📊 User phase:', user.phase);
+      console.log('📊 User status:', user.status);
+      
       this.applicant.set(user);
       this.currentPhase.set(user.phase);
       
       // Use the actual user status from the database
       this.applicationStatus.set(user.status || ApplicationStatus.PHASE_1);
+      
+      console.log('✅ Dashboard: Set currentPhase to:', user.phase);
+      console.log('✅ Dashboard: Set applicationStatus to:', user.status || ApplicationStatus.PHASE_1);
 
       // Mock interviewer and interview status
       if (user.phase === 'INTERVIEW') {

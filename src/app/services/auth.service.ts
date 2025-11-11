@@ -174,6 +174,7 @@ export class AuthService {
             email: userData['email'],
             role: userData['role'],
             phase: userData['phase'],
+            status: userData['status'], // 🔥 CRITICAL FIX: Include the status field!
             isAccepted: userData['isAccepted'],
             webinarAttended: userData['webinarAttended'],
             interviewerId: userData['interviewerId'],

@@ -1627,7 +1627,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   }
 
   // Form submission methods
-  async saveDraft() {
+  async saveDraft(isAutoSave: boolean = false) {
     if (!this.canSave()) return;
 
     try {
@@ -1663,10 +1663,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         console.log('📝 Updating existing draft application');
       }
 
-      this.successMessage = isFirstSave 
-        ? 'Draft saved successfully! Your status has been updated to Phase 3 In Progress.' 
-        : 'Draft saved successfully!';
-      setTimeout(() => this.successMessage = '', 4000);
+      // Only show success message for manual saves, not auto-saves
+      if (!isAutoSave) {
+        this.successMessage = isFirstSave 
+          ? 'Draft saved successfully! Your status has been updated to Phase 3 In Progress.' 
+          : 'Draft saved successfully!';
+        setTimeout(() => this.successMessage = '', 4000);
+      }
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to save draft';
     } finally {
@@ -1805,7 +1808,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     // Auto-save every 30 seconds
     this.autoSaveInterval = setInterval(() => {
       if (this.canSave()) {
-        this.saveDraft();
+        this.saveDraft(true); // Pass true to indicate this is auto-save
       }
     }, 30000);
   }

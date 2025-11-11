@@ -26,6 +26,12 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
               <p>{{ currentUser()?.email }}</p>
             </div>
           </div>
+          <div class="test-links">
+            <button class="test-link-btn" (click)="navigateToOpenAITest()">
+              <i class="fas fa-brain"></i>
+              OpenAI Test
+            </button>
+          </div>
           <button class="sign-out-button" (click)="signOut()">
             <i class="fas fa-sign-out-alt"></i>
             <span>Sign Out</span>
@@ -701,6 +707,45 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
     .sign-out-button:active {
       transform: translateY(0);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Test Links */
+    .test-links {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .test-link-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+    }
+
+    .test-link-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .test-link-btn:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1024px) {
+      .test-links {
+        display: none;
+      }
     }
 
     /* Navigation */
@@ -1570,6 +1615,10 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error) {
       console.error('Sign out error:', error);
     }
+  }
+
+  navigateToOpenAITest() {
+    this.router.navigate(['/admin/openai-test']);
   }
 
   // Timezone conversion methods

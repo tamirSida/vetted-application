@@ -535,7 +535,14 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                   </span>
                 </div>
                 <div class="info-item full-width" *ngIf="getEquityBreakdown().length > 0">
-                  <label>Equity Breakdown</label>
+                  <label>
+                    <span class="value-with-flag">
+                      Equity Breakdown
+                      <i *ngIf="hasFlag('equityBreakdown')" 
+                         [class]="'flag-icon fas fa-flag ' + getFlagColor('equityBreakdown')" 
+                         [title]="getFlagMessage('equityBreakdown')"></i>
+                    </span>
+                  </label>
                   <div class="equity-table">
                     <table>
                       <thead>
@@ -1589,10 +1596,11 @@ export class ApplicantDetailComponent implements OnInit {
           console.log('📊 Equity breakdown:', phase3App.fundingInfo?.equityBreakdown);
           this.phase3Application.set(phase3App);
           
-          // Calculate flagging results for Phase 3 if available
-          // TODO: Implement Phase 3 flagging service when available
-          // const phase3Flagging = this.flaggingService.analyzePhase3Application(phase3App);
-          // this.phase3FlaggingResult.set(phase3Flagging);
+          // Calculate flagging results for Phase 3
+          console.log('🔍 Running Phase 3 flagging analysis...');
+          const phase3Flagging = this.flaggingService.analyzePhase3Application(phase3App);
+          console.log('📊 Phase 3 flagging result:', phase3Flagging);
+          this.phase3FlaggingResult.set(phase3Flagging);
         } else {
           console.log('❌ No Phase 3 application found');
         }
@@ -1844,21 +1852,36 @@ export class ApplicantDetailComponent implements OnInit {
 
   // Flagging methods
   hasFlag(field: string): boolean {
-    return this.flaggingResult()?.flags?.some(flag => flag.field === field) || false;
+    // Check Phase 1 flags
+    const phase1Flag = this.flaggingResult()?.flags?.some(flag => flag.field === field);
+    // Check Phase 3 flags
+    const phase3Flag = this.phase3FlaggingResult()?.flags?.some(flag => flag.field === field);
+    return phase1Flag || phase3Flag || false;
   }
 
   getFlagColor(field: string): string {
-    const flag = this.flaggingResult()?.flags?.find(f => f.field === field);
+    // Check Phase 1 flags first
+    let flag = this.flaggingResult()?.flags?.find(f => f.field === field);
+    // If not found, check Phase 3 flags
+    if (!flag) {
+      flag = this.phase3FlaggingResult()?.flags?.find(f => f.field === field);
+    }
     return flag ? `flag-${flag.severity}` : '';
   }
 
   getFlagMessage(field: string): string {
-    const flag = this.flaggingResult()?.flags?.find(f => f.field === field);
+    // Check Phase 1 flags first
+    let flag = this.flaggingResult()?.flags?.find(f => f.field === field);
+    // If not found, check Phase 3 flags
+    if (!flag) {
+      flag = this.phase3FlaggingResult()?.flags?.find(f => f.field === field);
+    }
     return flag?.message || '';
   }
 
   getFieldDisplayName(field: string): string {
     const fieldNames: { [key: string]: string } = {
+      // Phase 1 fields
       'linkedInProfile': 'LinkedIn Profile',
       'companyWebsite': 'Company Website',
       'email': 'Email Domain',
@@ -1866,7 +1889,19 @@ export class ApplicantDetailComponent implements OnInit {
       'serviceHistory': 'Military Service',
       'serviceUnit': 'Combat Unit Service',
       'pitchDeck': 'Pitch Deck',
-      'grandmaTest': 'Company Description'
+      'grandmaTest': 'Company Description',
+      // Phase 3 fields
+      'problemCustomer': 'Problem & Customer Description',
+      'capacity': 'Team Capacity',
+      'previousFounders': 'Previous Co-Founders Left',
+      'equityBreakdown': 'Equity Breakdown',
+      'isIncorporated': 'Company Incorporation',
+      'hasIpAssignment': 'IP Assignment Agreements',
+      'hasFounderVesting': 'Founder Vesting',
+      'hasBoardStructure': 'Board Structure',
+      'willAmendDocuments': 'Will Amend Documents',
+      'agreesToIncorporate': 'Agrees to Incorporate',
+      'incorporationLocation': 'Incorporation Location'
     };
     return fieldNames[field] || field;
   }

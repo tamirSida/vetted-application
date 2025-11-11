@@ -7,6 +7,7 @@ import { ApplicationService } from '../../../services/application.service';
 import { StatusMessageService } from '../../../services/status-message.service';
 import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus, Phase } from '../../../models';
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
+import { OpenAIService } from '../../../services/openai.service';
 
 @Component({
   selector: 'app-applicant-detail',
@@ -383,10 +384,14 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
           <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase3'">
           <div class="section-header">
             <h2><i class="fas fa-file-alt"></i> Phase 3 - In-Depth Application</h2>
-            <div class="phase-actions" *ngIf="canAdvanceFromPhase3()">
-              <button class="advance-button" (click)="advanceToPhase4()">
+            <div class="phase-actions">
+              <button *ngIf="canAdvanceFromPhase3()" class="advance-button" (click)="advanceToPhase4()">
                 <i class="fas fa-arrow-right"></i>
                 Advance to Phase 4
+              </button>
+              <button class="recalc-button" (click)="reevaluatePhase3Flags()" [disabled]="isReevaluatingPhase3()">
+                <i [class]="isReevaluatingPhase3() ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i>
+                {{ isReevaluatingPhase3() ? 'Reevaluating...' : 'Reevaluate Flags' }}
               </button>
             </div>
           </div>
@@ -1774,6 +1779,7 @@ export class ApplicantDetailComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private statusMessageService = inject(StatusMessageService);
   private flaggingService = inject(FlaggingService);
+  private openaiService = inject(OpenAIService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -1785,6 +1791,7 @@ export class ApplicantDetailComponent implements OnInit {
   isLoading = signal(true);
   error = signal('');
   activeTab = signal<string>('profile');
+  isReevaluatingPhase3 = signal(false);
 
   // Form
   notesForm: FormGroup;
@@ -2201,6 +2208,110 @@ export class ApplicantDetailComponent implements OnInit {
         console.log('Applicant was auto-advanced, refreshing page...');
         setTimeout(() => window.location.reload(), 1000);
       }
+    }
+  }
+
+  async reevaluatePhase3Flags() {
+    const phase3App = this.phase3Application();
+    const applicant = this.applicant();
+    
+    if (!phase3App || !applicant) {
+      console.error('Phase 3 application or applicant not found');
+      return;
+    }
+
+    this.isReevaluatingPhase3.set(true);
+
+    try {
+      console.log('🔄 Starting Phase 3 flags and OpenAI reevaluation...');
+
+      // 1. Run flagging analysis
+      const flaggingResult = await this.flaggingService.analyzePhase3Application(phase3App);
+      this.phase3FlaggingResult.set(flaggingResult);
+      console.log('✅ Phase 3 flags reevaluated:', flaggingResult);
+
+      // 2. Run OpenAI analysis if problemCustomer field exists
+      if (phase3App.productInfo?.problemCustomer) {
+        console.log('🤖 Starting OpenAI analysis...');
+        
+        // Set processing flag first
+        const updatedApp = {
+          ...phase3App,
+          llmAnalysis: {
+            problemCustomerScore: phase3App.llmAnalysis?.problemCustomerScore ?? 0,
+            isSpecific: phase3App.llmAnalysis?.isSpecific ?? false,
+            hasClearTarget: phase3App.llmAnalysis?.hasClearTarget ?? false,
+            hasDefinedProblem: phase3App.llmAnalysis?.hasDefinedProblem ?? false,
+            feedback: phase3App.llmAnalysis?.feedback ?? '',
+            strengths: phase3App.llmAnalysis?.strengths ?? [],
+            weaknesses: phase3App.llmAnalysis?.weaknesses ?? [],
+            suggestions: phase3App.llmAnalysis?.suggestions ?? [],
+            analyzedAt: phase3App.llmAnalysis?.analyzedAt ?? new Date(),
+            gradingModel: phase3App.llmAnalysis?.gradingModel ?? 'gpt-5-mini',
+            tokenUsage: phase3App.llmAnalysis?.tokenUsage,
+            processing: true
+          }
+        };
+        this.phase3Application.set(updatedApp);
+
+        try {
+          const analysis = await this.openaiService.analyzeProblemCustomer(phase3App.productInfo.problemCustomer);
+          
+          // Update application with analysis results
+          const finalApp = {
+            ...phase3App,
+            llmAnalysis: {
+              problemCustomerScore: analysis.score,
+              isSpecific: analysis.isSpecific,
+              hasClearTarget: analysis.hasClearTarget,
+              hasDefinedProblem: analysis.hasDefinedProblem,
+              feedback: analysis.feedback,
+              strengths: analysis.strengths,
+              weaknesses: analysis.weaknesses,
+              suggestions: analysis.suggestions,
+              analyzedAt: new Date(),
+              gradingModel: 'gpt-5-mini',
+              processing: false
+            }
+          };
+
+          // Save to database
+          await this.applicationService.updatePhase3Application(phase3App.id!, finalApp);
+          this.phase3Application.set(finalApp);
+          
+          console.log('✅ OpenAI analysis completed and saved:', analysis);
+        } catch (openaiError) {
+          console.error('❌ OpenAI analysis failed:', openaiError);
+          
+          // Clear processing flag on error
+          const errorApp = {
+            ...phase3App,
+            llmAnalysis: {
+              problemCustomerScore: phase3App.llmAnalysis?.problemCustomerScore ?? 0,
+              isSpecific: phase3App.llmAnalysis?.isSpecific ?? false,
+              hasClearTarget: phase3App.llmAnalysis?.hasClearTarget ?? false,
+              hasDefinedProblem: phase3App.llmAnalysis?.hasDefinedProblem ?? false,
+              feedback: phase3App.llmAnalysis?.feedback ?? '',
+              strengths: phase3App.llmAnalysis?.strengths ?? [],
+              weaknesses: phase3App.llmAnalysis?.weaknesses ?? [],
+              suggestions: phase3App.llmAnalysis?.suggestions ?? [],
+              analyzedAt: phase3App.llmAnalysis?.analyzedAt ?? new Date(),
+              gradingModel: phase3App.llmAnalysis?.gradingModel ?? 'gpt-5-mini',
+              tokenUsage: phase3App.llmAnalysis?.tokenUsage,
+              processing: false
+            }
+          };
+          this.phase3Application.set(errorApp);
+        }
+      }
+
+      console.log('✅ Phase 3 reevaluation completed');
+      
+    } catch (error) {
+      console.error('❌ Phase 3 reevaluation failed:', error);
+      this.error.set('Failed to reevaluate Phase 3 flags and analysis');
+    } finally {
+      this.isReevaluatingPhase3.set(false);
     }
   }
 

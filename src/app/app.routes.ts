@@ -10,6 +10,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/applicant-detail/applicant-detail.component').then(c => c.ApplicantDetailComponent)
   },
   {
+    path: 'admin/openai-test',
+    loadComponent: () => import('./features/admin/openai-test/openai-test.component').then(c => c.OpenAITestComponent)
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./features/applicant/dashboard/dashboard.component').then(c => c.DashboardComponent)
   },

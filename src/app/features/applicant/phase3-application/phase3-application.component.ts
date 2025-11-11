@@ -81,7 +81,7 @@ import { combineLatest } from 'rxjs';
             </div>
 
             <!-- Problem & Customer -->
-            <div class="form-group yellow-flag-field">
+            <div class="form-group">
               <label for="problemCustomer" class="form-label">
                 Problem & Customer: Who is the exact person you're helping, and what problem do they face? (max 300 words)
               </label>
@@ -135,7 +135,7 @@ import { combineLatest } from 'rxjs';
             </div>
 
             <!-- Capacity -->
-            <div class="form-group yellow-flag-field">
+            <div class="form-group">
               <label class="form-label">Capacity: What are you and your co-founders current capacity?</label>
               <div class="radio-group">
                 <label class="radio-option">
@@ -178,7 +178,7 @@ import { combineLatest } from 'rxjs';
             </div>
 
             <!-- Previous Founders -->
-            <div class="form-group yellow-flag-field">
+            <div class="form-group">
               <label class="form-label">Previous Founders: Have you had any co-founders who are no longer with the company?</label>
               <div class="radio-group">
                 <label class="radio-option">
@@ -284,7 +284,7 @@ import { combineLatest } from 'rxjs';
             </div>
 
             <!-- Equity Breakdown Table -->
-            <div class="form-group yellow-flag-field">
+            <div class="form-group">
               <label class="form-label">Equity Breakdown: Please provide a simple CAP table or equity breakdown</label>
               <app-equity-table 
                 [equityRows]="equityRows"
@@ -331,7 +331,7 @@ import { combineLatest } from 'rxjs';
             </div>
 
             <!-- Corporate Structure (conditional on incorporated = true) -->
-            <div *ngIf="applicationForm.get('isIncorporated')?.value === true" class="form-group yellow-flag-field">
+            <div *ngIf="applicationForm.get('isIncorporated')?.value === true" class="form-group">
               <label class="form-label">If YES, does your current corporate structure include all of the following?</label>
               <div class="checkbox-group">
                 <label class="checkbox-option">
@@ -352,7 +352,7 @@ import { combineLatest } from 'rxjs';
               </div>
 
               <!-- Conditional Amendment Question -->
-              <div *ngIf="!hasAllCorporateStructures()" class="conditional-field yellow-flag-field">
+              <div *ngIf="!hasAllCorporateStructures()" class="conditional-field">
                 <label class="form-label">
                   If you answered NO to any of the above, are you open to amending your corporate documents to include these standard venture terms?
                 </label>
@@ -382,7 +382,7 @@ import { combineLatest } from 'rxjs';
             </div>
 
             <!-- Incorporation Agreement (conditional on incorporated = false) -->
-            <div *ngIf="applicationForm.get('isIncorporated')?.value === false" class="form-group yellow-flag-field">
+            <div *ngIf="applicationForm.get('isIncorporated')?.value === false" class="form-group">
               <label class="form-label">
                 If you are NOT incorporated, do you agree to sign a side letter obligating you to incorporate with the standard venture terms listed above prior to the start of the program?
               </label>
@@ -619,21 +619,6 @@ import { combineLatest } from 'rxjs';
       border-left: 4px solid #667eea;
     }
 
-    .yellow-flag-field {
-      position: relative;
-    }
-
-    .yellow-flag-field::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -2rem;
-      width: 4px;
-      height: 100%;
-      background: linear-gradient(to bottom, #fbbf24, #f59e0b);
-      border-radius: 2px;
-      opacity: 0.7;
-    }
 
     .form-actions {
       display: flex;
@@ -757,15 +742,6 @@ import { combineLatest } from 'rxjs';
         margin-top: 0.75rem;
       }
 
-      .yellow-flag-field::before {
-        display: none;
-      }
-
-      .yellow-flag-field {
-        border-left: 4px solid #fbbf24;
-        padding-left: 1rem;
-        border-radius: 8px;
-      }
     }
 
     /* Print Styles */

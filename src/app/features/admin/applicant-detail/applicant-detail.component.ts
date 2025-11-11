@@ -617,25 +617,92 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
               </div>
             </div>
 
-            <!-- LLM Analysis (if available) -->
-            <div class="info-group" *ngIf="phase3Application()?.llmAnalysis">
-              <h3>AI Analysis</h3>
-              <div class="info-grid">
-                <div class="info-item">
-                  <label>Problem & Customer Score</label>
-                  <span class="ai-score">{{ phase3Application()?.llmAnalysis?.problemCustomerScore || 0 }}/10</span>
+            <!-- OpenAI Analysis (GPT-5-mini) -->
+            <div class="info-group openai-analysis" *ngIf="phase3Application()?.llmAnalysis">
+              <h3>
+                <i class="fas fa-brain"></i> 
+                AI Analysis - Problem & Customer Description
+                <span *ngIf="phase3Application()?.llmAnalysis?.processing" class="processing-badge">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  Processing...
+                </span>
+              </h3>
+              
+              <!-- Loading State -->
+              <div *ngIf="phase3Application()?.llmAnalysis?.processing" class="analysis-loading">
+                <div class="loading-content">
+                  <i class="fas fa-robot"></i>
+                  <p>GPT-5-mini is analyzing the Problem & Customer description...</p>
+                  <div class="loading-spinner"></div>
                 </div>
-                <div class="info-item full-width">
-                  <label>AI Feedback</label>
-                  <span class="long-text ai-feedback">{{ phase3Application()?.llmAnalysis?.problemCustomerFeedback }}</span>
+              </div>
+
+              <!-- Analysis Results -->
+              <div *ngIf="!phase3Application()?.llmAnalysis?.processing" class="analysis-results">
+                <!-- Score Card -->
+                <div class="score-card">
+                  <div class="score-display">
+                    <span class="score-number" [class]="getAnalysisScoreClass(phase3Application()?.llmAnalysis?.problemCustomerScore || 0)">
+                      {{ phase3Application()?.llmAnalysis?.problemCustomerScore || 0 }}
+                    </span>
+                    <span class="score-label">/ 10</span>
+                  </div>
+                  
+                  <!-- Criteria Indicators -->
+                  <div class="criteria-indicators">
+                    <div class="criterion" [class.met]="phase3Application()?.llmAnalysis?.isSpecific">
+                      <i [class]="phase3Application()?.llmAnalysis?.isSpecific ? 'fas fa-check' : 'fas fa-times'"></i>
+                      <span>Specific Target</span>
+                    </div>
+                    <div class="criterion" [class.met]="phase3Application()?.llmAnalysis?.hasClearTarget">
+                      <i [class]="phase3Application()?.llmAnalysis?.hasClearTarget ? 'fas fa-check' : 'fas fa-times'"></i>
+                      <span>Clear Target</span>
+                    </div>
+                    <div class="criterion" [class.met]="phase3Application()?.llmAnalysis?.hasDefinedProblem">
+                      <i [class]="phase3Application()?.llmAnalysis?.hasDefinedProblem ? 'fas fa-check' : 'fas fa-times'"></i>
+                      <span>Defined Problem</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="info-item">
-                  <label>Analyzed On</label>
-                  <span>{{ formatDate(phase3Application()?.llmAnalysis?.analyzedAt) }}</span>
-                </div>
-                <div class="info-item">
-                  <label>AI Model</label>
-                  <span>{{ phase3Application()?.llmAnalysis?.gradingModel }}</span>
+
+                <!-- Detailed Feedback -->
+                <div class="analysis-feedback">
+                  <div class="feedback-item">
+                    <h4><i class="fas fa-comment"></i> Feedback</h4>
+                    <p>{{ phase3Application()?.llmAnalysis?.feedback }}</p>
+                  </div>
+
+                  <div class="feedback-item strengths" *ngIf="phase3Application()?.llmAnalysis?.strengths && (phase3Application()?.llmAnalysis?.strengths || []).length > 0">
+                    <h4><i class="fas fa-thumbs-up"></i> Strengths</h4>
+                    <ul>
+                      <li *ngFor="let strength of phase3Application()?.llmAnalysis?.strengths">{{ strength }}</li>
+                    </ul>
+                  </div>
+
+                  <div class="feedback-item weaknesses" *ngIf="phase3Application()?.llmAnalysis?.weaknesses && (phase3Application()?.llmAnalysis?.weaknesses || []).length > 0">
+                    <h4><i class="fas fa-thumbs-down"></i> Weaknesses</h4>
+                    <ul>
+                      <li *ngFor="let weakness of phase3Application()?.llmAnalysis?.weaknesses">{{ weakness }}</li>
+                    </ul>
+                  </div>
+
+                  <!-- Token Usage (Admin only) -->
+                  <div class="analysis-meta" *ngIf="phase3Application()?.llmAnalysis?.tokenUsage">
+                    <div class="meta-info">
+                      <span class="meta-item">
+                        <i class="fas fa-calculator"></i>
+                        Tokens: {{ phase3Application()?.llmAnalysis?.tokenUsage?.total_tokens || 'N/A' }}
+                      </span>
+                      <span class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        {{ formatDate(phase3Application()?.llmAnalysis?.analyzedAt) }}
+                      </span>
+                      <span class="meta-item">
+                        <i class="fas fa-robot"></i>
+                        {{ phase3Application()?.llmAnalysis?.gradingModel }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1517,6 +1584,187 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
         padding: 1rem;
       }
     }
+
+    /* OpenAI Analysis Styles */
+    .openai-analysis {
+      background: #fafcff;
+      border: 1px solid #e1e9ff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .openai-analysis h3 {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      color: white;
+      margin: 0;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1.1rem;
+    }
+
+    .processing-badge {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .analysis-loading {
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .loading-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: #6b7280;
+    }
+
+    .loading-content i {
+      font-size: 2rem;
+      color: #3b82f6;
+    }
+
+    .loading-spinner {
+      width: 2rem;
+      height: 2rem;
+      border: 2px solid #e5e7eb;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .analysis-results {
+      padding: 1.5rem;
+    }
+
+    .score-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .score-display {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .score-number {
+      font-size: 3rem;
+      font-weight: bold;
+    }
+
+    .score-number.high { color: #059669; }
+    .score-number.medium { color: #d97706; }
+    .score-number.low { color: #dc2626; }
+
+    .score-label {
+      font-size: 1.5rem;
+      color: #6b7280;
+    }
+
+    .criteria-indicators {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .criterion {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      background: #f3f4f6;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .criterion.met {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .criterion i {
+      font-size: 0.8rem;
+    }
+
+    .analysis-feedback {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .feedback-item h4 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #374151;
+      margin-bottom: 0.75rem;
+      font-size: 1rem;
+    }
+
+    .feedback-item.strengths h4 { color: #059669; }
+    .feedback-item.weaknesses h4 { color: #dc2626; }
+
+    .feedback-item p {
+      margin: 0;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    .feedback-item ul {
+      margin: 0;
+      padding-left: 1.5rem;
+      color: #4b5563;
+    }
+
+    .feedback-item li {
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+
+    .analysis-meta {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .meta-info {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #6b7280;
+    }
+
+    .meta-item i {
+      color: #9ca3af;
+    }
   `]
 })
 export class ApplicantDetailComponent implements OnInit {
@@ -2051,5 +2299,14 @@ export class ApplicantDetailComponent implements OnInit {
 
   getEquityBreakdown(): any[] {
     return this.phase3Application()?.fundingInfo?.equityBreakdown || [];
+  }
+
+  /**
+   * Get CSS class for OpenAI analysis score display
+   */
+  getAnalysisScoreClass(score: number): string {
+    if (score >= 7) return 'high';
+    if (score >= 4) return 'medium';
+    return 'low';
   }
 }

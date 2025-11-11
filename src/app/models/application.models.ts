@@ -119,12 +119,25 @@ export interface Phase3Application extends BaseApplication {
     agreesToIncorporate?: 'AGREE' | 'DISCUSS'; // conditional - required if not incorporated
   };
 
-  // LLM Analysis
+  // LLM Analysis (OpenAI GPT-5-mini)
   llmAnalysis?: {
     problemCustomerScore: number;
-    problemCustomerFeedback: string;
+    isSpecific: boolean;
+    hasClearTarget: boolean;
+    hasDefinedProblem: boolean;
+    feedback: string;
+    strengths: string[];
+    weaknesses: string[];
+    suggestions: string[];
+    tokenUsage?: {
+      input_tokens: number;
+      output_tokens: number;
+      reasoning_tokens?: number;
+      total_tokens: number;
+    };
     analyzedAt: Date;
     gradingModel: string;
+    processing?: boolean; // For loading state
   };
 }
 

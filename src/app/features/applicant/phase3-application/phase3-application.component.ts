@@ -5,6 +5,7 @@ import { ApplicantUser, Phase3Application, EquityBreakdownRow, Phase, Applicatio
 import { ApplicationService } from '../../../services/application.service';
 import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
+import { OpenAIService } from '../../../services/openai.service';
 import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
 import { Router } from '@angular/router';
@@ -1254,6 +1255,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
   private userService = inject(UserService);
+  private openaiService = inject(OpenAIService);
   private router = inject(Router);
 
   applicationForm!: FormGroup;
@@ -1687,10 +1689,12 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       const applicationData = this.buildApplicationData('SUBMITTED');
 
       // Submit the application
+      let submittedApplication: Phase3Application;
       if (this.existingApplication?.id) {
         await this.applicationService.updatePhase3Application(this.existingApplication.id, applicationData);
+        submittedApplication = { ...this.existingApplication, ...applicationData } as Phase3Application;
       } else {
-        await this.applicationService.createPhase3Application(applicationData);
+        submittedApplication = await this.applicationService.createPhase3Application(applicationData);
       }
 
       // Update user status to PHASE_3_SUBMITTED
@@ -1700,6 +1704,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           status: ApplicationStatus.PHASE_3_SUBMITTED
         });
       }
+
+      // Trigger OpenAI analysis in the background (fire and forget)
+      this.triggerOpenAIAnalysis(submittedApplication);
 
       this.successMessage = 'Application submitted successfully!';
       this.phaseCompleted.emit();
@@ -1711,6 +1718,88 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       this.errorMessage = error.message || 'Failed to submit application';
     } finally {
       this.isSubmitting = false;
+    }
+  }
+
+  /**
+   * Trigger OpenAI analysis in the background after submission
+   * This happens asynchronously - user doesn't wait for it
+   */
+  private async triggerOpenAIAnalysis(application: Phase3Application): Promise<void> {
+    try {
+      console.log('🤖 Starting OpenAI analysis for Problem & Customer field...');
+      
+      // Set processing flag
+      if (application.id) {
+        await this.applicationService.updatePhase3Application(application.id, {
+          ...application,
+          llmAnalysis: {
+            problemCustomerScore: 0,
+            isSpecific: false,
+            hasClearTarget: false,
+            hasDefinedProblem: false,
+            feedback: '',
+            strengths: [],
+            weaknesses: [],
+            suggestions: [],
+            analyzedAt: new Date(),
+            gradingModel: 'gpt-5-mini',
+            processing: true
+          }
+        });
+      }
+
+      // Analyze the Problem & Customer field
+      const analysis = await this.openaiService.analyzeProblemCustomer(application.productInfo.problemCustomer);
+      
+      // Update application with analysis results
+      if (application.id) {
+        await this.applicationService.updatePhase3Application(application.id, {
+          ...application,
+          llmAnalysis: {
+            problemCustomerScore: analysis.score,
+            isSpecific: analysis.isSpecific,
+            hasClearTarget: analysis.hasClearTarget,
+            hasDefinedProblem: analysis.hasDefinedProblem,
+            feedback: analysis.feedback,
+            strengths: analysis.strengths,
+            weaknesses: analysis.weaknesses,
+            suggestions: analysis.suggestions,
+            analyzedAt: new Date(),
+            gradingModel: 'gpt-5-mini',
+            processing: false
+          }
+        });
+      }
+      
+      console.log('✅ OpenAI analysis completed and saved to database');
+      
+    } catch (error) {
+      console.error('❌ OpenAI analysis failed:', error);
+      
+      // Update application to clear processing flag on error
+      if (application.id) {
+        try {
+          await this.applicationService.updatePhase3Application(application.id, {
+            ...application,
+            llmAnalysis: {
+              problemCustomerScore: 0,
+              isSpecific: false,
+              hasClearTarget: false,
+              hasDefinedProblem: false,
+              feedback: 'Analysis failed - please retry manually',
+              strengths: [],
+              weaknesses: [],
+              suggestions: [],
+              analyzedAt: new Date(),
+              gradingModel: 'gpt-5-mini',
+              processing: false
+            }
+          });
+        } catch (updateError) {
+          console.error('Failed to clear processing flag:', updateError);
+        }
+      }
     }
   }
 

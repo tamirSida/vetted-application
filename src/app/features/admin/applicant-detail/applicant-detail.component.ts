@@ -534,7 +534,7 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                        [title]="getFlagMessage('fundingDetails')"></i>
                   </span>
                 </div>
-                <div class="info-item full-width" *ngIf="phase3Application()?.fundingInfo?.equityBreakdown && (phase3Application()?.fundingInfo?.equityBreakdown || []).length > 0">
+                <div class="info-item full-width" *ngIf="getEquityBreakdown().length > 0">
                   <label>Equity Breakdown</label>
                   <div class="equity-table">
                     <table>
@@ -547,7 +547,7 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
                         </tr>
                       </thead>
                       <tbody>
-                        <tr *ngFor="let row of phase3Application()?.fundingInfo?.equityBreakdown" 
+                        <tr *ngFor="let row of getEquityBreakdown()" 
                             [class]="'equity-row equity-' + row.category">
                           <td>{{ row.name }}</td>
                           <td>{{ formatNumber(row.shares) }}</td>
@@ -659,10 +659,20 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
             </div>
           </div>
 
-          <!-- No Application Message -->
+          <!-- Debug Information -->
           <div *ngIf="!phase3Application()" class="no-application">
             <i class="fas fa-file-alt"></i>
             <p>No Phase 3 application found for this applicant.</p>
+            <p><small>Debug: Applicant ID: {{ applicant()?.userId }}, Cohort ID: {{ applicant()?.cohortId }}</small></p>
+          </div>
+          
+          <!-- Debug Phase 3 Data -->
+          <div *ngIf="phase3Application()" class="debug-info" style="background: #f0f9ff; padding: 1rem; margin: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <h4>Debug: Phase 3 Data Loaded</h4>
+            <p><strong>Application ID:</strong> {{ phase3Application()?.id }}</p>
+            <p><strong>Has Funding Info:</strong> {{ !!phase3Application()?.fundingInfo }}</p>
+            <p><strong>Has Equity Breakdown:</strong> {{ !!phase3Application()?.fundingInfo?.equityBreakdown }}</p>
+            <p><strong>Equity Breakdown Length:</strong> {{ (phase3Application()?.fundingInfo?.equityBreakdown || []).length }}</p>
           </div>
         </section>
 
@@ -1570,17 +1580,24 @@ export class ApplicantDetailComponent implements OnInit {
 
       // Load Phase 3 application if exists
       try {
+        console.log('🔍 Loading Phase 3 application for:', applicantId, (applicantData as ApplicantUser).cohortId);
         const phase3App = await this.applicationService.getPhase3Application(applicantId, (applicantData as ApplicantUser).cohortId);
+        console.log('📝 Phase 3 application result:', phase3App);
+        
         if (phase3App) {
+          console.log('✅ Setting Phase 3 application data:', phase3App);
+          console.log('📊 Equity breakdown:', phase3App.fundingInfo?.equityBreakdown);
           this.phase3Application.set(phase3App);
           
           // Calculate flagging results for Phase 3 if available
           // TODO: Implement Phase 3 flagging service when available
           // const phase3Flagging = this.flaggingService.analyzePhase3Application(phase3App);
           // this.phase3FlaggingResult.set(phase3Flagging);
+        } else {
+          console.log('❌ No Phase 3 application found');
         }
       } catch (error) {
-        console.warn('Phase 3 application not found or error loading:', error);
+        console.warn('🚨 Phase 3 application not found or error loading:', error);
       }
 
       // Load interview notes if in Phase 4
@@ -1995,5 +2012,9 @@ export class ApplicantDetailComponent implements OnInit {
     } catch {
       return 'Invalid date';
     }
+  }
+
+  getEquityBreakdown(): any[] {
+    return this.phase3Application()?.fundingInfo?.equityBreakdown || [];
   }
 }

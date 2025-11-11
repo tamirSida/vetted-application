@@ -366,49 +366,46 @@ export class FlaggingService {
   private checkCorporateStructureFlags(application: Phase3Application, flags: ApplicationFlag[]): void {
     const legalInfo = application.legalInfo;
 
-    // Yellow Flag: Not incorporated and doesn't agree to incorporate
-    if (!legalInfo.isIncorporated && legalInfo.agreesToIncorporate === 'DISCUSS') {
+    // Yellow Flag: Not incorporated
+    if (!legalInfo.isIncorporated) {
       flags.push({
         type: 'YELLOW',
-        message: 'Not incorporated and wants to discuss incorporation terms',
-        field: 'agreesToIncorporate',
+        message: 'Company is not incorporated - may need guidance on corporate structure',
+        field: 'isIncorporated',
         severity: 'yellow'
       });
     }
 
-    // Yellow Flag: Incorporated but missing standard venture terms
-    if (legalInfo.isIncorporated) {
-      const missingTerms = [];
+    // Yellow Flag: Unusual corporate structure
+    if (legalInfo.isIncorporated && legalInfo.corporationType) {
+      const hasStandardTypes = legalInfo.corporationType.some(type => 
+        ['C_CORP', 'S_CORP', 'LLC'].includes(type)
+      );
       
-      if (!legalInfo.hasIpAssignment) {
-        missingTerms.push('IP Assignment');
+      if (!hasStandardTypes) {
+        flags.push({
+          type: 'YELLOW',
+          message: 'Non-standard corporate structure may need review',
+          field: 'corporationType',
+          severity: 'yellow'
+        });
       }
-      
-      if (!legalInfo.hasFounderVesting) {
-        missingTerms.push('Founder Vesting');
-      }
-      
-      if (!legalInfo.hasBoardStructure) {
-        missingTerms.push('Board Structure');
-      }
+    }
 
-      if (missingTerms.length > 0) {
-        // Yellow Flag: Missing terms but won't amend documents
-        if (legalInfo.willAmendDocuments === false) {
-          flags.push({
-            type: 'YELLOW',
-            message: `Missing standard venture terms (${missingTerms.join(', ')}) and unwilling to amend documents`,
-            field: 'willAmendDocuments',
-            severity: 'yellow'
-          });
-        } else {
-          flags.push({
-            type: 'YELLOW',
-            message: `Missing standard venture terms: ${missingTerms.join(', ')}`,
-            field: 'corporateStructure',
-            severity: 'yellow'
-          });
-        }
+    // Yellow Flag: Incorporation outside common jurisdictions
+    if (legalInfo.isIncorporated && legalInfo.jurisdiction) {
+      const commonJurisdictions = ['Delaware', 'California', 'Nevada', 'New York'];
+      const isCommonJurisdiction = commonJurisdictions.some(jurisdiction => 
+        legalInfo.jurisdiction?.toLowerCase().includes(jurisdiction.toLowerCase())
+      );
+      
+      if (!isCommonJurisdiction) {
+        flags.push({
+          type: 'YELLOW',
+          message: 'Incorporation in uncommon jurisdiction may need review',
+          field: 'jurisdiction',
+          severity: 'yellow'
+        });
       }
     }
   }

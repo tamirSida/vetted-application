@@ -4,7 +4,7 @@ import { AuthService } from '../../../services/auth.service';
 import { PhaseProgressionService } from '../../../services/phase-progression.service';
 import { ApplicantUser, Phase } from '../../../models';
 import { Phase2WebinarComponent } from '../phase2-webinar/phase2-webinar.component';
-import { Phase3ApplicationComponent } from '../phase3-application/phase3-application.component';
+import { Phase3ApplicationTabbedComponent } from '../phase3-application/phase3-application.component';
 import { Phase4InterviewComponent } from '../phase4-interview/phase4-interview.component';
 import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.component';
 
@@ -14,7 +14,7 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
   imports: [
     CommonModule,
     Phase2WebinarComponent,
-    Phase3ApplicationComponent,
+    Phase3ApplicationTabbedComponent,
     Phase4InterviewComponent,
     Phase5AcceptedComponent
   ],
@@ -117,11 +117,11 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
           ></app-phase2-webinar>
 
           <!-- Phase 3: In-Depth Application -->
-          <app-phase3-application 
+          <app-phase3-application-tabbed 
             *ngIf="applicant?.phase === Phase.IN_DEPTH_APPLICATION && applicant"
             [applicant]="applicant"
             (phaseCompleted)="onPhaseCompleted($event)"
-          ></app-phase3-application>
+          ></app-phase3-application-tabbed>
 
           <!-- Phase 3 Submitted - Under Review -->
           <div 

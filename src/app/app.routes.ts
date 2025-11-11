@@ -23,7 +23,7 @@ export const routes: Routes = [
   },
   {
     path: 'application/phase3',
-    loadComponent: () => import('./features/applicant/phase3-application/phase3-application.component').then(c => c.Phase3ApplicationComponent)
+    loadComponent: () => import('./features/applicant/phase3-application/phase3-application.component').then(c => c.Phase3ApplicationTabbedComponent)
   },
   {
     path: '',

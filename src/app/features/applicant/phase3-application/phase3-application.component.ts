@@ -1,9 +1,10 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray, AbstractControl, ValidationErrors } from '@angular/forms';
-import { ApplicantUser, Phase3Application, EquityBreakdownRow, Phase } from '../../../models';
+import { ApplicantUser, Phase3Application, EquityBreakdownRow, Phase, ApplicationStatus } from '../../../models';
 import { ApplicationService } from '../../../services/application.service';
 import { AuthService } from '../../../services/auth.service';
+import { UserService } from '../../../services/user.service';
 import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
 import { Router } from '@angular/router';
@@ -141,6 +142,7 @@ import { combineLatest } from 'rxjs';
                   formControlName="tractionDetails"
                   rows="4"
                   class="form-textarea"
+                  maxlength="3000"
                   placeholder="Describe your current traction metrics..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('tractionDetails') }}/300 words
@@ -157,6 +159,7 @@ import { combineLatest } from 'rxjs';
                   formControlName="problemCustomer"
                   rows="4"
                   class="form-textarea"
+                  maxlength="3000"
                   placeholder="Describe the specific person and problem you're solving..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('problemCustomer') }}/300 words
@@ -195,6 +198,7 @@ import { combineLatest } from 'rxjs';
                   formControlName="coFounders"
                   rows="4"
                   class="form-textarea"
+                  maxlength="3000"
                   placeholder="List each co-founder with their role and LinkedIn profile..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('coFounders') }}/300 words
@@ -233,6 +237,7 @@ import { combineLatest } from 'rxjs';
                     formControlName="capacityOther"
                     rows="3"
                     class="form-textarea"
+                    maxlength="1000"
                     placeholder="Explain the current capacity of you and your co-founders..."
                     required></textarea>
                 </div>
@@ -240,17 +245,42 @@ import { combineLatest } from 'rxjs';
 
               <!-- Previous Collaboration -->
               <div class="form-group">
-                <label for="previousCollaboration" class="form-label">
-                  Have any team members worked together before? If so, describe how.
-                </label>
-                <textarea
-                  id="previousCollaboration"
-                  formControlName="previousCollaboration"
-                  rows="3"
-                  class="form-textarea"
-                  placeholder="Describe any previous working relationships..."></textarea>
-                <div class="word-count">
-                  {{ getWordCount('previousCollaboration') }}/300 words
+                <label class="form-label">Have any team members worked together before?</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('hasPreviousCollaboration')?.value === 'true'"
+                      (click)="toggleRadioButton('hasPreviousCollaboration', 'true')">
+                    <span class="checkmark"></span>
+                    Yes
+                  </label>
+                  <label class="radio-option">
+                    <input 
+                      type="radio"
+                      [checked]="applicationForm.get('hasPreviousCollaboration')?.value === 'false'"
+                      (click)="toggleRadioButton('hasPreviousCollaboration', 'false')">
+                    <span class="checkmark"></span>
+                    No
+                  </label>
+                </div>
+
+                <!-- Conditional explanation when "Yes" is selected -->
+                <div *ngIf="applicationForm.get('hasPreviousCollaboration')?.value === 'true'" class="conditional-field">
+                  <label for="previousCollaboration" class="form-label">
+                    Please briefly explain the circumstances of their departure and any severance or equity agreements that were made.
+                  </label>
+                  <textarea
+                    id="previousCollaboration"
+                    formControlName="previousCollaboration"
+                    rows="3"
+                    class="form-textarea"
+                    maxlength="3000"
+                    placeholder="Describe the previous working relationships and any agreements..."
+                    required></textarea>
+                  <div class="word-count">
+                    {{ getWordCount('previousCollaboration') }}/300 words
+                  </div>
                 </div>
               </div>
 
@@ -286,6 +316,7 @@ import { combineLatest } from 'rxjs';
                     formControlName="previousFoundersExplanation"
                     rows="3"
                     class="form-textarea"
+                    maxlength="3000"
                     placeholder="Explain the circumstances of departure and any agreements..."
                     required></textarea>
                 </div>
@@ -301,6 +332,7 @@ import { combineLatest } from 'rxjs';
                   formControlName="equitySplitRoles"
                   rows="4"
                   class="form-textarea"
+                  maxlength="3000"
                   placeholder="Describe the decision process for equity distribution and role assignments..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('equitySplitRoles') }}/300 words
@@ -317,10 +349,8 @@ import { combineLatest } from 'rxjs';
                   formControlName="additionalTeamMembers"
                   rows="3"
                   class="form-textarea"
+                  maxlength="3000"
                   placeholder="List non-founder team members and their roles..."></textarea>
-                <div class="word-count">
-                  {{ getWordCount('additionalTeamMembers') }}/300 words
-                </div>
               </div>
             </div>
 
@@ -363,6 +393,7 @@ import { combineLatest } from 'rxjs';
                     formControlName="fundingDetails"
                     rows="4"
                     class="form-textarea"
+                    maxlength="3000"
                     placeholder="e.g. $150K on a post-money safe with a $XM cap"
                     required></textarea>
                   <div class="word-count">
@@ -423,6 +454,7 @@ import { combineLatest } from 'rxjs';
                     id="incorporationLocation"
                     formControlName="incorporationLocation"
                     class="form-input"
+                    maxlength="200"
                     placeholder="e.g., Delaware, California, etc."
                     required>
                 </div>
@@ -534,6 +566,7 @@ import { combineLatest } from 'rxjs';
                       formControlName="amendDocumentsExplanation"
                       rows="3"
                       class="form-textarea"
+                      maxlength="2000"
                       placeholder="Explain your concerns about amending corporate documents..."
                       required></textarea>
                   </div>
@@ -592,16 +625,25 @@ import { combineLatest } from 'rxjs';
               <i class="fas fa-chevron-right"></i>
             </button>
 
-            <button
+            <div 
               *ngIf="currentTab === totalTabs - 1"
-              type="button"
-              class="nav-btn success"
-              (click)="submitApplication()"
-              [disabled]="isSubmitting || !applicationForm.valid">
-              <i *ngIf="isSubmitting" class="fas fa-spinner fa-spin"></i>
-              <i *ngIf="!isSubmitting" class="fas fa-paper-plane"></i>
-              {{ isSubmitting ? 'Submitting...' : 'Submit Application' }}
-            </button>
+              class="submit-button-container"
+              [class.has-tooltip]="!applicationForm.valid && !isSubmitting">
+              <button
+                type="button"
+                class="nav-btn success"
+                (click)="submitApplication()"
+                [disabled]="isSubmitting || !applicationForm.valid">
+                <i *ngIf="isSubmitting" class="fas fa-spinner fa-spin"></i>
+                <i *ngIf="!isSubmitting" class="fas fa-paper-plane"></i>
+                {{ isSubmitting ? 'Submitting...' : 'Submit Application' }}
+              </button>
+              <div 
+                *ngIf="!applicationForm.valid && !isSubmitting"
+                class="submit-tooltip"
+                [innerHTML]="getSubmitButtonTooltip()">
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -1058,6 +1100,64 @@ import { combineLatest } from 'rxjs';
       font-weight: 500;
     }
 
+    /* Submit Button Tooltip */
+    .submit-button-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .submit-tooltip {
+      position: absolute;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #374151;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      white-space: pre-line;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      min-width: 250px;
+      max-width: 350px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      pointer-events: none;
+    }
+
+    .submit-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 8px solid transparent;
+      border-top-color: #374151;
+    }
+
+    .submit-button-container:hover .submit-tooltip,
+    .submit-button-container.has-tooltip:active .submit-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Mobile touch support */
+    @media (hover: none) {
+      .submit-button-container.has-tooltip .submit-tooltip {
+        opacity: 0;
+        visibility: hidden;
+      }
+      
+      .submit-button-container.has-tooltip:active .submit-tooltip,
+      .submit-button-container.has-tooltip:focus-within .submit-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+
     /* Footer */
     .app-footer {
       background: #1e40af;
@@ -1153,6 +1253,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
+  private userService = inject(UserService);
   private router = inject(Router);
 
   applicationForm!: FormGroup;
@@ -1243,32 +1344,33 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.applicationForm = this.fb.group({
       // Product & Traction (Tab 1)
       productStage: [null, Validators.required],
-      tractionDetails: ['', [Validators.required, this.wordCountValidator(300)]],
-      problemCustomer: ['', [Validators.required, this.wordCountValidator(300)]],
+      tractionDetails: ['', [Validators.required, this.wordCountValidator(300), this.charLimitValidator(3000)]],
+      problemCustomer: ['', [Validators.required, this.wordCountValidator(300), this.charLimitValidator(3000)]],
       videoPitch: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
 
       // Team (Tab 2)
-      coFounders: ['', [Validators.required, this.wordCountValidator(300)]],
+      coFounders: ['', [Validators.required, this.wordCountValidator(300), this.charLimitValidator(3000)]],
       capacity: [null, Validators.required],
-      capacityOther: [''],
-      previousCollaboration: ['', this.wordCountValidator(300)],
+      capacityOther: ['', this.charLimitValidator(1000)],
+      hasPreviousCollaboration: [null, Validators.required],
+      previousCollaboration: ['', [this.wordCountValidator(300), this.charLimitValidator(3000)]],
       previousFounders: [null, Validators.required],
-      previousFoundersExplanation: [''],
-      equitySplitRoles: ['', [Validators.required, this.wordCountValidator(300)]],
-      additionalTeamMembers: ['', this.wordCountValidator(300)],
+      previousFoundersExplanation: ['', this.charLimitValidator(3000)],
+      equitySplitRoles: ['', [Validators.required, this.wordCountValidator(300), this.charLimitValidator(3000)]],
+      additionalTeamMembers: ['', this.charLimitValidator(3000)],
 
       // Funding (Tab 3)
       hasRaisedCapital: [null, Validators.required],
-      fundingDetails: ['', this.wordCountValidator(300)],
+      fundingDetails: ['', [this.wordCountValidator(300), this.charLimitValidator(3000)]],
 
       // Legal (Tab 4)
       isIncorporated: [null, Validators.required],
-      incorporationLocation: [''],
+      incorporationLocation: ['', this.charLimitValidator(200)],
       hasIpAssignment: [null],
       hasFounderVesting: [null],
       hasBoardStructure: [null],
       willAmendDocuments: [null],
-      amendDocumentsExplanation: [''],
+      amendDocumentsExplanation: ['', this.charLimitValidator(2000)],
       agreesToIncorporate: [null]
     });
 
@@ -1280,20 +1382,31 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.applicationForm.get('capacity')?.valueChanges.subscribe(value => {
       const capacityOtherControl = this.applicationForm.get('capacityOther');
       if (value === 'OTHER') {
-        capacityOtherControl?.setValidators([Validators.required]);
+        capacityOtherControl?.setValidators([Validators.required, this.charLimitValidator(1000)]);
       } else {
-        capacityOtherControl?.clearValidators();
+        capacityOtherControl?.setValidators([this.charLimitValidator(1000)]);
       }
       capacityOtherControl?.updateValueAndValidity();
+    });
+
+    // Setup conditional validation for previousCollaboration
+    this.applicationForm.get('hasPreviousCollaboration')?.valueChanges.subscribe(value => {
+      const previousCollaborationControl = this.applicationForm.get('previousCollaboration');
+      if (value === 'true') {
+        previousCollaborationControl?.setValidators([Validators.required, this.wordCountValidator(300), this.charLimitValidator(3000)]);
+      } else {
+        previousCollaborationControl?.setValidators([this.wordCountValidator(300), this.charLimitValidator(3000)]);
+      }
+      previousCollaborationControl?.updateValueAndValidity();
     });
 
     // Setup conditional validation for previousFoundersExplanation
     this.applicationForm.get('previousFounders')?.valueChanges.subscribe(value => {
       const explanationControl = this.applicationForm.get('previousFoundersExplanation');
       if (value === 'true') {
-        explanationControl?.setValidators([Validators.required]);
+        explanationControl?.setValidators([Validators.required, this.charLimitValidator(3000)]);
       } else {
-        explanationControl?.clearValidators();
+        explanationControl?.setValidators([this.charLimitValidator(3000)]);
       }
       explanationControl?.updateValueAndValidity();
     });
@@ -1302,9 +1415,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.applicationForm.get('hasRaisedCapital')?.valueChanges.subscribe(value => {
       const fundingDetailsControl = this.applicationForm.get('fundingDetails');
       if (value === 'true') {
-        fundingDetailsControl?.setValidators([Validators.required, this.wordCountValidator(300)]);
+        fundingDetailsControl?.setValidators([Validators.required, this.wordCountValidator(300), this.charLimitValidator(3000)]);
       } else {
-        fundingDetailsControl?.clearValidators();
+        fundingDetailsControl?.setValidators([this.wordCountValidator(300), this.charLimitValidator(3000)]);
       }
       fundingDetailsControl?.updateValueAndValidity();
     });
@@ -1313,9 +1426,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.applicationForm.get('isIncorporated')?.valueChanges.subscribe(value => {
       const incorporationLocationControl = this.applicationForm.get('incorporationLocation');
       if (value === 'true') {
-        incorporationLocationControl?.setValidators([Validators.required]);
+        incorporationLocationControl?.setValidators([Validators.required, this.charLimitValidator(200)]);
       } else {
-        incorporationLocationControl?.clearValidators();
+        incorporationLocationControl?.setValidators([this.charLimitValidator(200)]);
       }
       incorporationLocationControl?.updateValueAndValidity();
     });
@@ -1324,9 +1437,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.applicationForm.get('willAmendDocuments')?.valueChanges.subscribe(value => {
       const explanationControl = this.applicationForm.get('amendDocumentsExplanation');
       if (value === 'false') {
-        explanationControl?.setValidators([Validators.required]);
+        explanationControl?.setValidators([Validators.required, this.charLimitValidator(2000)]);
       } else {
-        explanationControl?.clearValidators();
+        explanationControl?.setValidators([this.charLimitValidator(2000)]);
       }
       explanationControl?.updateValueAndValidity();
     });
@@ -1380,9 +1493,11 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       case 1: // Team
         const hasCapacity = formValue.capacity !== null;
         const hasCapacityExplanation = formValue.capacity !== 'OTHER' || formValue.capacityOther;
+        const hasPreviousCollaborationAnswer = formValue.hasPreviousCollaboration !== null;
+        const hasPreviousCollaborationExplanation = formValue.hasPreviousCollaboration !== 'true' || formValue.previousCollaboration;
         const hasPreviousFoundersAnswer = formValue.previousFounders !== null;
         const hasPreviousFoundersExplanation = formValue.previousFounders !== 'true' || formValue.previousFoundersExplanation;
-        return !!(formValue.coFounders && hasCapacity && hasCapacityExplanation && hasPreviousFoundersAnswer && hasPreviousFoundersExplanation && formValue.equitySplitRoles);
+        return !!(formValue.coFounders && hasCapacity && hasCapacityExplanation && hasPreviousCollaborationAnswer && hasPreviousCollaborationExplanation && hasPreviousFoundersAnswer && hasPreviousFoundersExplanation && formValue.equitySplitRoles);
       case 2: // Funding
         const hasFundingAnswer = formValue.hasRaisedCapital !== null;
         const hasFundingDetails = formValue.hasRaisedCapital !== 'true' || formValue.fundingDetails;
@@ -1431,6 +1546,79 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Get validation error messages for disabled submit button tooltip
+  getSubmitButtonTooltip(): string {
+    if (this.applicationForm.valid) {
+      return '';
+    }
+
+    const errors: string[] = [];
+    const formValue = this.applicationForm.value;
+
+    // Check each tab for errors
+    if (!this.isTabValid(0)) {
+      if (!formValue.productStage) errors.push('• Select your product stage');
+      if (!formValue.tractionDetails) errors.push('• Describe your traction details');
+      if (!formValue.problemCustomer) errors.push('• Describe your problem & customer');
+      if (!formValue.videoPitch) errors.push('• Provide a video pitch URL');
+    }
+
+    if (!this.isTabValid(1)) {
+      if (!formValue.coFounders) errors.push('• List your co-founders');
+      if (!formValue.capacity) errors.push('• Select team capacity');
+      if (formValue.capacity === 'OTHER' && !formValue.capacityOther) errors.push('• Explain your team capacity');
+      if (!formValue.hasPreviousCollaboration) errors.push('• Answer previous collaboration question');
+      if (formValue.hasPreviousCollaboration === 'true' && !formValue.previousCollaboration) errors.push('• Explain previous collaboration');
+      if (!formValue.previousFounders) errors.push('• Answer previous founders question');
+      if (formValue.previousFounders === 'true' && !formValue.previousFoundersExplanation) errors.push('• Explain previous founders departure');
+      if (!formValue.equitySplitRoles) errors.push('• Describe equity split and roles');
+    }
+
+    if (!this.isTabValid(2)) {
+      if (!formValue.hasRaisedCapital) errors.push('• Answer funding history question');
+      if (formValue.hasRaisedCapital === 'true' && !formValue.fundingDetails) errors.push('• Provide funding details');
+      if (this.equityRows.length === 0) errors.push('• Add equity breakdown entries');
+    }
+
+    if (!this.isTabValid(3)) {
+      if (!formValue.isIncorporated) errors.push('• Answer incorporation question');
+      if (formValue.isIncorporated === 'true' && !formValue.incorporationLocation) errors.push('• Provide incorporation location');
+      if (formValue.isIncorporated === 'false' && !formValue.agreesToIncorporate) errors.push('• Answer incorporation agreement question');
+    }
+
+    return errors.length > 0 ? 
+      `<strong>Complete the following to submit:</strong><br><br>${errors.join('<br>')}` : 
+      '';
+  }
+
+  // Check if a specific tab is valid
+  isTabValid(tabIndex: number): boolean {
+    const formValue = this.applicationForm.value;
+    switch (tabIndex) {
+      case 0: // Product & Traction
+        return !!(formValue.productStage && formValue.tractionDetails && formValue.problemCustomer && formValue.videoPitch);
+      case 1: // Team
+        const hasCapacity = formValue.capacity !== null;
+        const hasCapacityExplanation = formValue.capacity !== 'OTHER' || formValue.capacityOther;
+        const hasPreviousCollaborationAnswer = formValue.hasPreviousCollaboration !== null;
+        const hasPreviousCollaborationExplanation = formValue.hasPreviousCollaboration !== 'true' || formValue.previousCollaboration;
+        const hasPreviousFoundersAnswer = formValue.previousFounders !== null;
+        const hasPreviousFoundersExplanation = formValue.previousFounders !== 'true' || formValue.previousFoundersExplanation;
+        return !!(formValue.coFounders && hasCapacity && hasCapacityExplanation && hasPreviousCollaborationAnswer && hasPreviousCollaborationExplanation && hasPreviousFoundersAnswer && hasPreviousFoundersExplanation && formValue.equitySplitRoles);
+      case 2: // Funding
+        const hasFundingAnswer = formValue.hasRaisedCapital !== null;
+        const hasFundingDetails = formValue.hasRaisedCapital !== 'true' || formValue.fundingDetails;
+        return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0);
+      case 3: // Legal
+        const hasIncorporationAnswer = formValue.isIncorporated !== null;
+        const hasIncorporationLocation = formValue.isIncorporated !== 'true' || formValue.incorporationLocation;
+        const hasAgreesToIncorporate = formValue.isIncorporated !== 'false' || formValue.agreesToIncorporate !== null;
+        return !!(hasIncorporationAnswer && hasIncorporationLocation && hasAgreesToIncorporate);
+      default:
+        return false;
+    }
+  }
+
 
   // Equity table methods
   onEquityRowsChanged(rows: EquityBreakdownRow[]) {
@@ -1448,11 +1636,24 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       const applicationData = this.buildApplicationData('DRAFT');
 
+      // If this is the first save (no existing application), update user status to IN_PROGRESS
+      const isFirstSave = !this.existingApplication?.id;
+
       if (this.existingApplication?.id) {
         await this.applicationService.updatePhase3Application(this.existingApplication.id, applicationData);
       } else {
         const created = await this.applicationService.createPhase3Application(applicationData);
         this.existingApplication = created;
+      }
+
+      // Update user status to PHASE_3_IN_PROGRESS on first save
+      if (isFirstSave) {
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser?.userId) {
+          await this.userService.updateUser(currentUser.userId, {
+            status: ApplicationStatus.PHASE_3_IN_PROGRESS
+          });
+        }
       }
 
       this.successMessage = 'Draft saved successfully!';
@@ -1473,10 +1674,19 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       const applicationData = this.buildApplicationData('SUBMITTED');
 
+      // Submit the application
       if (this.existingApplication?.id) {
         await this.applicationService.updatePhase3Application(this.existingApplication.id, applicationData);
       } else {
         await this.applicationService.createPhase3Application(applicationData);
+      }
+
+      // Update user status to PHASE_3_SUBMITTED
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser?.userId) {
+        await this.userService.updateUser(currentUser.userId, {
+          status: ApplicationStatus.PHASE_3_SUBMITTED
+        });
       }
 
       this.successMessage = 'Application submitted successfully!';
@@ -1518,6 +1728,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         coFounders: formValue.coFounders,
         capacity: formValue.capacity,
         capacityOther: formValue.capacityOther,
+        hasPreviousCollaboration: formValue.hasPreviousCollaboration === 'true',
         previousCollaboration: formValue.previousCollaboration,
         previousFounders: formValue.previousFounders === 'true',
         previousFoundersExplanation: formValue.previousFoundersExplanation,
@@ -1555,6 +1766,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       coFounders: app.teamInfo.coFounders,
       capacity: app.teamInfo.capacity,
       capacityOther: app.teamInfo.capacityOther,
+      hasPreviousCollaboration: app.teamInfo.hasPreviousCollaboration ? 'true' : 'false',
       previousCollaboration: app.teamInfo.previousCollaboration,
       previousFounders: app.teamInfo.previousFounders ? 'true' : 'false',
       previousFoundersExplanation: app.teamInfo.previousFoundersExplanation,
@@ -1601,6 +1813,15 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       const wordCount = control.value.trim().split(/\s+/).filter((word: string) => word.length > 0).length;
       return wordCount > maxWords ? { wordCount: { max: maxWords, actual: wordCount } } : null;
+    };
+  }
+
+  private charLimitValidator(maxChars: number) {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (!control.value) return null;
+
+      const charCount = control.value.length;
+      return charCount > maxChars ? { charLimit: { max: maxChars, actual: charCount } } : null;
     };
   }
 }

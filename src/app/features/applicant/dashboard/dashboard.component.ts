@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService, WebinarService, ApplicationService } from '../../../services';
 import { combineLatest } from 'rxjs';
-import { ApplicantUser, Phase, Webinar } from '../../../models';
+import { ApplicantUser, Phase, Webinar, ApplicationStatus } from '../../../models';
 
 @Component({
   selector: 'app-dashboard',
@@ -41,7 +41,7 @@ import { ApplicantUser, Phase, Webinar } from '../../../models';
         }
 
         <!-- Phase 1: Awaiting Approval -->
-        @if (currentPhase() === 'SIGNUP' && applicationStatus() === 'SUBMITTED') {
+        @if (currentPhase() === 'SIGNUP' && applicationStatus() === ApplicationStatus.PHASE_1) {
           <div class="status-card status-pending">
             <div class="status-icon">
               <i class="fas fa-clock"></i>
@@ -133,7 +133,7 @@ import { ApplicantUser, Phase, Webinar } from '../../../models';
 
         <!-- Phase 3: In-Depth Application -->
         @if (currentPhase() === 'IN_DEPTH_APPLICATION') {
-          @if (applicationStatus() === 'DRAFT') {
+          @if (applicationStatus() === ApplicationStatus.PHASE_3_IN_PROGRESS) {
             <div class="status-card status-action">
               <div class="status-icon">
                 <i class="fas fa-edit"></i>
@@ -153,7 +153,7 @@ import { ApplicantUser, Phase, Webinar } from '../../../models';
                 </div>
               </div>
             </div>
-          } @else if (applicationStatus() === 'SUBMITTED') {
+          } @else if (applicationStatus() === ApplicationStatus.PHASE_3_SUBMITTED) {
             <div class="status-card status-pending">
               <div class="status-icon">
                 <i class="fas fa-search"></i>
@@ -174,7 +174,7 @@ import { ApplicantUser, Phase, Webinar } from '../../../models';
                 </div>
               </div>
             </div>
-          } @else {
+          } @else if (applicationStatus() === ApplicationStatus.PHASE_3) {
             <div class="status-card status-action">
               <div class="status-icon">
                 <i class="fas fa-file-alt"></i>
@@ -305,6 +305,9 @@ export class DashboardComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
+  // Expose enum for template use
+  ApplicationStatus = ApplicationStatus;
+
   applicant = signal<ApplicantUser | null>(null);
   currentPhase = signal<Phase | null>(null);
   applicationStatus = signal<string>('');
@@ -351,12 +354,8 @@ export class DashboardComponent implements OnInit {
       this.applicant.set(user);
       this.currentPhase.set(user.phase);
       
-      // Mock application status - in real app, fetch from application service
-      if (user.phase === 'SIGNUP') {
-        this.applicationStatus.set('SUBMITTED');
-      } else if (user.phase === 'IN_DEPTH_APPLICATION') {
-        this.applicationStatus.set('DRAFT'); // or 'SUBMITTED' based on actual status
-      }
+      // Use the actual user status from the database
+      this.applicationStatus.set(user.status || ApplicationStatus.PHASE_1);
 
       // Mock interviewer and interview status
       if (user.phase === 'INTERVIEW') {

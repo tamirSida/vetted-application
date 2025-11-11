@@ -36,12 +36,12 @@ import { EquityBreakdownRow } from '../../../models';
               </td>
               <td>
                 <input 
-                  type="number" 
+                  type="text" 
                   formControlName="shares"
                   class="table-input number-input"
-                  min="0"
-                  (blur)="updateRow(row.id)"
-                  (input)="recalculatePercentages()"
+                  [value]="formatNumber(row.shares)"
+                  (input)="onSharesInput($event, row.id)"
+                  (blur)="onSharesBlur($event, row.id)"
                 >
               </td>
               <td>
@@ -91,12 +91,12 @@ import { EquityBreakdownRow } from '../../../models';
               </td>
               <td>
                 <input 
-                  type="number" 
+                  type="text" 
                   formControlName="shares"
                   class="table-input number-input"
-                  min="0"
-                  (blur)="updateRow(row.id)"
-                  (input)="recalculatePercentages()"
+                  [value]="formatNumber(row.shares)"
+                  (input)="onSharesInput($event, row.id)"
+                  (blur)="onSharesBlur($event, row.id)"
                 >
               </td>
               <td>
@@ -144,12 +144,12 @@ import { EquityBreakdownRow } from '../../../models';
               </td>
               <td>
                 <input 
-                  type="number" 
+                  type="text" 
                   formControlName="shares"
                   class="table-input number-input"
-                  min="0"
-                  (blur)="updateRow(row.id)"
-                  (input)="recalculatePercentages()"
+                  [value]="formatNumber(row.shares)"
+                  (input)="onSharesInput($event, row.id)"
+                  (blur)="onSharesBlur($event, row.id)"
                 >
               </td>
               <td>
@@ -598,5 +598,59 @@ export class EquityTableComponent implements OnInit {
 
   private emitChanges() {
     this.rowsChanged.emit([...this.equityRows]);
+  }
+
+  // Format number with commas for display
+  formatNumber(value: number): string {
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // Parse formatted number string to number
+  parseNumber(value: string): number {
+    return parseInt(value.replace(/,/g, ''), 10) || 0;
+  }
+
+  // Handle number input formatting
+  onSharesInput(event: any, rowId: string) {
+    const input = event.target;
+    const cursorPosition = input.selectionStart;
+    const oldValue = input.value;
+    
+    // Remove non-numeric characters except commas
+    let value = oldValue.replace(/[^\d]/g, '');
+    
+    // Add commas for thousands
+    if (value) {
+      value = parseInt(value, 10).toLocaleString();
+    }
+    
+    // Update the form control with the numeric value
+    const formGroup = this.getFormGroup(rowId);
+    if (formGroup) {
+      const numericValue = this.parseNumber(value);
+      formGroup.get('shares')?.setValue(numericValue, { emitEvent: false });
+    }
+    
+    // Update the display value
+    input.value = value;
+    
+    // Restore cursor position
+    const newLength = value.length;
+    const oldLength = oldValue.length;
+    const newPosition = cursorPosition + (newLength - oldLength);
+    input.setSelectionRange(newPosition, newPosition);
+    
+    this.recalculatePercentages();
+  }
+
+  // Handle blur to ensure proper formatting
+  onSharesBlur(event: any, rowId: string) {
+    const input = event.target;
+    const value = this.parseNumber(input.value);
+    
+    // Format and display the number
+    input.value = value ? this.formatNumber(value) : '';
+    
+    this.updateRow(rowId);
   }
 }

@@ -92,11 +92,12 @@ export interface Phase3Application extends BaseApplication {
     coFounders: string; // max 300 words
     capacity: 'ALL_FULLTIME' | 'OTHER';
     capacityOther?: string; // conditional
-    previousCollaboration: string; // max 300 words
+    hasPreviousCollaboration: boolean; // Yes/No question
+    previousCollaboration?: string; // conditional, max 300 words
     previousFounders: boolean; // yellow flag
     previousFoundersExplanation?: string; // conditional, max 300 words
     equitySplitRoles: string; // max 300 words
-    additionalTeamMembers?: string; // max 300 words
+    additionalTeamMembers?: string; // max 300 words, optional
   };
 
   // Part 3: Funding

@@ -1648,16 +1648,25 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       // Update user status to PHASE_3_IN_PROGRESS on first save
       if (isFirstSave) {
+        console.log('🔄 First save - updating user status to PHASE_3_IN_PROGRESS');
         const currentUser = this.authService.getCurrentUser();
         if (currentUser?.userId) {
+          console.log('👤 Updating user:', currentUser.userId);
           await this.userService.updateUser(currentUser.userId, {
             status: ApplicationStatus.PHASE_3_IN_PROGRESS
           });
+          console.log('✅ User status updated to PHASE_3_IN_PROGRESS');
+        } else {
+          console.warn('⚠️ No current user found for status update');
         }
+      } else {
+        console.log('📝 Updating existing draft application');
       }
 
-      this.successMessage = 'Draft saved successfully!';
-      setTimeout(() => this.successMessage = '', 3000);
+      this.successMessage = isFirstSave 
+        ? 'Draft saved successfully! Your status has been updated to Phase 3 In Progress.' 
+        : 'Draft saved successfully!';
+      setTimeout(() => this.successMessage = '', 4000);
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to save draft';
     } finally {
@@ -1703,7 +1712,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   }
 
   private canSave(): boolean {
-    return !this.isSaving && !this.isSubmitting && this.applicationForm.valid;
+    return !this.isSaving && !this.isSubmitting;
   }
 
   private buildApplicationData(status: 'DRAFT' | 'SUBMITTED'): Omit<Phase3Application, 'id'> {
@@ -1750,7 +1759,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         amendDocumentsExplanation: formValue.amendDocumentsExplanation,
         agreesToIncorporate: formValue.agreesToIncorporate
       },
-      submittedAt: status === 'SUBMITTED' ? new Date() : undefined,
+      ...(status === 'SUBMITTED' ? { submittedAt: new Date() } : {}),
       createdAt: new Date(),
       updatedAt: new Date()
     };

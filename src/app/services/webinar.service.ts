@@ -166,18 +166,16 @@ export class WebinarService {
       };
 
       await addDoc(collection(this.firestore, 'webinar_attendance'), attendanceRecord);
+      console.log('✅ Attendance record created successfully');
 
-      // Update webinar attendee count
-      if (webinar.id) {
-        const webinarRef = doc(this.firestore, APP_CONSTANTS.COLLECTIONS.WEBINARS, webinar.id);
-        await updateDoc(webinarRef, {
-          attendeeCount: (webinar.attendeeCount || 0) + 1,
-          updatedAt: new Date()
-        });
-      }
+      // Note: Webinars are stored as objects in cohort documents, not as separate documents
+      // So we skip updating the webinar attendee count for now
+      console.log('ℹ️ Skipping webinar attendee count update (stored in cohort document)');
 
       // Update applicant user with webinar attendance
+      console.log('📝 Updating applicant webinar attendance...');
       await this.updateApplicantWebinarAttendance(applicantId, webinar.num);
+      console.log('✅ Applicant attendance updated successfully');
       
     } catch (error) {
       console.error('Error recording webinar attendance:', error);
@@ -187,12 +185,14 @@ export class WebinarService {
 
   private async updateApplicantWebinarAttendance(applicantId: string, webinarNum: number): Promise<void> {
     try {
-      const applicantRef = doc(this.firestore, APP_CONSTANTS.COLLECTIONS.APPLICANT_USERS, applicantId);
+      console.log('📝 Updating user in users collection:', applicantId);
+      const applicantRef = doc(this.firestore, APP_CONSTANTS.COLLECTIONS.USERS, applicantId);
       await updateDoc(applicantRef, {
         webinarAttended: webinarNum,
         phase: Phase.IN_DEPTH_APPLICATION,
         updatedAt: new Date()
       });
+      console.log('✅ User webinar attendance updated successfully');
     } catch (error) {
       console.error('Error updating applicant webinar attendance:', error);
       throw error;
@@ -321,13 +321,41 @@ export class WebinarService {
 
   private async checkUserAttendance(applicantId: string): Promise<boolean> {
     try {
-      const attendanceQuery = query(
-        collection(this.firestore, 'webinar_attendance'),
-        where('applicantId', '==', applicantId)
-      );
+      console.log('🔍 Checking user attendance for:', applicantId);
       
-      const querySnapshot = await getDocs(attendanceQuery);
-      return !querySnapshot.empty;
+      // First, check the user's current status
+      const userRef = doc(this.firestore, 'users', applicantId);
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        const webinarAttended = userData['webinarAttended'];
+        const phase = userData['phase'];
+        const status = userData['status'];
+        
+        console.log('👤 User phase:', phase);
+        console.log('📊 User status:', status);
+        console.log('🎫 Webinar attended:', webinarAttended);
+        
+        // User has successfully completed webinar attendance if:
+        // 1. They have a webinarAttended value (not null)
+        // 2. AND they're in Phase 3 or beyond
+        const hasCompletedWebinar = webinarAttended !== null && webinarAttended !== undefined;
+        const isInPhase3OrBeyond = phase === 'IN_DEPTH_APPLICATION' || phase === 'INTERVIEW' || phase === 'ACCEPTED';
+        
+        if (hasCompletedWebinar && isInPhase3OrBeyond) {
+          console.log('✅ User has successfully completed webinar attendance');
+          return true;
+        }
+        
+        // If user is stuck (has attendance record but not promoted), allow retry
+        if (!hasCompletedWebinar) {
+          console.log('⚠️ User may have incomplete webinar attendance - allowing retry');
+          return false;
+        }
+      }
+      
+      return false;
     } catch (error) {
       console.error('Error checking user attendance:', error);
       return false;

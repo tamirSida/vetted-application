@@ -17,12 +17,14 @@ import {
 } from '@angular/fire/firestore';
 import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus, Phase } from '../models';
 import { UserRole } from '../models/enums';
+import { EmailService } from './email.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
   private firestore = inject(Firestore);
+  private emailService = inject(EmailService);
 
   // Helper method to derive status from phase for backward compatibility
   private deriveStatusFromPhase(phase: string): ApplicationStatus {
@@ -252,13 +254,13 @@ export class UserService {
    */
   async processAutoAdvancement(applicantId: string): Promise<boolean> {
     try {
-      console.log(`Processing auto-advancement for applicant: ${applicantId}`);
+      console.log(`🚀 Processing auto-advancement for applicant: ${applicantId}`);
       
       const applicant = await this.getUserById(applicantId) as ApplicantUser;
       console.log(`Current applicant status:`, applicant?.status);
       
       if (!applicant) {
-        console.log(`Applicant not found: ${applicantId}`);
+        console.log(`❌ Applicant not found: ${applicantId}`);
         return false;
       }
       
@@ -267,11 +269,11 @@ export class UserService {
       console.log(`Treating undefined status as Phase 1 for backward compatibility`);
       
       if (currentStatus !== ApplicationStatus.PHASE_1) {
-        console.log(`Applicant ${applicantId} is not in Phase 1 (current: ${currentStatus})`);
+        console.log(`⚠️ Applicant ${applicantId} is not in Phase 1 (current: ${currentStatus})`);
         return false;
       }
 
-      console.log(`Updating applicant ${applicantId} to Phase 2...`);
+      console.log(`📝 Updating applicant ${applicantId} to Phase 2...`);
       
       // Update to Phase 2
       await this.updateUser(applicantId, {
@@ -279,10 +281,27 @@ export class UserService {
         status: ApplicationStatus.PHASE_2
       });
 
-      console.log(`Auto-advanced applicant ${applicantId} to Phase 2`);
+      console.log(`✅ Auto-advanced applicant ${applicantId} to Phase 2`);
+
+      // Send Phase 1 to Phase 2 promotion email (auto-advancement)
+      try {
+        console.log(`📧 Sending auto-advancement email to: ${applicant.email}`);
+        const emailResult = await this.emailService.sendPhase1ToPhase2PromotionEmail(applicant);
+        
+        if (emailResult.success) {
+          console.log('✅ Auto-advancement email sent successfully');
+        } else {
+          console.error('❌ Failed to send auto-advancement email:', emailResult.error);
+          // Don't fail the advancement if email fails
+        }
+      } catch (emailError) {
+        console.error('❌ Email service error during auto-advancement:', emailError);
+        // Don't fail the advancement if email fails
+      }
+
       return true;
     } catch (error) {
-      console.error('Error in auto-advancement:', error);
+      console.error('❌ Error in auto-advancement:', error);
       return false;
     }
   }

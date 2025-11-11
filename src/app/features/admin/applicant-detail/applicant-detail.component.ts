@@ -8,6 +8,7 @@ import { StatusMessageService } from '../../../services/status-message.service';
 import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus, Phase } from '../../../models';
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 import { OpenAIService } from '../../../services/openai.service';
+import { EmailService } from '../../../services/email.service';
 
 @Component({
   selector: 'app-applicant-detail',
@@ -1780,6 +1781,7 @@ export class ApplicantDetailComponent implements OnInit {
   private statusMessageService = inject(StatusMessageService);
   private flaggingService = inject(FlaggingService);
   private openaiService = inject(OpenAIService);
+  private emailService = inject(EmailService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -1996,6 +1998,8 @@ export class ApplicantDetailComponent implements OnInit {
     if (!applicant) return;
 
     try {
+      console.log('🚀 Advancing applicant to Phase 2...', applicant.name);
+      
       // Update applicant status to Phase 2
       await this.userService.updateUser(applicant.userId, {
         phase: Phase.WEBINAR,
@@ -2009,13 +2013,27 @@ export class ApplicantDetailComponent implements OnInit {
         status: ApplicationStatus.PHASE_2
       });
 
-      console.log('Successfully advanced to Phase 2');
+      console.log('✅ Successfully advanced to Phase 2');
+
+      // Send Phase 1 to Phase 2 promotion email
+      try {
+        console.log('📧 Sending Phase 2 promotion email to:', applicant.email);
+        const emailResult = await this.emailService.sendPhase1ToPhase2PromotionEmail(applicant);
+        
+        if (emailResult.success) {
+          console.log('✅ Phase 2 promotion email sent successfully');
+        } else {
+          console.error('❌ Failed to send Phase 2 promotion email:', emailResult.error);
+        }
+      } catch (emailError) {
+        console.error('❌ Email service error during Phase 2 promotion:', emailError);
+      }
       
       // Refresh the current view
       window.location.reload();
 
     } catch (error) {
-      console.error('Error advancing to Phase 2:', error);
+      console.error('❌ Error advancing to Phase 2:', error);
     }
   }
 
@@ -2052,6 +2070,8 @@ export class ApplicantDetailComponent implements OnInit {
     if (!applicant) return;
 
     try {
+      console.log('🚀 Advancing applicant to Phase 4...', applicant.name);
+      
       // Update applicant status to Phase 4
       await this.userService.updateUser(applicant.userId, {
         phase: Phase.INTERVIEW,
@@ -2065,13 +2085,27 @@ export class ApplicantDetailComponent implements OnInit {
         status: ApplicationStatus.PHASE_4
       });
 
-      console.log('Successfully advanced to Phase 4');
+      console.log('✅ Successfully advanced to Phase 4');
+
+      // Send Phase 3 approval email
+      try {
+        console.log('📧 Sending Phase 3 approval email to:', applicant.email);
+        const emailResult = await this.emailService.sendPhase3ApprovalEmail(applicant);
+        
+        if (emailResult.success) {
+          console.log('✅ Phase 3 approval email sent successfully');
+        } else {
+          console.error('❌ Failed to send Phase 3 approval email:', emailResult.error);
+        }
+      } catch (emailError) {
+        console.error('❌ Email service error during Phase 3 approval:', emailError);
+      }
       
       // Refresh the current view
       window.location.reload();
 
     } catch (error) {
-      console.error('Error advancing to Phase 4:', error);
+      console.error('❌ Error advancing to Phase 4:', error);
     }
   }
 

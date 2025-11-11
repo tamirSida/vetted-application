@@ -409,6 +409,39 @@ $font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-ser
   }
 }
 
+.danger-button {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+
+  &:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+  }
+
+  &:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  i {
+    font-size: 0.9rem;
+  }
+}
+
 .interviewer-info, .contact-info, .contact-section {
   background: #e8f4fd;
   padding: 1rem;

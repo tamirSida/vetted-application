@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, WebinarService } from '../../../services';
+import { AuthService, WebinarService, ApplicationService } from '../../../services';
 import { combineLatest } from 'rxjs';
 import { ApplicantUser, Phase, Webinar } from '../../../models';
 
@@ -145,6 +145,10 @@ import { ApplicantUser, Phase, Webinar } from '../../../models';
                   <button class="submit-button" (click)="continueApplication()">
                     <i class="fas fa-arrow-right"></i>
                     Continue Application
+                  </button>
+                  <button class="danger-button" (click)="startFromScratch()">
+                    <i class="fas fa-trash-alt"></i>
+                    Start from scratch
                   </button>
                 </div>
               </div>
@@ -297,6 +301,7 @@ import { ApplicantUser, Phase, Webinar } from '../../../models';
 export class DashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private webinarService = inject(WebinarService);
+  private applicationService = inject(ApplicationService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -432,6 +437,41 @@ export class DashboardComponent implements OnInit {
       this.router.navigate(['/auth/login']);
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  }
+
+  async startFromScratch() {
+    const confirmed = confirm(
+      'This will delete your progress permanently.\n\nAre you sure you want to start from scratch? This action cannot be undone.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      this.isLoading.set(true);
+      this.error.set('');
+
+      const applicant = this.applicant();
+      if (!applicant) {
+        throw new Error('Applicant information not found');
+      }
+
+      // Delete the existing Phase 3 application
+      await this.applicationService.deletePhase3Application(applicant.userId, applicant.cohortId);
+
+      this.success.set('Application cleared successfully. Starting fresh...');
+      
+      // Navigate to a fresh Phase 3 application
+      setTimeout(() => {
+        this.router.navigate(['/application/phase3']);
+      }, 1500);
+
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to delete application');
+    } finally {
+      this.isLoading.set(false);
     }
   }
 

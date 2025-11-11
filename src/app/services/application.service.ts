@@ -9,7 +9,8 @@ import {
   getDoc, 
   query, 
   where, 
-  getDocs 
+  getDocs,
+  deleteDoc
 } from '@angular/fire/firestore';
 import { Auth, createUserWithEmailAndPassword, updateProfile } from '@angular/fire/auth';
 import { Phase1Application, Phase3Application, Phase, ServiceCountry, ApplicationStatus } from '../models';
@@ -592,6 +593,46 @@ export class ApplicationService {
     } catch (error) {
       console.error('Error fetching Phase 3 flagging results:', error);
       return null;
+    }
+  }
+
+  /**
+   * Delete Phase 3 application and associated data
+   * @param applicantId The applicant's user ID
+   * @param cohortId The cohort ID
+   * @returns Promise that resolves when deletion is complete
+   */
+  async deletePhase3Application(applicantId: string, cohortId: string): Promise<void> {
+    try {
+      // First, get the application to find its ID
+      const existingApp = await this.getPhase3Application(applicantId, cohortId);
+      
+      if (!existingApp || !existingApp.id) {
+        console.log('No Phase 3 application found to delete');
+        return;
+      }
+
+      const applicationId = existingApp.id;
+
+      // Delete the application document
+      const appRef = doc(this.firestore, 'phase3_applications', applicationId);
+      await deleteDoc(appRef);
+
+      // Delete associated flagging results
+      const flagsQuery = query(
+        collection(this.firestore, 'phase3_application_flags'),
+        where('applicationId', '==', applicationId)
+      );
+      
+      const flagsSnapshot = await getDocs(flagsQuery);
+      const deletePromises = flagsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      
+      await Promise.all(deletePromises);
+
+      console.log(`Successfully deleted Phase 3 application ${applicationId} and associated data`);
+    } catch (error) {
+      console.error('Error deleting Phase 3 application:', error);
+      throw new Error('Failed to delete application. Please try again.');
     }
   }
 }

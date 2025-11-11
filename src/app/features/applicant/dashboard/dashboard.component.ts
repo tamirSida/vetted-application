@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService, WebinarService } from '../../../services';
+import { combineLatest } from 'rxjs';
 import { ApplicantUser, Phase, Webinar } from '../../../models';
 
 @Component({
@@ -319,13 +320,21 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Wait for auth state to be initialized before loading user data
-    this.authService.currentUser$.subscribe(user => {
+    // Wait for auth initialization AND user data before making routing decisions
+    combineLatest([
+      this.authService.authInitialized$,
+      this.authService.currentUser$
+    ]).subscribe(([authInitialized, user]) => {
+      if (!authInitialized) {
+        // Auth not initialized yet, don't make any decisions
+        return;
+      }
+      
       if (user && user.role === 'APPLICANT') {
         this.loadUserData(user as ApplicantUser);
         this.loadWebinars();
       } else if (user === null) {
-        // User is not authenticated, redirect to login
+        // Auth is initialized and user is null - redirect to login
         this.router.navigate(['/auth/login']);
       }
       // If user exists but is not an applicant, do nothing (let them stay on the page)

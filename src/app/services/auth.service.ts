@@ -18,6 +18,9 @@ export class AuthService {
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
+  private authInitializedSubject = new BehaviorSubject<boolean>(false);
+  public authInitialized$ = this.authInitializedSubject.asObservable();
+
   constructor() {
     this.initializeAuthState();
   }
@@ -37,6 +40,11 @@ export class AuthService {
       } else {
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);
+      }
+      
+      // Mark auth as initialized after first callback
+      if (!this.authInitializedSubject.value) {
+        this.authInitializedSubject.next(true);
       }
     });
   }

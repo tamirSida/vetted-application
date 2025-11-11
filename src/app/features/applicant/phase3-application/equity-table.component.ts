@@ -394,9 +394,12 @@ export class EquityTableComponent implements OnInit {
   formGroups: { [key: string]: FormGroup } = {};
 
   ngOnInit() {
-    this.initializeDefaultRows();
-    this.setupFormGroups();
-    this.recalculatePercentages();
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.initializeDefaultRows();
+      this.setupFormGroups();
+      this.recalculatePercentages();
+    });
   }
 
   private initializeDefaultRows() {

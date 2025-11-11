@@ -3,8 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ApplicantUser, Phase3Application, EquityBreakdownRow, Phase } from '../../../models';
 import { ApplicationService } from '../../../services/application.service';
+import { AuthService } from '../../../services/auth.service';
 import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
+import { Router } from '@angular/router';
+import { combineLatest } from 'rxjs';
 
 @Component({
   selector: 'app-phase3-application',
@@ -782,11 +785,13 @@ import { EquityTableComponent } from './equity-table.component';
   `]
 })
 export class Phase3ApplicationComponent implements OnInit, OnDestroy {
-  @Input() applicant!: ApplicantUser;
+  @Input() applicant?: ApplicantUser;
   @Output() phaseCompleted = new EventEmitter<void>();
 
   private fb = inject(FormBuilder);
   private applicationService = inject(ApplicationService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   applicationForm!: FormGroup;
   equityRows: EquityBreakdownRow[] = [];
@@ -802,8 +807,38 @@ export class Phase3ApplicationComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.initializeForm();
-    this.loadExistingApplication();
-    this.setupAutoSave();
+    this.loadApplicantData();
+  }
+
+  private async loadApplicantData() {
+    try {
+      // If applicant is not provided as input, get it from auth service
+      if (!this.applicant) {
+        combineLatest([
+          this.authService.authInitialized$,
+          this.authService.currentUser$
+        ]).subscribe(async ([authInitialized, user]) => {
+          if (!authInitialized) {
+            return; // Wait for auth to initialize
+          }
+          
+          if (user && user.role === 'APPLICANT') {
+            this.applicant = user as ApplicantUser;
+            await this.loadExistingApplication();
+            this.setupAutoSave();
+          } else {
+            // Redirect to login if no valid applicant user
+            this.router.navigate(['/auth/login']);
+          }
+        });
+      } else {
+        // Applicant provided as input, proceed normally
+        await this.loadExistingApplication();
+        this.setupAutoSave();
+      }
+    } catch (error) {
+      console.error('Error loading applicant data:', error);
+    }
   }
 
   ngOnDestroy() {
@@ -852,6 +887,12 @@ export class Phase3ApplicationComponent implements OnInit, OnDestroy {
   private async loadExistingApplication() {
     try {
       this.isLoading = true;
+      
+      // Check if applicant is available
+      if (!this.applicant) {
+        throw new Error('Applicant data not available');
+      }
+      
       // Try to load existing Phase 3 application
       const existingApp = await this.applicationService.getPhase3Application(
         this.applicant.userId,
@@ -1065,6 +1106,10 @@ export class Phase3ApplicationComponent implements OnInit, OnDestroy {
   }
 
   private buildApplicationData(status: 'DRAFT' | 'SUBMITTED'): Omit<Phase3Application, 'id'> {
+    if (!this.applicant) {
+      throw new Error('Applicant data is required to build application');
+    }
+    
     const formValue = this.applicationForm.value;
     
     return {

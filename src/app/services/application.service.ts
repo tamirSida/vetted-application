@@ -157,10 +157,10 @@ export class ApplicationService {
       });
       console.log('User profile created successfully');
       
-      // Step 6: Run flagging analysis on the submitted application
-      console.log('Running flagging analysis...');
+      // Step 6: Run flagging analysis and auto-advancement on the submitted application
+      console.log('Running flagging analysis and auto-advancement...');
       const applicationWithId = { ...application, id: docRef.id };
-      const flaggingResult = this.flaggingService.analyzeApplication(applicationWithId);
+      const flaggingResult = await this.flaggingService.analyzeAndProcessApplication(applicationWithId, userId);
       
       // Step 7: Save flagging results
       console.log('Saving flagging results...');

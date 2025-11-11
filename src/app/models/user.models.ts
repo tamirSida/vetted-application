@@ -32,6 +32,10 @@ export interface ApplicantUser extends BaseUser {
   cohortId: string;
   companyName?: string;
   interviewDate?: Date | string; // For scheduled interviews
+  // Individual name fields (stored in DB)
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   profileData?: {
     companyName?: string;
     phone?: string;

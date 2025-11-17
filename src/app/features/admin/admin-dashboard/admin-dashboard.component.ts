@@ -6,9 +6,10 @@ import { DocumentSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../../../services/auth.service';
 import { CohortService } from '../../../services/cohort.service';
 import { UserService } from '../../../services/user.service';
+import { SettingsService, SystemSettings } from '../../../services/settings.service';
 import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus } from '../../../models';
 
-type AdminView = 'applicants' | 'cohorts' | 'admin';
+type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -61,6 +62,13 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
           (click)="switchView('admin')">
           <i class="fas fa-user-shield"></i>
           Admin Management
+        </button>
+        <button 
+          class="nav-button"
+          [class.active]="currentView() === 'settings'"
+          (click)="switchView('settings')">
+          <i class="fas fa-cog"></i>
+          Settings
         </button>
       </nav>
 
@@ -622,6 +630,40 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
                   Next
                   <i class="fas fa-chevron-right"></i>
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings View -->
+        <div *ngIf="currentView() === 'settings' && !isLoading()" class="settings-view">
+          <div class="view-header">
+            <h2>
+              <i class="fas fa-cog"></i>
+              System Settings
+            </h2>
+          </div>
+
+          <div class="settings-content">
+            <div class="setting-group">
+              <div class="setting-item">
+                <div class="setting-info">
+                  <h3>Skip Phase 2 (Webinar)</h3>
+                  <p>When enabled, applicants will automatically advance from Phase 1 directly to Phase 3, skipping the webinar requirement. This does not affect existing Phase 2 applicants.</p>
+                </div>
+                <div class="setting-control">
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      [checked]="systemSettings().skipPhase2"
+                      (change)="toggleSkipPhase2()"
+                      [disabled]="isSubmitting()">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="toggle-label">
+                    {{ systemSettings().skipPhase2 ? 'Enabled' : 'Disabled' }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1492,6 +1534,126 @@ type AdminView = 'applicants' | 'cohorts' | 'admin';
         padding: 0.6rem 1.2rem;
         font-size: 0.85rem;
       }
+      .setting-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      .setting-control {
+        align-self: stretch;
+        justify-content: space-between;
+      }
+    }
+
+    /* Settings View */
+    .settings-view {
+      max-width: 1200px;
+    }
+
+    .settings-content {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+
+    .setting-group {
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .setting-group:last-child {
+      border-bottom: none;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2rem;
+      gap: 2rem;
+    }
+
+    .setting-info h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .setting-info p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .setting-control {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+
+    .toggle-label {
+      font-weight: 500;
+      font-size: 0.875rem;
+      color: #374151;
+      min-width: 60px;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 17px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .slider {
+      background-color: #3b82f6;
+    }
+
+    .toggle-switch input:focus + .slider {
+      box-shadow: 0 0 1px #3b82f6;
+    }
+
+    .toggle-switch input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
+    .toggle-switch input:disabled + .slider {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   `]
 })
@@ -1499,6 +1661,7 @@ export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private cohortService = inject(CohortService);
   private userService = inject(UserService);
+  private settingsService = inject(SettingsService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
@@ -1514,6 +1677,7 @@ export class AdminDashboardComponent implements OnInit {
   cohorts = signal<Cohort[]>([]);
   adminUsers = signal<AdminUser[]>([]);
   viewerUsers = signal<ViewerUser[]>([]);
+  systemSettings = signal<SystemSettings>({ skipPhase2: true });
 
   // Pagination
   pageSize = signal(25);
@@ -1568,6 +1732,7 @@ export class AdminDashboardComponent implements OnInit {
   ngOnInit() {
     this.loadCurrentUser();
     this.loadData();
+    this.loadSettings();
   }
 
   private loadCurrentUser() {
@@ -1605,7 +1770,11 @@ export class AdminDashboardComponent implements OnInit {
     this.success.set('');
     this.error.set('');
     this.resetPagination();
-    this.loadData();
+    if (view === 'settings') {
+      this.loadSettings();
+    } else {
+      this.loadData();
+    }
   }
 
   async signOut() {
@@ -2222,6 +2391,43 @@ export class AdminDashboardComponent implements OnInit {
           break;
       }
       currentPageNum++;
+    }
+  }
+
+  // Settings Methods
+  async loadSettings() {
+    try {
+      this.isLoading.set(true);
+      const settings = await this.settingsService.getSettings();
+      this.systemSettings.set(settings);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      this.error.set('Failed to load system settings');
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async toggleSkipPhase2() {
+    try {
+      this.isSubmitting.set(true);
+      this.error.set('');
+      this.success.set('');
+
+      const newValue = await this.settingsService.toggleSkipPhase2();
+      
+      // Update local state
+      this.systemSettings.update(settings => ({
+        ...settings,
+        skipPhase2: newValue
+      }));
+
+      this.success.set(`Phase 2 skip ${newValue ? 'enabled' : 'disabled'} successfully`);
+    } catch (error: any) {
+      console.error('Error toggling Phase 2 skip:', error);
+      this.error.set(error.message || 'Failed to update setting');
+    } finally {
+      this.isSubmitting.set(false);
     }
   }
 }

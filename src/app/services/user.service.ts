@@ -18,6 +18,7 @@ import {
 import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus, Phase } from '../models';
 import { UserRole } from '../models/enums';
 import { EmailService } from './email.service';
+import { SettingsService } from './settings.service';
 
 @Injectable({
   providedIn: 'root'
@@ -25,6 +26,7 @@ import { EmailService } from './email.service';
 export class UserService {
   private firestore = inject(Firestore);
   private emailService = inject(EmailService);
+  private settingsService = inject(SettingsService);
 
   // Helper method to derive status from phase for backward compatibility
   private deriveStatusFromPhase(phase: string): ApplicationStatus {
@@ -273,15 +275,30 @@ export class UserService {
         return false;
       }
 
-      console.log(`📝 Updating applicant ${applicantId} to Phase 2...`);
+      // Check if Phase 2 should be skipped
+      const shouldSkipPhase2 = await this.settingsService.shouldSkipPhase2();
       
-      // Update to Phase 2
-      await this.updateUser(applicantId, {
-        phase: Phase.WEBINAR,
-        status: ApplicationStatus.PHASE_2
-      });
+      if (shouldSkipPhase2) {
+        console.log(`⏭️ Phase 2 skip is enabled - advancing ${applicantId} directly to Phase 3...`);
+        
+        // Update directly to Phase 3
+        await this.updateUser(applicantId, {
+          phase: Phase.IN_DEPTH_APPLICATION,
+          status: ApplicationStatus.PHASE_3
+        });
 
-      console.log(`✅ Auto-advanced applicant ${applicantId} to Phase 2`);
+        console.log(`✅ Auto-advanced applicant ${applicantId} to Phase 3 (skipped Phase 2)`);
+      } else {
+        console.log(`📝 Updating applicant ${applicantId} to Phase 2...`);
+        
+        // Update to Phase 2 (normal flow)
+        await this.updateUser(applicantId, {
+          phase: Phase.WEBINAR,
+          status: ApplicationStatus.PHASE_2
+        });
+
+        console.log(`✅ Auto-advanced applicant ${applicantId} to Phase 2`);
+      }
 
       // Send Phase 1 approved email (auto-advancement)
       try {

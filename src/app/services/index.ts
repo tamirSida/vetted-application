@@ -7,3 +7,4 @@ export * from './application.service';
 export * from './flagging.service';
 export * from './user.service';
 export * from './openai.service';
+export * from './settings.service';

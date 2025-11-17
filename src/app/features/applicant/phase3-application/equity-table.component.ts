@@ -30,7 +30,7 @@ import { EquityBreakdownRow } from '../../../models';
                   type="text" 
                   formControlName="name"
                   class="table-input"
-                  [placeholder]="'Founder ' + (i + 1)"
+                  [placeholder]="'Shareholder ' + (i + 1)"
                   (blur)="updateRow(row.id)"
                 >
               </td>
@@ -407,21 +407,21 @@ export class EquityTableComponent implements OnInit {
       this.equityRows = [
         {
           id: 'founder-1',
-          name: 'Founder 1',
+          name: 'Shareholder 1',
           shares: 250000,
           percentage: 0,
           category: 'founder'
         },
         {
           id: 'founder-2',
-          name: 'Founder 2',
+          name: 'Shareholder 2',
           shares: 250000,
           percentage: 0,
           category: 'founder'
         },
         {
           id: 'founder-3',
-          name: 'Founder 3',
+          name: 'Shareholder 3',
           shares: 250000,
           percentage: 0,
           category: 'founder'
@@ -512,7 +512,7 @@ export class EquityTableComponent implements OnInit {
     const founderCount = this.getRowsByCategory('founder').length;
     const newRow: EquityBreakdownRow = {
       id: `founder-${Date.now()}`,
-      name: `Founder ${founderCount + 1}`,
+      name: `Shareholder ${founderCount + 1}`,
       shares: 0,
       percentage: 0,
       category: 'founder'

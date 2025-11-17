@@ -197,17 +197,25 @@ export class InterviewerService {
       const interviewsRef = collection(this.firestore, 'interviews');
       const now = new Date();
       
-      const interviewData: Omit<Interview, 'id'> = {
+      const interviewData: any = {
         applicantId: request.applicantId,
         interviewerId: request.interviewerId,
         cohortId: request.cohortId,
         status: request.status || InterviewStatus.NOT_YET_SCHEDULED,
-        notes: request.notes,
-        documentUrl: request.documentUrl,
-        scheduledAt: request.scheduledAt,
         createdAt: now,
         updatedAt: now
       };
+
+      // Only add optional fields if they have values (not undefined)
+      if (request.notes) {
+        interviewData.notes = request.notes;
+      }
+      if (request.documentUrl) {
+        interviewData.documentUrl = request.documentUrl;
+      }
+      if (request.scheduledAt) {
+        interviewData.scheduledAt = request.scheduledAt;
+      }
 
       const docRef = await addDoc(interviewsRef, interviewData);
       return docRef.id;
@@ -224,9 +232,25 @@ export class InterviewerService {
     try {
       const interviewRef = doc(this.firestore, 'interviews', interviewId);
       const updateData: any = {
-        ...updates,
         updatedAt: new Date()
       };
+
+      // Only add fields that are not undefined
+      if (updates.status !== undefined) {
+        updateData.status = updates.status;
+      }
+      if (updates.notes !== undefined) {
+        updateData.notes = updates.notes;
+      }
+      if (updates.documentUrl !== undefined) {
+        updateData.documentUrl = updates.documentUrl;
+      }
+      if (updates.scheduledAt !== undefined) {
+        updateData.scheduledAt = updates.scheduledAt;
+      }
+      if (updates.completedAt !== undefined) {
+        updateData.completedAt = updates.completedAt;
+      }
 
       // Set completedAt when status changes to INTERVIEWED
       if (updates.status === InterviewStatus.INTERVIEWED && !updates.completedAt) {

@@ -1958,10 +1958,12 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       phase: Phase.IN_DEPTH_APPLICATION,
       status,
       productInfo: {
-        companyDeck: this.uploadedDeckUrl ? {
-          fileUrl: this.uploadedDeckUrl,
-          fileName: this.selectedDeckFile?.name
-        } : undefined,
+        ...(this.uploadedDeckUrl ? {
+          companyDeck: {
+            fileUrl: this.uploadedDeckUrl,
+            fileName: this.selectedDeckFile?.name || ''
+          }
+        } : {}),
         productStage: formValue.productStage,
         tractionDetails: formValue.tractionDetails,
         problemCustomer: formValue.problemCustomer,

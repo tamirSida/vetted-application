@@ -1,17 +1,12 @@
 import { Injectable } from '@angular/core';
 import { ApplicantUser } from '../models';
 import { 
-  createPhase2PromotionEmailHtml, 
-  createPhase2PromotionEmailText, 
-  phase2PromotionSubject,
-  Phase2EmailData
-} from '../templates/phase2-promotion.template';
-import { 
-  createPhase3ApprovalEmailHtml, 
-  createPhase3ApprovalEmailText, 
-  phase3ApprovalSubject,
-  Phase3EmailData
-} from '../templates/phase3-approval.template';
+  Phase1ApprovedEmailTemplate,
+  Phase1ApprovedEmailData,
+  Phase1RejectedEmailTemplate,
+  Phase1RejectedEmailData
+} from '../templates/email/phase1';
+import { EMAIL_CONSTANTS } from '../constants';
 
 export interface EmailRequest {
   to: string | string[];
@@ -109,60 +104,56 @@ export class EmailService {
   }
 
   /**
-   * Send Phase 1 to Phase 2 promotion email
+   * Send Phase 1 approved email (registration confirmation)
    */
-  async sendPhase1ToPhase2PromotionEmail(applicant: ApplicantUser): Promise<EmailResponse> {
+  async sendPhase1ApprovedEmail(applicant: ApplicantUser): Promise<EmailResponse> {
     const nameData = this.getApplicantNameData(applicant);
+    const fullName = `${nameData.firstName}${nameData.lastName ? ' ' + nameData.lastName : ''}`;
     
-    const emailData: Phase2EmailData = {
-      firstName: nameData.firstName,
-      lastName: nameData.lastName,
-      email: applicant.email,
+    const emailData: Phase1ApprovedEmailData = {
+      applicantName: fullName,
       dashboardUrl: this.getDashboardUrl()
     };
 
-    console.log('📧 Sending Phase 2 promotion email to:', {
+    console.log('📧 Sending Phase 1 approved email to:', {
       email: applicant.email,
-      firstName: nameData.firstName,
-      lastName: nameData.lastName
+      applicantName: fullName
     });
 
-    const html = createPhase2PromotionEmailHtml(emailData);
-    const text = createPhase2PromotionEmailText(emailData);
+    const html = Phase1ApprovedEmailTemplate.generateHtml(emailData);
+    const text = Phase1ApprovedEmailTemplate.generateBody(emailData);
 
     return this.sendEmail({
       to: applicant.email,
-      subject: phase2PromotionSubject,
+      subject: Phase1ApprovedEmailTemplate.generateSubject(),
       html,
       text
     });
   }
 
   /**
-   * Send Phase 3 approval email
+   * Send Phase 1 rejected email
    */
-  async sendPhase3ApprovalEmail(applicant: ApplicantUser): Promise<EmailResponse> {
+  async sendPhase1RejectedEmail(applicant: ApplicantUser): Promise<EmailResponse> {
     const nameData = this.getApplicantNameData(applicant);
+    const fullName = `${nameData.firstName}${nameData.lastName ? ' ' + nameData.lastName : ''}`;
     
-    const emailData: Phase3EmailData = {
-      firstName: nameData.firstName,
-      lastName: nameData.lastName,
-      email: applicant.email,
-      dashboardUrl: this.getDashboardUrl()
+    const emailData: Phase1RejectedEmailData = {
+      applicantName: fullName,
+      supportEmail: 'application@thevetted.vc'
     };
 
-    console.log('📧 Sending Phase 3 approval email to:', {
+    console.log('📧 Sending Phase 1 rejected email to:', {
       email: applicant.email,
-      firstName: nameData.firstName,
-      lastName: nameData.lastName
+      applicantName: fullName
     });
 
-    const html = createPhase3ApprovalEmailHtml(emailData);
-    const text = createPhase3ApprovalEmailText(emailData);
+    const html = Phase1RejectedEmailTemplate.generateHtml(emailData);
+    const text = Phase1RejectedEmailTemplate.generateBody(emailData);
 
     return this.sendEmail({
       to: applicant.email,
-      subject: phase3ApprovalSubject,
+      subject: Phase1RejectedEmailTemplate.generateSubject(),
       html,
       text
     });
@@ -172,7 +163,12 @@ export class EmailService {
    * Get dashboard URL based on current environment
    */
   private getDashboardUrl(): string {
-    // In production, this would be the actual domain
+    // Use constants for local development, otherwise use current domain
+    if (window.location.hostname === 'localhost') {
+      return EMAIL_CONSTANTS.APPLICANT_DASHBOARD_URL;
+    }
+    
+    // In production, use the actual domain
     const baseUrl = window.location.origin;
     return `${baseUrl}/dashboard`;
   }

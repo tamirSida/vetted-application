@@ -2015,18 +2015,18 @@ export class ApplicantDetailComponent implements OnInit {
 
       console.log('✅ Successfully advanced to Phase 2');
 
-      // Send Phase 1 to Phase 2 promotion email
+      // Send Phase 1 approved email
       try {
-        console.log('📧 Sending Phase 2 promotion email to:', applicant.email);
-        const emailResult = await this.emailService.sendPhase1ToPhase2PromotionEmail(applicant);
+        console.log('📧 Sending Phase 1 approved email to:', applicant.email);
+        const emailResult = await this.emailService.sendPhase1ApprovedEmail(applicant);
         
         if (emailResult.success) {
-          console.log('✅ Phase 2 promotion email sent successfully');
+          console.log('✅ Phase 1 approved email sent successfully');
         } else {
-          console.error('❌ Failed to send Phase 2 promotion email:', emailResult.error);
+          console.error('❌ Failed to send Phase 1 approved email:', emailResult.error);
         }
       } catch (emailError) {
-        console.error('❌ Email service error during Phase 2 promotion:', emailError);
+        console.error('❌ Email service error during Phase 1 approval:', emailError);
       }
       
       // Refresh the current view
@@ -2087,19 +2087,19 @@ export class ApplicantDetailComponent implements OnInit {
 
       console.log('✅ Successfully advanced to Phase 4');
 
-      // Send Phase 3 approval email
-      try {
-        console.log('📧 Sending Phase 3 approval email to:', applicant.email);
-        const emailResult = await this.emailService.sendPhase3ApprovalEmail(applicant);
-        
-        if (emailResult.success) {
-          console.log('✅ Phase 3 approval email sent successfully');
-        } else {
-          console.error('❌ Failed to send Phase 3 approval email:', emailResult.error);
-        }
-      } catch (emailError) {
-        console.error('❌ Email service error during Phase 3 approval:', emailError);
-      }
+      // TODO: Send Phase 3 approval email (implement when Phase 3 templates are created)
+      // try {
+      //   console.log('📧 Sending Phase 3 approval email to:', applicant.email);
+      //   const emailResult = await this.emailService.sendPhase3ApprovalEmail(applicant);
+      //   
+      //   if (emailResult.success) {
+      //     console.log('✅ Phase 3 approval email sent successfully');
+      //   } else {
+      //     console.error('❌ Failed to send Phase 3 approval email:', emailResult.error);
+      //   }
+      // } catch (emailError) {
+      //   console.error('❌ Email service error during Phase 3 approval:', emailError);
+      // }
       
       // Refresh the current view
       window.location.reload();

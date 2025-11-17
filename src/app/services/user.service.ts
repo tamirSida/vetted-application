@@ -283,10 +283,10 @@ export class UserService {
 
       console.log(`✅ Auto-advanced applicant ${applicantId} to Phase 2`);
 
-      // Send Phase 1 to Phase 2 promotion email (auto-advancement)
+      // Send Phase 1 approved email (auto-advancement)
       try {
-        console.log(`📧 Sending auto-advancement email to: ${applicant.email}`);
-        const emailResult = await this.emailService.sendPhase1ToPhase2PromotionEmail(applicant);
+        console.log(`📧 Sending Phase 1 approved email to: ${applicant.email}`);
+        const emailResult = await this.emailService.sendPhase1ApprovedEmail(applicant);
         
         if (emailResult.success) {
           console.log('✅ Auto-advancement email sent successfully');

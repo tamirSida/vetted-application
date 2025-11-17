@@ -6,6 +6,7 @@ import { DocumentSnapshot } from '@angular/fire/firestore';
 import { AuthService } from '../../../services/auth.service';
 import { CohortService } from '../../../services/cohort.service';
 import { UserService } from '../../../services/user.service';
+import { ApplicationService } from '../../../services/application.service';
 import { SettingsService, SystemSettings } from '../../../services/settings.service';
 import { InterviewerService } from '../../../services/interviewer.service';
 import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus, Interviewer, InterviewerCreateRequest } from '../../../models';
@@ -178,6 +179,7 @@ type AdminSubView = 'users' | 'interviewers';
                     </div>
                   </td>
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
+                  <td>{{ getCountryFromCache(applicant.userId) }}</td>
                   <td>
                     <button class="table-action-btn delete-btn" (click)="$event.stopPropagation(); deleteApplicant(applicant)">
                       <i class="fas fa-trash"></i>
@@ -1940,6 +1942,7 @@ export class AdminDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private cohortService = inject(CohortService);
   private userService = inject(UserService);
+  private applicationService = inject(ApplicationService);
   private settingsService = inject(SettingsService);
   private interviewerService = inject(InterviewerService);
   private fb = inject(FormBuilder);
@@ -1961,6 +1964,9 @@ export class AdminDashboardComponent implements OnInit {
   interviewers = signal<Interviewer[]>([]);
   eligibleInterviewers = signal<{userId: string, name: string, email: string, role: UserRole}[]>([]);
   systemSettings = signal<SystemSettings>({ skipPhase2: true });
+
+  // Country cache for applicants
+  countryCache = signal<Map<string, string>>(new Map());
 
   // Pagination
   pageSize = signal(25);
@@ -2228,6 +2234,20 @@ export class AdminDashboardComponent implements OnInit {
       case 3: return '3';
       default: return '—';
     }
+  }
+
+  async getApplicantCountry(applicant: ApplicantUser): Promise<string> {
+    try {
+      const phase1App = await this.applicationService.getApplicationByApplicantId(applicant.userId);
+      return phase1App?.extendedInfo?.serviceHistory?.country || 'Not specified';
+    } catch (error) {
+      console.warn(`Failed to load country for applicant ${applicant.userId}:`, error);
+      return 'Not specified';
+    }
+  }
+
+  getCountryFromCache(userId: string): string {
+    return this.countryCache().get(userId) || 'Loading...';
   }
 
   toggleRatingDropdown(applicantId: string): void {
@@ -2719,10 +2739,36 @@ export class AdminDashboardComponent implements OnInit {
         this.applicants.update(current => [...current, ...result.users]);
       }
       
+      // Load country data for each applicant and cache it
+      for (const applicant of result.users) {
+        this.loadCountryForApplicant(applicant.userId);
+      }
+      
       this.applicantsLastDoc.set(result.lastDoc);
       this.hasMoreApplicants.set(result.hasMore);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to load applicants');
+    }
+  }
+
+  private async loadCountryForApplicant(userId: string) {
+    try {
+      const phase1App = await this.applicationService.getApplicationByApplicantId(userId);
+      const country = phase1App?.extendedInfo?.serviceHistory?.country || 'Not specified';
+      
+      // Update the cache
+      this.countryCache.update(cache => {
+        const newCache = new Map(cache);
+        newCache.set(userId, country);
+        return newCache;
+      });
+    } catch (error) {
+      console.warn(`Failed to load country for applicant ${userId}:`, error);
+      this.countryCache.update(cache => {
+        const newCache = new Map(cache);
+        newCache.set(userId, 'Not specified');
+        return newCache;
+      });
     }
   }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } from '@angular/forms';
@@ -112,13 +112,71 @@ type AdminSubView = 'users' | 'interviewers';
             </div>
           </div>
 
+          <!-- Filters -->
+          <div *ngIf="applicants().length > 0" class="filters-section">
+            <div class="filters-header">
+              <h3>Filters</h3>
+              <button class="clear-filters-btn" (click)="clearAllFilters()">
+                <i class="fas fa-times"></i>
+                Clear All
+              </button>
+            </div>
+            <div class="filters-grid">
+              <div class="filter-group">
+                <label for="status-filter">Status:</label>
+                <div class="select-wrapper">
+                  <select id="status-filter" class="filter-select" [value]="statusFilter()" (change)="updateStatusFilter($event)">
+                    <option value="all">All Statuses</option>
+                    <option *ngFor="let status of availableStatuses()" [value]="status">
+                      {{ getStatusDisplayName(status) }}
+                    </option>
+                  </select>
+                  <i class="fas fa-chevron-down select-arrow"></i>
+                </div>
+              </div>
+              
+              <div class="filter-group">
+                <label for="rating-filter">Rating:</label>
+                <div class="select-wrapper">
+                  <select id="rating-filter" class="filter-select" [value]="ratingFilter()" (change)="updateRatingFilter($event)">
+                    <option value="all">All Ratings</option>
+                    <option *ngFor="let rating of availableRatings()" [value]="rating === null ? 'unrated' : rating">
+                      {{ getRatingDisplayName(rating) }}
+                    </option>
+                  </select>
+                  <i class="fas fa-chevron-down select-arrow"></i>
+                </div>
+              </div>
+              
+              <div class="filter-group">
+                <label for="country-filter">Country:</label>
+                <div class="select-wrapper">
+                  <select id="country-filter" class="filter-select" [value]="countryFilter()" (change)="updateCountryFilter($event)">
+                    <option value="all">All Countries</option>
+                    <option *ngFor="let country of availableCountries()" [value]="country">{{ country }}</option>
+                  </select>
+                  <i class="fas fa-chevron-down select-arrow"></i>
+                </div>
+              </div>
+            </div>
+            <div class="filter-summary">
+              Showing {{ filteredApplicants().length }} of {{ applicants().length }} applicants
+            </div>
+          </div>
+
           <div *ngIf="applicants().length === 0" class="empty-state">
             <i class="fas fa-user-slash"></i>
             <h3>No Applicants Found</h3>
             <p>No applicants have registered yet.</p>
           </div>
 
-          <div *ngIf="applicants().length > 0" class="table-container">
+          <div *ngIf="filteredApplicants().length === 0 && applicants().length > 0" class="empty-state">
+            <i class="fas fa-filter"></i>
+            <h3>No Applicants Match Filters</h3>
+            <p>Try adjusting your filters to see more results.</p>
+          </div>
+
+          <div *ngIf="filteredApplicants().length > 0" class="table-container">
             <table class="applicants-table">
               <thead>
                 <tr>
@@ -131,7 +189,7 @@ type AdminSubView = 'users' | 'interviewers';
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let applicant of applicants()" class="table-row" (click)="viewApplicantDetails(applicant)">
+                <tr *ngFor="let applicant of filteredApplicants()" class="table-row" (click)="viewApplicantDetails(applicant)">
                   <td>{{ applicant.name }}</td>
                   <td>
                     <a [href]="'mailto:' + applicant.email" class="email-link" (click)="$event.stopPropagation()">
@@ -191,7 +249,7 @@ type AdminSubView = 'users' | 'interviewers';
             
             <div class="pagination-controls">
               <div class="pagination-info">
-                Page {{ currentPage() }} • Showing {{ applicants().length }} items
+                Page {{ currentPage() }} • Showing {{ filteredApplicants().length }} items
               </div>
               <div class="pagination-buttons">
                 <button 
@@ -1968,6 +2026,88 @@ export class AdminDashboardComponent implements OnInit {
   // Country cache for applicants
   countryCache = signal<Map<string, string>>(new Map());
 
+  // Filters
+  statusFilter = signal<string>('all');
+  ratingFilter = signal<string>('all');
+  countryFilter = signal<string>('all');
+
+  // Computed signals for filtering
+  filteredApplicants = computed(() => {
+    const applicants = this.applicants();
+    const statusFilter = this.statusFilter();
+    const ratingFilter = this.ratingFilter();
+    const countryFilter = this.countryFilter();
+    
+    return applicants.filter(applicant => {
+      // Status filter
+      if (statusFilter !== 'all' && applicant.status !== statusFilter) {
+        return false;
+      }
+      
+      // Rating filter
+      if (ratingFilter !== 'all') {
+        if (ratingFilter === 'unrated' && applicant.rating != null) {
+          return false;
+        }
+        if (ratingFilter !== 'unrated' && applicant.rating?.toString() !== ratingFilter) {
+          return false;
+        }
+      }
+      
+      // Country filter
+      if (countryFilter !== 'all') {
+        const applicantCountry = this.getCountryFromCache(applicant.userId);
+        if (applicantCountry !== countryFilter) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  });
+
+  availableStatuses = computed(() => {
+    const statuses = new Set<string>();
+    const applicants = this.applicants();
+    
+    for (const applicant of applicants) {
+      if (applicant.status) {
+        statuses.add(applicant.status);
+      }
+    }
+    
+    return Array.from(statuses).sort();
+  });
+
+  availableRatings = computed(() => {
+    const ratings = new Set<number | null>();
+    const applicants = this.applicants();
+    
+    for (const applicant of applicants) {
+      ratings.add(applicant.rating || null);
+    }
+    
+    return Array.from(ratings).sort((a, b) => {
+      if (a === null) return 1; // null comes last
+      if (b === null) return -1;
+      return a - b;
+    });
+  });
+
+  availableCountries = computed(() => {
+    const countries = new Set<string>();
+    const applicants = this.applicants();
+    
+    for (const applicant of applicants) {
+      const country = this.getCountryFromCache(applicant.userId);
+      if (country && country !== 'Loading...' && country !== 'Not specified') {
+        countries.add(country);
+      }
+    }
+    
+    return Array.from(countries).sort();
+  });
+
   // Pagination
   pageSize = signal(25);
   currentPage = signal(1);
@@ -2209,19 +2349,19 @@ export class AdminDashboardComponent implements OnInit {
     return phaseNames[phase] || phase;
   }
 
-  getStatusDisplayName(status: ApplicationStatus): string {
-    const statusNames = {
-      [ApplicationStatus.PHASE_1]: 'Phase 1',
-      [ApplicationStatus.PHASE_2]: 'Phase 2',
-      [ApplicationStatus.PHASE_3]: 'Phase 3',
-      [ApplicationStatus.PHASE_3_IN_PROGRESS]: 'Phase 3 In Progress',
-      [ApplicationStatus.PHASE_3_SUBMITTED]: 'Phase 3 Submitted',
-      [ApplicationStatus.PHASE_3_REJECTED]: 'Phase 3 Rejected',
-      [ApplicationStatus.PHASE_4]: 'Phase 4 (Interview)',
-      [ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED]: 'Phase 4 Interview Scheduled',
-      [ApplicationStatus.PHASE_4_POST_INTERVIEW]: 'Phase 4 Post Interview',
-      [ApplicationStatus.PHASE_4_REJECTED]: 'Phase 4 Rejected',
-      [ApplicationStatus.ACCEPTED]: 'Accepted'
+  getStatusDisplayName(status: ApplicationStatus | string): string {
+    const statusNames: { [key: string]: string } = {
+      'PHASE_1': 'Phase 1',
+      'PHASE_2': 'Phase 2',
+      'PHASE_3': 'Phase 3',
+      'PHASE_3_IN_PROGRESS': 'Phase 3 In Progress',
+      'PHASE_3_SUBMITTED': 'Phase 3 Submitted',
+      'PHASE_3_REJECTED': 'Phase 3 Rejected',
+      'PHASE_4': 'Phase 4 (Interview)',
+      'PHASE_4_INTERVIEW_SCHEDULED': 'Phase 4 Interview Scheduled',
+      'PHASE_4_POST_INTERVIEW': 'Phase 4 Post Interview',
+      'PHASE_4_REJECTED': 'Phase 4 Rejected',
+      'ACCEPTED': 'Accepted'
     };
     return statusNames[status] || status;
   }
@@ -2248,6 +2388,39 @@ export class AdminDashboardComponent implements OnInit {
 
   getCountryFromCache(userId: string): string {
     return this.countryCache().get(userId) || 'Loading...';
+  }
+
+  // Filter methods
+  updateStatusFilter(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.statusFilter.set(target.value);
+  }
+
+  updateRatingFilter(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.ratingFilter.set(target.value);
+  }
+
+  updateCountryFilter(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.countryFilter.set(target.value);
+  }
+
+  clearAllFilters(): void {
+    this.statusFilter.set('all');
+    this.ratingFilter.set('all');
+    this.countryFilter.set('all');
+  }
+
+  // Helper methods for display names
+  getRatingDisplayName(rating: number | null): string {
+    if (rating === null) return 'Unrated';
+    switch (rating) {
+      case 1: return '1 - Best';
+      case 2: return '2 - Average';
+      case 3: return '3 - Worst';
+      default: return rating.toString();
+    }
   }
 
   toggleRatingDropdown(applicantId: string): void {

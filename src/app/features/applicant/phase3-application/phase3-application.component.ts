@@ -29,12 +29,6 @@ import { combineLatest } from 'rxjs';
             </div>
           </div>
           <div class="header-right">
-            <div class="progress-summary">
-              <span class="progress-text">{{ overallProgress }}% Complete</span>
-              <div class="mini-progress-bar">
-                <div class="mini-progress-fill" [style.width.%]="overallProgress"></div>
-              </div>
-            </div>
           </div>
         </div>
       </header>
@@ -42,24 +36,16 @@ import { combineLatest } from 'rxjs';
       <!-- Progress Section with Gamification -->
       <section class="progress-section">
         <div class="progress-container">
-          <div class="progress-bar-container">
-            <div class="progress-bar">
-              <div class="progress-fill" [style.width.%]="overallProgress"></div>
-            </div>
-            <div class="progress-label">{{ overallProgress }}% Complete - {{ getProgressMessage() }}</div>
-          </div>
 
           <div class="tab-navigation">
             <button
               *ngFor="let title of tabTitles; let i = index"
               class="tab-button"
               [class.active]="currentTab === i"
-              [class.completed]="tabProgress[i]"
               (click)="switchTab(i)"
               [disabled]="i > currentTab + 1">
               <div class="tab-number">{{ i + 1 }}</div>
               <span class="tab-title">{{ title }}</span>
-              <i *ngIf="tabProgress[i]" class="fas fa-check tab-check"></i>
             </button>
           </div>
         </div>
@@ -761,20 +747,6 @@ import { combineLatest } from 'rxjs';
       font-size: 0.9rem;
     }
 
-    .mini-progress-bar {
-      width: 120px;
-      height: 4px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 2px;
-      margin-top: 0.5rem;
-    }
-
-    .mini-progress-fill {
-      height: 100%;
-      background: #10b981;
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    }
 
     /* Progress Section */
     .progress-section {
@@ -789,32 +761,6 @@ import { combineLatest } from 'rxjs';
       padding: 0 2rem;
     }
 
-    .progress-bar-container {
-      margin-bottom: 2rem;
-      text-align: center;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 0.5rem;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      border-radius: 4px;
-      transition: width 0.5s ease;
-    }
-
-    .progress-label {
-      color: #6b7280;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
 
     .tab-navigation {
       display: flex;
@@ -1425,9 +1371,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     'Legal & Corporate Structure'
   ];
 
-  // Progress tracking for gamification
-  tabProgress: boolean[] = [false, false, false, false];
-  overallProgress = 0;
   successMessage = '';
   errorMessage = '';
 
@@ -1492,7 +1435,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       console.error('Error loading existing application:', error);
     } finally {
       this.isLoading = false;
-      this.updateProgress();
     }
   }
 
@@ -1610,13 +1552,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       }
       agreesToIncorporateControl?.updateValueAndValidity();
     });
+
   }
 
   // Tab navigation methods
   switchTab(tabIndex: number) {
     if (tabIndex <= this.currentTab + 1) {
       this.currentTab = tabIndex;
-      this.updateProgress();
     }
   }
 
@@ -1624,7 +1566,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     if (this.currentTab < this.totalTabs - 1) {
       this.validateCurrentTab();
       this.currentTab++;
-      this.updateProgress();
     }
   }
 
@@ -1636,8 +1577,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
   validateCurrentTab(): boolean {
     const formValid = this.isCurrentTabValid();
-    this.tabProgress[this.currentTab] = formValid;
-    this.updateProgress();
     return formValid;
   }
 
@@ -1668,21 +1607,11 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     }
   }
 
-  updateProgress() {
-    const completedTabs = this.tabProgress.filter(completed => completed).length;
-    this.overallProgress = Math.round((completedTabs / this.totalTabs) * 100);
-  }
 
   canProceedToNext(): boolean {
     return this.isCurrentTabValid();
   }
 
-  getProgressMessage(): string {
-    if (this.overallProgress === 0) return "Let's get started! 🚀";
-    if (this.overallProgress < 50) return "Great progress! Keep going! 💪";
-    if (this.overallProgress < 100) return "Almost there! You're doing great! 🎯";
-    return "Fantastic! All sections complete! 🎉";
-  }
 
   // Word count helper
   getWordCount(fieldName: string): number {
@@ -1788,7 +1717,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   // Equity table methods
   onEquityRowsChanged(rows: EquityBreakdownRow[]) {
     this.equityRows = rows;
-    this.updateProgress();
   }
 
   // Form submission methods

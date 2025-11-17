@@ -2387,11 +2387,7 @@ export class ApplicantDetailComponent implements OnInit {
           console.log('📊 Equity breakdown:', phase3App.fundingInfo?.equityBreakdown);
           this.phase3Application.set(phase3App);
           
-          // Calculate flagging results for Phase 3
-          console.log('🔍 Running Phase 3 flagging analysis...');
-          const phase3Flagging = this.flaggingService.analyzePhase3Application(phase3App);
-          console.log('📊 Phase 3 flagging result:', phase3Flagging);
-          this.phase3FlaggingResult.set(phase3Flagging);
+          // Phase 3 flagging will be calculated when explicitly requested via the "Reevaluate Flags" button
         } else {
           console.log('❌ No Phase 3 application found');
         }
@@ -2403,6 +2399,9 @@ export class ApplicantDetailComponent implements OnInit {
       if (this.shouldShowPhase4()) {
         await this.loadInterviewData();
       }
+      
+      // Always load interviewer data for name lookup (needed for any phase with assigned interviewer)
+      await this.loadInterviewerData();
 
       // Set initial tab based on applicant status
       this.setInitialTab();
@@ -2667,12 +2666,22 @@ export class ApplicantDetailComponent implements OnInit {
 
         // Send Phase 3 approved email (interview invitation)
         try {
-          // Get interviewer details for email
-          const interviewer = this.allInterviewers().find(i => i.id === interviewerId);
-          const interviewerName = interviewer?.name || 'Unknown Interviewer';
-          const schedulingUrl = interviewer?.calendarUrl || 'Please contact us for scheduling';
+          // Get interviewer details for email from the loaded interviewers array
+          const interviewer = this.interviewers().find(i => i.id === interviewerId);
+          if (!interviewer) {
+            console.error('❌ Interviewer not found for email:', interviewerId);
+            throw new Error('Interviewer not found');
+          }
 
-          console.log('📧 Sending Phase 3 approved (interview invite) email to:', applicant.email);
+          const interviewerName = interviewer.name;
+          const schedulingUrl = interviewer.calendarUrl;
+          
+          console.log('📧 Sending Phase 3 approved email:', {
+            to: applicant.email,
+            interviewer: interviewerName,
+            schedulingUrl
+          });
+
           const emailResult = await this.emailService.sendPhase3ApprovedEmail(
             applicant,
             interviewerName,
@@ -2891,14 +2900,26 @@ export class ApplicantDetailComponent implements OnInit {
     }
   }
 
+  async loadInterviewerData() {
+    try {
+      // Load all interviewers for name lookup
+      const allInterviewers = await this.interviewerService.getAllInterviewers();
+      this.allInterviewers.set(allInterviewers);
+      console.log('✅ Loaded interviewers for name lookup:', allInterviewers.length);
+    } catch (error) {
+      console.error('❌ Error loading interviewer data:', error);
+    }
+  }
+
   async loadInterviewData() {
     const applicant = this.applicant();
     if (!applicant?.userId) return;
 
     try {
-      // Load all interviewers for name lookup
-      const allInterviewers = await this.interviewerService.getAllInterviewers();
-      this.allInterviewers.set(allInterviewers);
+      // Ensure interviewers are loaded
+      if (this.allInterviewers().length === 0) {
+        await this.loadInterviewerData();
+      }
       
       const interview = await this.interviewerService.getInterviewByApplicantId(applicant.userId);
       this.interview.set(interview);
@@ -2922,8 +2943,9 @@ export class ApplicantDetailComponent implements OnInit {
     const applicant = this.applicant();
     if (!applicant?.interviewerId) return 'Not assigned';
     
+    // Only use the loaded interviewer data from allInterviewers (loaded on component init)
     const interviewer = this.allInterviewers().find(i => i.id === applicant.interviewerId);
-    return interviewer?.name || 'Unknown Interviewer';
+    return interviewer?.name || 'Loading...';
   }
 
   async saveNotes() {

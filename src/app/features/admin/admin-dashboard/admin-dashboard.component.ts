@@ -1168,9 +1168,9 @@ type AdminSubView = 'users' | 'interviewers';
     .phase-interview { background: #e0e7ff; color: #5b21b6; }
     .phase-accepted { background: #dcfce7; color: #166534; }
 
-    .admin-role { background: #fee2e2; color: #991b1b; }
-    .viewer-role { background: #dbeafe; color: #1e40af; }
-    .interviewer-role { background: #fef3c7; color: #d97706; }
+    .admin-role { background: #f3f4f6; color: #374151; }
+    .viewer-role { background: #f3f4f6; color: #374151; }
+    .interviewer-role { background: #f3f4f6; color: #374151; }
 
     /* Sub Navigation */
     .admin-sub-nav {
@@ -1536,11 +1536,15 @@ type AdminSubView = 'users' | 'interviewers';
     }
 
     /* Admin Cards */
-    .admin-header {
+    .admin-card .admin-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 1rem;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      box-shadow: none;
     }
 
     .admin-info h4 {

@@ -7,6 +7,9 @@ export const EMAIL_CONSTANTS = {
     PHASE1: {
       APPROVED: 'Vetted: Your Accelerator Application Dashboard',
       REJECTED: 'Vetted: Your Accelerator Application'
+    },
+    PHASE3: {
+      SUBMITTED: 'Vetted Accelerator Application Confirmation'
     }
   },
   

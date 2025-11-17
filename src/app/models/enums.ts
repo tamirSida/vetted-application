@@ -41,3 +41,9 @@ export enum ServiceCountry {
   OTHER = 'Other'
 }
 
+export enum InterviewStatus {
+  NOT_YET_SCHEDULED = 'NOT_YET_SCHEDULED',
+  SCHEDULED = 'SCHEDULED', 
+  INTERVIEWED = 'INTERVIEWED'
+}
+

@@ -7,9 +7,11 @@ import { AuthService } from '../../../services/auth.service';
 import { CohortService } from '../../../services/cohort.service';
 import { UserService } from '../../../services/user.service';
 import { SettingsService, SystemSettings } from '../../../services/settings.service';
-import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus } from '../../../models';
+import { InterviewerService } from '../../../services/interviewer.service';
+import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus, Interviewer, InterviewerCreateRequest } from '../../../models';
 
 type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings';
+type AdminSubView = 'users' | 'interviewers';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -445,21 +447,44 @@ type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings';
           <div class="view-header">
             <h2>
               <i class="fas fa-user-shield"></i>
-              Admin Management
+              User Management
             </h2>
-            <div class="controls">
-              <div class="page-size-selector">
-                <label for="page-size-admin">Page Size:</label>
-                <select id="page-size-admin" (change)="changePageSize($event)" [value]="pageSize()">
-                  <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize()">{{ size }}</option>
-                </select>
-              </div>
-              <button class="primary-button" (click)="toggleAdminForm()">
-                <i class="fas fa-user-plus"></i>
-                Create Admin/Viewer
-              </button>
-            </div>
           </div>
+
+          <!-- Admin Sub-Navigation -->
+          <nav class="admin-sub-nav">
+            <button 
+              class="sub-nav-button"
+              [class.active]="currentAdminSubView() === 'users'"
+              (click)="switchAdminSubView('users')">
+              <i class="fas fa-users"></i>
+              Users
+            </button>
+            <button 
+              class="sub-nav-button"
+              [class.active]="currentAdminSubView() === 'interviewers'"
+              (click)="switchAdminSubView('interviewers')">
+              <i class="fas fa-user-tie"></i>
+              Interviewers
+            </button>
+          </nav>
+
+          <!-- Users Tab -->
+          <div *ngIf="currentAdminSubView() === 'users'">
+            <div class="sub-view-header">
+              <div class="controls">
+                <div class="page-size-selector">
+                  <label for="page-size-admin">Page Size:</label>
+                  <select id="page-size-admin" (change)="changePageSize($event)" [value]="pageSize()">
+                    <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize()">{{ size }}</option>
+                  </select>
+                </div>
+                <button class="primary-button" (click)="toggleAdminForm()">
+                  <i class="fas fa-user-plus"></i>
+                  Create Admin/Viewer
+                </button>
+              </div>
+            </div>
 
           <!-- Admin Form -->
           <div *ngIf="showAdminForm()" class="form-container">
@@ -634,6 +659,112 @@ type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings';
             </div>
           </div>
         </div>
+
+        <!-- Interviewers Tab -->
+        <div *ngIf="currentAdminSubView() === 'interviewers'">
+          <div class="sub-view-header">
+            <div class="controls">
+              <button class="primary-button" (click)="toggleInterviewerForm()">
+                <i class="fas fa-user-tie"></i>
+                Add Interviewer
+              </button>
+            </div>
+          </div>
+
+          <!-- Interviewer Form -->
+          <div *ngIf="showInterviewerForm()" class="form-container">
+            <form [formGroup]="interviewerForm" (ngSubmit)="createInterviewer()" class="create-form">
+              <h3>Add New Interviewer</h3>
+              
+              <div class="form-group">
+                <label for="interviewer-user">Select User</label>
+                <select id="interviewer-user" formControlName="userId" class="form-input">
+                  <option value="">Select an Admin or Viewer</option>
+                  <option *ngFor="let user of eligibleInterviewers()" [value]="user.userId">
+                    {{ user.name }} ({{ user.email }}) - {{ user.role }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="interviewer-calendar">Calendar URL</label>
+                <input
+                  type="url"
+                  id="interviewer-calendar"
+                  formControlName="calendarUrl"
+                  placeholder="https://calendly.com/your-link"
+                  class="form-input"
+                />
+                <small class="form-hint">Enter your Google Calendar or Calendly URL for scheduling</small>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="secondary-button" (click)="toggleInterviewerForm()">
+                  Cancel
+                </button>
+                <button type="submit" class="primary-button" [disabled]="interviewerForm.invalid || isSubmitting()">
+                  <i class="fas fa-user-tie"></i>
+                  Add Interviewer
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Interviewers List -->
+          <div *ngIf="interviewers().length === 0" class="empty-state">
+            <i class="fas fa-user-tie"></i>
+            <h3>No Interviewers Found</h3>
+            <p>Add your first interviewer to enable Phase 4 interviews.</p>
+          </div>
+
+          <div *ngIf="interviewers().length > 0" class="interviewers-container">
+            <div class="admin-users-grid">
+              <div *ngFor="let interviewer of interviewers()" class="admin-card">
+                <div class="admin-header">
+                  <div class="admin-info">
+                    <h4>{{ interviewer.name }}</h4>
+                    <p class="admin-email">{{ interviewer.email }}</p>
+                  </div>
+                  <span class="role-badge interviewer-role">
+                    <i class="fas fa-user-tie"></i>
+                    Interviewer
+                  </span>
+                </div>
+                
+                <div class="admin-details">
+                  <div class="detail-item">
+                    <strong>Role:</strong> {{ interviewer.role }}
+                  </div>
+                  <div class="detail-item">
+                    <strong>Calendar:</strong> 
+                    <a [href]="interviewer.calendarUrl" target="_blank" class="calendar-link">
+                      <i class="fas fa-external-link-alt"></i>
+                      View Calendar
+                    </a>
+                  </div>
+                  <div class="detail-item">
+                    <strong>Status:</strong> 
+                    <span [class]="'status-indicator ' + (interviewer.isActive ? 'active' : 'inactive')">
+                      {{ interviewer.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="admin-actions">
+                  <button class="action-button edit-button" (click)="editInterviewerCalendar(interviewer)">
+                    <i class="fas fa-edit"></i>
+                    Edit Calendar
+                  </button>
+                  <button class="action-button delete-button" (click)="deleteInterviewer(interviewer.id!)">
+                    <i class="fas fa-trash"></i>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
         <!-- Settings View -->
         <div *ngIf="currentView() === 'settings' && !isLoading()" class="settings-view">
@@ -1048,6 +1179,82 @@ type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings';
 
     .admin-role { background: #fee2e2; color: #991b1b; }
     .viewer-role { background: #dbeafe; color: #1e40af; }
+    .interviewer-role { background: #fef3c7; color: #d97706; }
+
+    /* Sub Navigation */
+    .admin-sub-nav {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 1rem;
+    }
+
+    .sub-nav-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      color: #6b7280;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sub-nav-button:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+
+    .sub-nav-button.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+
+    .sub-view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .calendar-link {
+      color: #3b82f6;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+    }
+
+    .calendar-link:hover {
+      text-decoration: underline;
+    }
+
+    .form-hint {
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    .edit-button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background-color 0.2s;
+    }
+
+    .edit-button:hover {
+      background: #059669;
+    }
 
     /* Forms */
     .form-container {
@@ -1662,11 +1869,13 @@ export class AdminDashboardComponent implements OnInit {
   private cohortService = inject(CohortService);
   private userService = inject(UserService);
   private settingsService = inject(SettingsService);
+  private interviewerService = inject(InterviewerService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
   // Signals
   currentView = signal<AdminView>('applicants');
+  currentAdminSubView = signal<AdminSubView>('users');
   isLoading = signal(false);
   isSubmitting = signal(false);
   error = signal('');
@@ -1677,6 +1886,8 @@ export class AdminDashboardComponent implements OnInit {
   cohorts = signal<Cohort[]>([]);
   adminUsers = signal<AdminUser[]>([]);
   viewerUsers = signal<ViewerUser[]>([]);
+  interviewers = signal<Interviewer[]>([]);
+  eligibleInterviewers = signal<{userId: string, name: string, email: string, role: UserRole}[]>([]);
   systemSettings = signal<SystemSettings>({ skipPhase2: true });
 
   // Pagination
@@ -1699,11 +1910,13 @@ export class AdminDashboardComponent implements OnInit {
   // Form states
   showCohortForm = signal(false);
   showAdminForm = signal(false);
+  showInterviewerForm = signal(false);
   editingCohort = signal<Cohort | null>(null);
 
   // Forms
   cohortForm: FormGroup;
   adminForm: FormGroup;
+  interviewerForm: FormGroup;
 
   constructor() {
     this.cohortForm = this.fb.group({
@@ -1722,6 +1935,11 @@ export class AdminDashboardComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       role: ['ADMIN', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]]
+    });
+
+    this.interviewerForm = this.fb.group({
+      userId: ['', Validators.required],
+      calendarUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
     });
   }
 
@@ -1755,7 +1973,9 @@ export class AdminDashboardComponent implements OnInit {
       } else if (this.currentView() === 'admin') {
         await Promise.all([
           this.loadAdminsPage(true),
-          this.loadViewersPage(true)
+          this.loadViewersPage(true),
+          this.loadInterviewers(),
+          this.loadEligibleInterviewers()
         ]);
       }
     } catch (error: any) {
@@ -2231,6 +2451,110 @@ export class AdminDashboardComponent implements OnInit {
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to remove viewer');
+    }
+  }
+
+  // Interviewer Management Methods
+  switchAdminSubView(subView: AdminSubView) {
+    this.currentAdminSubView.set(subView);
+  }
+
+  async loadInterviewers() {
+    try {
+      const interviewers = await this.interviewerService.getAllInterviewers();
+      this.interviewers.set(interviewers);
+    } catch (error: any) {
+      console.error('Error loading interviewers:', error);
+    }
+  }
+
+  async loadEligibleInterviewers() {
+    try {
+      const eligible = await this.interviewerService.getEligibleInterviewers();
+      this.eligibleInterviewers.set(eligible);
+    } catch (error: any) {
+      console.error('Error loading eligible interviewers:', error);
+    }
+  }
+
+  toggleInterviewerForm() {
+    this.showInterviewerForm.set(!this.showInterviewerForm());
+    if (!this.showInterviewerForm()) {
+      this.interviewerForm.reset();
+    }
+  }
+
+  async createInterviewer() {
+    if (this.interviewerForm.invalid || this.isSubmitting()) return;
+
+    try {
+      this.isSubmitting.set(true);
+      this.error.set('');
+
+      const formValue = this.interviewerForm.value;
+      
+      await this.interviewerService.createInterviewer({
+        userId: formValue.userId,
+        calendarUrl: formValue.calendarUrl
+      });
+      
+      this.success.set('Interviewer created successfully!');
+      this.toggleInterviewerForm();
+      await this.loadInterviewers();
+      await this.loadEligibleInterviewers();
+      
+      setTimeout(() => this.success.set(''), 5000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to create interviewer');
+      setTimeout(() => this.error.set(''), 5000);
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async deleteInterviewer(interviewerId: string) {
+    if (!confirm('Are you sure you want to remove this interviewer?')) return;
+    
+    try {
+      await this.interviewerService.deleteInterviewer(interviewerId);
+      this.interviewers.update(interviewers => interviewers.filter(i => i.id !== interviewerId));
+      await this.loadEligibleInterviewers(); // Refresh eligible list
+      
+      this.success.set('Interviewer removed successfully!');
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to remove interviewer');
+      setTimeout(() => this.error.set(''), 5000);
+    }
+  }
+
+  async updateInterviewerCalendar(interviewer: Interviewer, newCalendarUrl: string) {
+    try {
+      await this.interviewerService.updateInterviewer(interviewer.id!, {
+        calendarUrl: newCalendarUrl
+      });
+      
+      this.interviewers.update(interviewers => 
+        interviewers.map(i => i.id === interviewer.id ? { ...i, calendarUrl: newCalendarUrl } : i)
+      );
+      
+      this.success.set('Calendar URL updated successfully!');
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to update calendar URL');
+      setTimeout(() => this.error.set(''), 5000);
+    }
+  }
+
+  getSelectedUserName(userId: string): string {
+    const user = this.eligibleInterviewers().find(u => u.userId === userId);
+    return user ? user.name : 'Select a user';
+  }
+
+  editInterviewerCalendar(interviewer: Interviewer) {
+    const newUrl = prompt('Enter new calendar URL:', interviewer.calendarUrl);
+    if (newUrl && newUrl !== interviewer.calendarUrl) {
+      this.updateInterviewerCalendar(interviewer, newUrl);
     }
   }
 

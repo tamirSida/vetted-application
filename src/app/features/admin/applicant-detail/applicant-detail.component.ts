@@ -5,7 +5,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { UserService } from '../../../services/user.service';
 import { ApplicationService } from '../../../services/application.service';
 import { StatusMessageService } from '../../../services/status-message.service';
-import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus, Phase } from '../../../models';
+import { InterviewerService } from '../../../services/interviewer.service';
+import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus, Phase, Interviewer, InterviewerCreateRequest, Interview, InterviewStatus } from '../../../models';
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 import { OpenAIService } from '../../../services/openai.service';
 import { EmailService } from '../../../services/email.service';
@@ -793,6 +794,27 @@ import { deleteField } from '@angular/fire/firestore';
               </div>
             </div>
 
+            <!-- Interview Status -->
+            <div class="interview-status-section">
+              <h3>Interview Status</h3>
+              <form [formGroup]="interviewForm" (ngSubmit)="updateInterviewStatus()">
+                <div class="status-controls">
+                  <div class="form-group">
+                    <label for="status">Status</label>
+                    <select formControlName="status" id="status" class="status-dropdown">
+                      <option value="NOT_YET_SCHEDULED">Not Yet Scheduled</option>
+                      <option value="SCHEDULED">Scheduled</option>
+                      <option value="INTERVIEWED">Interviewed</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="update-status-btn" [disabled]="!interviewForm.dirty">
+                    <i class="fas fa-save"></i>
+                    Update Status
+                  </button>
+                </div>
+              </form>
+            </div>
+
             <!-- Interview Notes -->
             <div class="notes-section">
               <h3>Interview Notes</h3>
@@ -811,12 +833,31 @@ import { deleteField } from '@angular/fire/firestore';
               </form>
             </div>
 
-            <!-- Interview Date -->
-            <div class="interview-date-section" *ngIf="applicant()?.status === 'PHASE_4_INTERVIEW_SCHEDULED' && applicant()?.interviewDate">
-              <h3>Interview Schedule</h3>
-              <div class="scheduled-date">
-                <i class="fas fa-calendar-alt"></i>
-                <span>{{ formatInterviewDate() }}</span>
+            <!-- Document Management -->
+            <div class="document-section">
+              <h3>Interview Document</h3>
+              <div class="document-controls">
+                <div *ngIf="!interview()?.documentUrl" class="no-document">
+                  <p>No Google Doc URL set</p>
+                  <button class="set-url-btn" (click)="showDocumentUrlModal()">
+                    <i class="fas fa-plus"></i>
+                    Set URL
+                  </button>
+                </div>
+                <div *ngIf="interview()?.documentUrl" class="document-info">
+                  <p><strong>Document URL:</strong></p>
+                  <div class="url-display">{{ interview()?.documentUrl }}</div>
+                  <div class="document-actions">
+                    <button class="view-doc-btn" (click)="viewDocument()">
+                      <i class="fas fa-external-link-alt"></i>
+                      View Doc
+                    </button>
+                    <button class="edit-url-btn" (click)="showDocumentUrlModal()">
+                      <i class="fas fa-edit"></i>
+                      Edit URL
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -824,6 +865,90 @@ import { deleteField } from '@angular/fire/firestore';
 
         </div> <!-- Close tab-content -->
       </main>
+
+      <!-- Interviewer Selection Modal -->
+      <div *ngIf="showInterviewerSelection()" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>
+              <i class="fas fa-user-tie"></i>
+              Select Interviewer
+            </h3>
+            <button class="modal-close" (click)="cancelInterviewerSelection()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <p>Please select an interviewer for {{ applicant()?.name }}:</p>
+            
+            <div class="interviewer-list">
+              <div *ngFor="let interviewer of interviewers()" 
+                   class="interviewer-option" 
+                   (click)="confirmAdvanceToPhase4(interviewer.id!)">
+                <div class="interviewer-info">
+                  <h4>{{ interviewer.name }}</h4>
+                  <p>{{ interviewer.email }}</p>
+                  <span class="role-badge">{{ interviewer.role }}</span>
+                </div>
+                <div class="interviewer-actions">
+                  <a [href]="interviewer.calendarUrl" target="_blank" class="calendar-link">
+                    <i class="fas fa-calendar"></i>
+                    View Calendar
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button class="secondary-button" (click)="cancelInterviewerSelection()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document URL Modal -->
+      <div *ngIf="showDocumentModal()" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>
+              <i class="fas fa-file-alt"></i>
+              Set Google Doc URL
+            </h3>
+            <button class="modal-close" (click)="closeDocumentModal()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <form [formGroup]="documentForm" (ngSubmit)="saveDocumentUrl()">
+              <div class="form-group">
+                <label for="documentUrl">Google Doc URL</label>
+                <input 
+                  type="url" 
+                  id="documentUrl"
+                  formControlName="documentUrl" 
+                  placeholder="https://docs.google.com/document/..."
+                  class="url-input">
+                <small class="form-help">
+                  Enter the full URL to the Google Doc for this interview
+                </small>
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="secondary-button" (click)="closeDocumentModal()">
+                  Cancel
+                </button>
+                <button type="submit" class="primary-button" [disabled]="!documentForm.valid">
+                  <i class="fas fa-save"></i>
+                  Save URL
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -1383,6 +1508,266 @@ import { deleteField } from '@angular/fire/firestore';
       gap: 2rem;
     }
 
+    .interviewer-section,
+    .interview-status-section,
+    .notes-section,
+    .document-section {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 1.5rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .interviewer-section h3,
+    .interview-status-section h3,
+    .notes-section h3,
+    .document-section h3 {
+      color: #1f2937;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+    }
+
+    /* Interview Status Styling */
+    .status-controls {
+      display: flex;
+      align-items: end;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .status-controls .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .status-dropdown {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      background: white;
+      color: #1f2937;
+    }
+
+    .status-dropdown:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .update-status-btn {
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+      white-space: nowrap;
+    }
+
+    .update-status-btn:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    .update-status-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* Notes Section Styling */
+    .notes-textarea {
+      width: 100%;
+      padding: 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .notes-textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .notes-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+    }
+
+    .save-notes-btn {
+      padding: 0.75rem 1.5rem;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .save-notes-btn:hover:not(:disabled) {
+      background: #059669;
+    }
+
+    .save-notes-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* Document Section Styling */
+    .document-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .no-document {
+      text-align: center;
+      padding: 2rem;
+      color: #6b7280;
+    }
+
+    .set-url-btn {
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+
+    .set-url-btn:hover {
+      background: #2563eb;
+    }
+
+    .document-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .url-display {
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #374151;
+      word-break: break-all;
+    }
+
+    .document-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .view-doc-btn,
+    .edit-url-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .view-doc-btn {
+      background: #10b981;
+      color: white;
+    }
+
+    .view-doc-btn:hover {
+      background: #059669;
+    }
+
+    .edit-url-btn {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .edit-url-btn:hover {
+      background: #d97706;
+    }
+
+    /* Document Modal Styling */
+    .url-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: monospace;
+    }
+
+    .url-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-help {
+      display: block;
+      margin-top: 0.5rem;
+      color: #6b7280;
+      font-size: 0.8rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .primary-button {
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .primary-button:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    .primary-button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
     /* Equity Table */
     .equity-table {
       overflow-x: auto;
@@ -1776,6 +2161,131 @@ import { deleteField } from '@angular/fire/firestore';
     .meta-item i {
       color: #9ca3af;
     }
+
+    /* Interviewer Selection Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #6b7280;
+      transition: background-color 0.2s;
+    }
+
+    .modal-close:hover {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .interviewer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .interviewer-option {
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .interviewer-option:hover {
+      border-color: #3b82f6;
+      background: #f8fafc;
+    }
+
+    .interviewer-info h4 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .interviewer-info p {
+      margin: 0 0 0.5rem 0;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .interviewer-info .role-badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      background: #e5e7eb;
+      color: #374151;
+      border-radius: 12px;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .interviewer-actions .calendar-link {
+      color: #3b82f6;
+      text-decoration: none;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .interviewer-actions .calendar-link:hover {
+      text-decoration: underline;
+    }
+
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+    }
   `]
 })
 export class ApplicantDetailComponent implements OnInit {
@@ -1787,6 +2297,7 @@ export class ApplicantDetailComponent implements OnInit {
   private flaggingService = inject(FlaggingService);
   private openaiService = inject(OpenAIService);
   private emailService = inject(EmailService);
+  private interviewerService = inject(InterviewerService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -1795,6 +2306,10 @@ export class ApplicantDetailComponent implements OnInit {
   phase3Application = signal<Phase3Application | null>(null);
   flaggingResult = signal<FlaggingResult | null>(null);
   phase3FlaggingResult = signal<FlaggingResult | null>(null);
+  interviewers = signal<Interviewer[]>([]);
+  showInterviewerSelection = signal(false);
+  interview = signal<Interview | null>(null);
+  showDocumentModal = signal(false);
   isLoading = signal(true);
   error = signal('');
   activeTab = signal<string>('profile');
@@ -1802,10 +2317,21 @@ export class ApplicantDetailComponent implements OnInit {
 
   // Form
   notesForm: FormGroup;
+  interviewForm: FormGroup;
+  documentForm: FormGroup;
 
   constructor() {
     this.notesForm = this.fb.group({
       notes: ['']
+    });
+
+    this.interviewForm = this.fb.group({
+      status: [InterviewStatus.NOT_YET_SCHEDULED, Validators.required],
+      documentUrl: ['']
+    });
+
+    this.documentForm = this.fb.group({
+      documentUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
     });
   }
 
@@ -1870,9 +2396,9 @@ export class ApplicantDetailComponent implements OnInit {
         console.warn('🚨 Phase 3 application not found or error loading:', error);
       }
 
-      // Load interview notes if in Phase 4
+      // Load interview data if in Phase 4
       if (this.shouldShowPhase4()) {
-        // TODO: Load interview notes when implemented
+        await this.loadInterviewData();
       }
 
       // Set initial tab based on applicant status
@@ -2080,20 +2606,58 @@ export class ApplicantDetailComponent implements OnInit {
     if (!applicant) return;
 
     try {
+      console.log('🚀 Checking interviewers before advancing to Phase 4...');
+      
+      // Check if there are any active interviewers
+      const availableInterviewers = await this.interviewerService.getAllInterviewers();
+      
+      if (availableInterviewers.length === 0) {
+        this.error.set('No interviewers available. Please add at least one interviewer before advancing to Phase 4.');
+        return;
+      }
+
+      this.interviewers.set(availableInterviewers);
+      
+      // Show interviewer selection modal
+      this.showInterviewerSelection.set(true);
+      
+    } catch (error: any) {
+      console.error('❌ Error checking interviewers:', error);
+      this.error.set(error.message || 'Failed to advance to Phase 4');
+    }
+  }
+
+  async confirmAdvanceToPhase4(interviewerId: string) {
+    const applicant = this.applicant();
+    if (!applicant || !interviewerId) return;
+
+    try {
       console.log('🚀 Advancing applicant to Phase 4...', applicant.name);
       
       // Update applicant status to Phase 4
       await this.userService.updateUser(applicant.userId, {
         phase: Phase.INTERVIEW,
-        status: ApplicationStatus.PHASE_4
+        status: ApplicationStatus.PHASE_4,
+        interviewerId: interviewerId
+      });
+
+      // Create interview record
+      await this.interviewerService.createInterview({
+        applicantId: applicant.userId,
+        interviewerId: interviewerId,
+        cohortId: applicant.cohortId
       });
 
       // Update local state
       this.applicant.set({
         ...applicant,
         phase: Phase.INTERVIEW,
-        status: ApplicationStatus.PHASE_4
+        status: ApplicationStatus.PHASE_4,
+        interviewerId: interviewerId
       });
+
+      // Hide selection modal
+      this.showInterviewerSelection.set(false);
 
       console.log('✅ Successfully advanced to Phase 4');
 
@@ -2117,6 +2681,11 @@ export class ApplicantDetailComponent implements OnInit {
     } catch (error) {
       console.error('❌ Error advancing to Phase 4:', error);
     }
+  }
+
+  cancelInterviewerSelection() {
+    this.showInterviewerSelection.set(false);
+    this.interviewers.set([]);
   }
 
   async reopenPhase3Application() {
@@ -2255,15 +2824,115 @@ export class ApplicantDetailComponent implements OnInit {
     console.log('Show interviewer assignment');
   }
 
+  async loadInterviewData() {
+    const applicant = this.applicant();
+    if (!applicant?.userId) return;
+
+    try {
+      const interview = await this.interviewerService.getInterviewByApplicantId(applicant.userId);
+      this.interview.set(interview);
+      
+      if (interview) {
+        // Populate forms with existing data
+        this.interviewForm.patchValue({
+          status: interview.status || InterviewStatus.NOT_YET_SCHEDULED
+        });
+        
+        this.notesForm.patchValue({
+          notes: interview.notes || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error loading interview data:', error);
+    }
+  }
+
   getInterviewerName(): string {
-    // TODO: Load interviewer name
+    // TODO: Load interviewer name based on interviewerId
     return 'John Doe'; // Placeholder
   }
 
-  saveNotes() {
-    // TODO: Implement notes saving
-    console.log('Save notes:', this.notesForm.value.notes);
-    this.notesForm.markAsPristine();
+  async saveNotes() {
+    const interview = this.interview();
+    if (!interview?.id) return;
+
+    try {
+      await this.interviewerService.updateInterview(interview.id, {
+        notes: this.notesForm.value.notes
+      });
+      
+      // Update local interview data
+      const updatedInterview = { ...interview, notes: this.notesForm.value.notes };
+      this.interview.set(updatedInterview);
+      
+      this.notesForm.markAsPristine();
+      console.log('✅ Interview notes saved');
+    } catch (error) {
+      console.error('❌ Error saving notes:', error);
+    }
+  }
+
+  async updateInterviewStatus() {
+    const interview = this.interview();
+    if (!interview?.id) return;
+
+    try {
+      await this.interviewerService.updateInterview(interview.id, {
+        status: this.interviewForm.value.status
+      });
+      
+      // Update local interview data
+      const updatedInterview = { ...interview, status: this.interviewForm.value.status };
+      this.interview.set(updatedInterview);
+      
+      this.interviewForm.markAsPristine();
+      console.log('✅ Interview status updated');
+    } catch (error) {
+      console.error('❌ Error updating status:', error);
+    }
+  }
+
+  showDocumentUrlModal() {
+    const interview = this.interview();
+    if (interview?.documentUrl) {
+      this.documentForm.patchValue({
+        documentUrl: interview.documentUrl
+      });
+    }
+    this.showDocumentModal.set(true);
+  }
+
+  closeDocumentModal() {
+    this.showDocumentModal.set(false);
+    this.documentForm.reset();
+  }
+
+  async saveDocumentUrl() {
+    const interview = this.interview();
+    if (!interview?.id) return;
+
+    try {
+      const documentUrl = this.documentForm.value.documentUrl;
+      await this.interviewerService.updateInterview(interview.id, {
+        documentUrl: documentUrl
+      });
+      
+      // Update local interview data
+      const updatedInterview = { ...interview, documentUrl: documentUrl };
+      this.interview.set(updatedInterview);
+      
+      this.closeDocumentModal();
+      console.log('✅ Document URL saved');
+    } catch (error) {
+      console.error('❌ Error saving document URL:', error);
+    }
+  }
+
+  viewDocument() {
+    const documentUrl = this.interview()?.documentUrl;
+    if (documentUrl) {
+      window.open(documentUrl, '_blank');
+    }
   }
 
   formatInterviewDate(): string {

@@ -8,3 +8,4 @@ export * from './flagging.service';
 export * from './user.service';
 export * from './openai.service';
 export * from './settings.service';
+export * from './interviewer.service';

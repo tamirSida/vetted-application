@@ -3,3 +3,4 @@ export * from './user.models';
 export * from './cohort.models';
 export * from './webinar.models';
 export * from './application.models';
+export * from './interviewer.models';

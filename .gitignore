@@ -71,6 +71,10 @@ $RECYCLE_BIN/
 firebase-debug.log*
 firebase-debug.*.log*
 
+# Firebase rules (contain sensitive security configuration)
+firestore.rules.txt
+storage.rules.txt
+
 # Security - API Keys and Secrets
 **/api-keys.json
 **/service-account*.json

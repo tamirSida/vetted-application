@@ -6,6 +6,7 @@ import { ApplicationService } from '../../../services/application.service';
 import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
 import { OpenAIService } from '../../../services/openai.service';
+import { StorageService } from '../../../services/storage.service';
 import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
 import { Router } from '@angular/router';
@@ -99,15 +100,15 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Product Stage: How far along are you in building the service or product?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input 
-                      type="radio" 
+                    <input
+                      type="radio"
                       [checked]="applicationForm.get('productStage')?.value === 'LIVE_PAYING'"
                       (click)="toggleRadioButton('productStage', 'LIVE_PAYING')">
                     <span class="checkmark"></span>
                     Live with paying customers
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('productStage')?.value === 'LIVE_BETA'"
                       (click)="toggleRadioButton('productStage', 'LIVE_BETA')">
@@ -115,7 +116,7 @@ import { combineLatest } from 'rxjs';
                     Live with non-paying/beta users
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('productStage')?.value === 'FUNCTIONAL_PROTOTYPE'"
                       (click)="toggleRadioButton('productStage', 'FUNCTIONAL_PROTOTYPE')">
@@ -123,7 +124,7 @@ import { combineLatest } from 'rxjs';
                     Functional prototype (MVP)
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('productStage')?.value === 'PRE_PROTOTYPE'"
                       (click)="toggleRadioButton('productStage', 'PRE_PROTOTYPE')">
@@ -136,7 +137,7 @@ import { combineLatest } from 'rxjs';
               <!-- Traction Details -->
               <div class="form-group">
                 <label for="tractionDetails" class="form-label">
-                  Traction Details: Describe the traction as of above, for example 100 unpaid users within 3 months of beta launch / five paying customers with average ACV of $20K/year/ launching MVP in Q3 of this year.
+                  Traction Details: Describe the traction above. For example 100 unpaid users within 3 months of beta launch / five paying customers with average ACV of $20K/year/ launching MVP in Q3 of this year.
                 </label>
                 <textarea
                   id="tractionDetails"
@@ -144,7 +145,7 @@ import { combineLatest } from 'rxjs';
                   rows="4"
                   class="form-textarea"
                   maxlength="3000"
-                  placeholder="Describe your current traction metrics..."></textarea>
+                  placeholder="..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('tractionDetails') }}/300 words
                 </div>
@@ -164,6 +165,40 @@ import { combineLatest } from 'rxjs';
                   placeholder="Describe the specific person and problem you're solving..."></textarea>
                 <div class="word-count">
                   {{ getWordCount('problemCustomer') }}/300 words
+                </div>
+              </div>
+
+              <!-- Company Deck Upload -->
+              <div class="form-group">
+                <div class="deck-upload-section">
+                  <label class="form-label">Upload Company Deck</label>
+                  <div class="deck-requirement-text">
+                    <p>{{ getDeckRequirementText() }}</p>
+                  </div>
+                  
+                  @if (!getSelectedDeckFile() && !getUploadedDeckUrl()) {
+                    <div class="upload-area" (click)="deckFileInput.click()">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                      <p>Upload your company deck (PDF only)</p>
+                      <p class="upload-note">Max 10MB</p>
+                    </div>
+                  }
+                  <input #deckFileInput type="file" accept=".pdf" (change)="onDeckFileSelect($event)" style="display: none;">
+                  
+                  @if (getIsDeckUploading()) {
+                    <div class="file-preview uploading">
+                      <i class="fas fa-spinner fa-spin"></i>
+                      <span>Uploading {{ getSelectedDeckFile()?.name }}...</span>
+                    </div>
+                  } @else if (getUploadedDeckUrl() && getSelectedDeckFile()) {
+                    <div class="file-preview uploaded">
+                      <i class="fas fa-file-pdf"></i>
+                      <span>{{ getSelectedDeckFile()?.name }} (Uploaded)</span>
+                      <button type="button" class="remove-file" (click)="removeDeckFile()">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  }
                 </div>
               </div>
 
@@ -211,7 +246,7 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Capacity: What are you and your co-founders current capacity?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('capacity')?.value === 'ALL_FULLTIME'"
                       (click)="toggleRadioButton('capacity', 'ALL_FULLTIME')">
@@ -219,7 +254,7 @@ import { combineLatest } from 'rxjs';
                     All full-time
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('capacity')?.value === 'OTHER'"
                       (click)="toggleRadioButton('capacity', 'OTHER')">
@@ -227,7 +262,7 @@ import { combineLatest } from 'rxjs';
                     Other
                   </label>
                 </div>
-                
+
                 <!-- Conditional text input when "Other" is selected -->
                 <div *ngIf="applicationForm.get('capacity')?.value === 'OTHER'" class="conditional-field">
                   <label for="capacityOther" class="form-label">
@@ -249,7 +284,7 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Have any team members worked together before?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('hasPreviousCollaboration')?.value === 'true'"
                       (click)="toggleRadioButton('hasPreviousCollaboration', 'true')">
@@ -257,7 +292,7 @@ import { combineLatest } from 'rxjs';
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('hasPreviousCollaboration')?.value === 'false'"
                       (click)="toggleRadioButton('hasPreviousCollaboration', 'false')">
@@ -290,7 +325,7 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Previous Founders: Have you had any co-founders who are no longer with the company?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('previousFounders')?.value === 'true'"
                       (click)="toggleRadioButton('previousFounders', 'true')">
@@ -298,7 +333,7 @@ import { combineLatest } from 'rxjs';
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('previousFounders')?.value === 'false'"
                       (click)="toggleRadioButton('previousFounders', 'false')">
@@ -367,7 +402,7 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Funding History: Have you raised any capital to date?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('hasRaisedCapital')?.value === 'true'"
                       (click)="toggleRadioButton('hasRaisedCapital', 'true')">
@@ -375,7 +410,7 @@ import { combineLatest } from 'rxjs';
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('hasRaisedCapital')?.value === 'false'"
                       (click)="toggleRadioButton('hasRaisedCapital', 'false')">
@@ -425,7 +460,7 @@ import { combineLatest } from 'rxjs';
                 <label class="form-label">Is your company incorporated?</label>
                 <div class="radio-group">
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('isIncorporated')?.value === 'true'"
                       (click)="toggleRadioButton('isIncorporated', 'true')">
@@ -433,7 +468,7 @@ import { combineLatest } from 'rxjs';
                     Yes
                   </label>
                   <label class="radio-option">
-                    <input 
+                    <input
                       type="radio"
                       [checked]="applicationForm.get('isIncorporated')?.value === 'false'"
                       (click)="toggleRadioButton('isIncorporated', 'false')">
@@ -464,13 +499,13 @@ import { combineLatest } from 'rxjs';
                 <div class="venture-terms-section">
                   <h4 class="section-subtitle">Venture Standard Terms</h4>
                   <p class="section-description">Does your company currently have the following venture standard terms in place?</p>
-                  
+
                   <!-- IP Assignment -->
                   <div class="form-group">
                     <label class="form-label">Intellectual Property Assignment Agreements (PIIA) for all founders and employees?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('hasIpAssignment')?.value === 'true'"
                           (click)="toggleRadioButton('hasIpAssignment', 'true')">
@@ -478,7 +513,7 @@ import { combineLatest } from 'rxjs';
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('hasIpAssignment')?.value === 'false'"
                           (click)="toggleRadioButton('hasIpAssignment', 'false')">
@@ -493,7 +528,7 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">Founder vesting schedules (typically 4 years with a 1-year cliff)?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('hasFounderVesting')?.value === 'true'"
                           (click)="toggleRadioButton('hasFounderVesting', 'true')">
@@ -501,7 +536,7 @@ import { combineLatest } from 'rxjs';
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('hasFounderVesting')?.value === 'false'"
                           (click)="toggleRadioButton('hasFounderVesting', 'false')">
@@ -516,7 +551,7 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">Board structure appropriate for venture funding (typically odd number of directors with investor representation)?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('hasBoardStructure')?.value === 'true'"
                           (click)="toggleRadioButton('hasBoardStructure', 'true')">
@@ -524,7 +559,7 @@ import { combineLatest } from 'rxjs';
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('hasBoardStructure')?.value === 'false'"
                           (click)="toggleRadioButton('hasBoardStructure', 'false')">
@@ -539,7 +574,7 @@ import { combineLatest } from 'rxjs';
                     <label class="form-label">If any of the above are missing, would you be willing to amend your corporate documents to include these terms?</label>
                     <div class="radio-group">
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('willAmendDocuments')?.value === 'true'"
                           (click)="toggleRadioButton('willAmendDocuments', 'true')">
@@ -547,7 +582,7 @@ import { combineLatest } from 'rxjs';
                         Yes
                       </label>
                       <label class="radio-option">
-                        <input 
+                        <input
                           type="radio"
                           [checked]="applicationForm.get('willAmendDocuments')?.value === 'false'"
                           (click)="toggleRadioButton('willAmendDocuments', 'false')">
@@ -580,7 +615,7 @@ import { combineLatest } from 'rxjs';
                   <label class="form-label">If accepted into the program, would you be willing to incorporate as a Delaware C-Corp with venture standard terms?</label>
                   <div class="radio-group">
                     <label class="radio-option">
-                      <input 
+                      <input
                         type="radio"
                         [checked]="applicationForm.get('agreesToIncorporate')?.value === 'AGREE'"
                         (click)="toggleRadioButton('agreesToIncorporate', 'AGREE')">
@@ -588,7 +623,7 @@ import { combineLatest } from 'rxjs';
                       Yes, I agree to incorporate as a Delaware C-Corp
                     </label>
                     <label class="radio-option">
-                      <input 
+                      <input
                         type="radio"
                         [checked]="applicationForm.get('agreesToIncorporate')?.value === 'DISCUSS'"
                         (click)="toggleRadioButton('agreesToIncorporate', 'DISCUSS')">
@@ -626,7 +661,7 @@ import { combineLatest } from 'rxjs';
               <i class="fas fa-chevron-right"></i>
             </button>
 
-            <div 
+            <div
               *ngIf="currentTab === totalTabs - 1"
               class="submit-button-container"
               [class.has-tooltip]="!applicationForm.valid && !isSubmitting">
@@ -639,7 +674,7 @@ import { combineLatest } from 'rxjs';
                 <i *ngIf="!isSubmitting" class="fas fa-paper-plane"></i>
                 {{ isSubmitting ? 'Submitting...' : 'Submit Application' }}
               </button>
-              <div 
+              <div
                 *ngIf="!applicationForm.valid && !isSubmitting"
                 class="submit-tooltip"
                 [innerHTML]="getSubmitButtonTooltip()">
@@ -1151,7 +1186,7 @@ import { combineLatest } from 'rxjs';
         opacity: 0;
         visibility: hidden;
       }
-      
+
       .submit-button-container.has-tooltip:active .submit-tooltip,
       .submit-button-container.has-tooltip:focus-within .submit-tooltip {
         opacity: 1;
@@ -1202,6 +1237,97 @@ import { combineLatest } from 'rxjs';
     .save-draft-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    /* Deck Upload Styles */
+    .deck-upload-section {
+      margin-top: 1rem;
+    }
+
+    .deck-requirement-text {
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 6px;
+      color: #0369a1;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .upload-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8fafc;
+    }
+
+    .upload-area:hover {
+      border-color: #667eea;
+      background: #f1f5f9;
+    }
+
+    .upload-area i {
+      font-size: 2rem;
+      color: #667eea;
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-area p {
+      margin: 0.25rem 0;
+      color: #64748b;
+    }
+
+    .upload-note {
+      font-size: 0.8rem !important;
+      color: #94a3b8 !important;
+    }
+
+    .file-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: white;
+    }
+
+    .file-preview.uploading {
+      border-color: #667eea;
+      background: #f8fafc;
+    }
+
+    .file-preview.uploaded {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
+
+    .file-preview i {
+      font-size: 1.25rem;
+      color: #667eea;
+    }
+
+    .file-preview.uploaded i {
+      color: #10b981;
+    }
+
+    .remove-file {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .remove-file:hover {
+      background: #fee2e2;
     }
 
     /* Mobile Responsive */
@@ -1256,6 +1382,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private openaiService = inject(OpenAIService);
+  private storageService = inject(StorageService);
   private router = inject(Router);
 
   applicationForm!: FormGroup;
@@ -1264,6 +1391,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   isLoading = true;
   isSaving = false;
   isSubmitting = false;
+
+  // Deck upload state
+  selectedDeckFile: File | null = null;
+  uploadedDeckUrl = '';
+  uploadedDeckFilePath = '';
+  isDeckUploading = false;
+  hasP1Deck = false;
 
   // Tab navigation and gamification
   currentTab = 0;
@@ -1325,6 +1459,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         throw new Error('Applicant data not available');
       }
 
+      // Load P3 application
       const existingApp = await this.applicationService.getPhase3Application(
         this.applicant.userId,
         this.applicant.cohortId
@@ -1334,6 +1469,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         this.existingApplication = existingApp;
         this.populateFormFromApplication(existingApp);
       }
+
+      // Check if user has P1 deck
+      await this.checkP1DeckStatus();
     } catch (error) {
       console.error('Error loading existing application:', error);
     } finally {
@@ -1588,8 +1726,8 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       if (formValue.isIncorporated === 'false' && !formValue.agreesToIncorporate) errors.push('• Answer incorporation agreement question');
     }
 
-    return errors.length > 0 ? 
-      `<strong>Complete the following to submit:</strong><br><br>${errors.join('<br>')}` : 
+    return errors.length > 0 ?
+      `<strong>Complete the following to submit:</strong><br><br>${errors.join('<br>')}` :
       '';
   }
 
@@ -1667,8 +1805,8 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       // Only show success message for manual saves, not auto-saves
       if (!isAutoSave) {
-        this.successMessage = isFirstSave 
-          ? 'Draft saved successfully! Your status has been updated to Phase 3 In Progress.' 
+        this.successMessage = isFirstSave
+          ? 'Draft saved successfully! Your status has been updated to Phase 3 In Progress.'
           : 'Draft saved successfully!';
         setTimeout(() => this.successMessage = '', 4000);
       }
@@ -1728,7 +1866,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private async triggerOpenAIAnalysis(application: Phase3Application): Promise<void> {
     try {
       console.log('🤖 Starting OpenAI analysis for Problem & Customer field...');
-      
+
       // Set processing flag
       if (application.id) {
         await this.applicationService.updatePhase3Application(application.id, {
@@ -1751,7 +1889,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
       // Analyze the Problem & Customer field
       const analysis = await this.openaiService.analyzeProblemCustomer(application.productInfo.problemCustomer);
-      
+
       // Update application with analysis results
       if (application.id) {
         await this.applicationService.updatePhase3Application(application.id, {
@@ -1771,12 +1909,12 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           }
         });
       }
-      
+
       console.log('✅ OpenAI analysis completed and saved to database');
-      
+
     } catch (error) {
       console.error('❌ OpenAI analysis failed:', error);
-      
+
       // Update application to clear processing flag on error
       if (application.id) {
         try {
@@ -1820,6 +1958,10 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       phase: Phase.IN_DEPTH_APPLICATION,
       status,
       productInfo: {
+        companyDeck: this.uploadedDeckUrl ? {
+          fileUrl: this.uploadedDeckUrl,
+          fileName: this.selectedDeckFile?.name
+        } : undefined,
         productStage: formValue.productStage,
         tractionDetails: formValue.tractionDetails,
         problemCustomer: formValue.problemCustomer,
@@ -1858,6 +2000,14 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   }
 
   private populateFormFromApplication(app: Phase3Application) {
+    // Load existing deck data if available
+    if (app.productInfo.companyDeck?.fileUrl) {
+      this.uploadedDeckUrl = app.productInfo.companyDeck.fileUrl;
+      this.selectedDeckFile = app.productInfo.companyDeck.fileName ? 
+        new File([], app.productInfo.companyDeck.fileName, { type: 'application/pdf' }) : 
+        null;
+    }
+
     this.applicationForm.patchValue({
       productStage: app.productInfo.productStage,
       tractionDetails: app.productInfo.tractionDetails,
@@ -1906,6 +2056,110 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     if (this.autoSaveInterval) {
       clearInterval(this.autoSaveInterval);
     }
+  }
+
+  // Deck upload methods - getter methods for template
+  getSelectedDeckFile(): File | null {
+    return this.selectedDeckFile;
+  }
+
+  getUploadedDeckUrl(): string {
+    return this.uploadedDeckUrl;
+  }
+
+  getIsDeckUploading(): boolean {
+    return this.isDeckUploading;
+  }
+
+  async onDeckFileSelect(event: any): Promise<void> {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (file.type !== 'application/pdf') {
+      this.errorMessage = 'Please upload a PDF file only.';
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.errorMessage = 'File size must be less than 10MB.';
+      return;
+    }
+
+    this.selectedDeckFile = file;
+    this.errorMessage = '';
+
+    // Auto-upload the file
+    await this.uploadDeckFile();
+  }
+
+  async uploadDeckFile(): Promise<void> {
+    if (!this.selectedDeckFile || !this.applicant) return;
+
+    this.isDeckUploading = true;
+    this.errorMessage = '';
+
+    try {
+      const result = await this.storageService.uploadPitchDeck(this.selectedDeckFile, this.applicant.userId);
+      
+      this.uploadedDeckUrl = result.downloadURL;
+      this.uploadedDeckFilePath = result.filePath;
+      this.successMessage = 'Company deck uploaded successfully!';
+      
+      setTimeout(() => this.successMessage = '', 3000);
+      
+    } catch (error: any) {
+      this.errorMessage = error.message || 'Failed to upload deck. Please try again.';
+    } finally {
+      this.isDeckUploading = false;
+    }
+  }
+
+  async removeDeckFile(): Promise<void> {
+    if (this.uploadedDeckFilePath) {
+      try {
+        await this.storageService.deletePitchDeck(this.uploadedDeckFilePath);
+      } catch (error) {
+        console.error('Error deleting deck file:', error);
+      }
+    }
+    
+    this.selectedDeckFile = null;
+    this.uploadedDeckUrl = '';
+    this.uploadedDeckFilePath = '';
+  }
+
+  getDeckRequirementText(): string {
+    // Check if user has uploaded a deck in P1 application
+    const hasP1Deck = this.checkIfUserHasP1Deck();
+    
+    if (hasP1Deck) {
+      return "You may upload again if you've refined your deck";
+    } else {
+      return "You must upload your company deck";
+    }
+  }
+
+  private async checkP1DeckStatus(): Promise<void> {
+    try {
+      if (!this.applicant) return;
+
+      // Fetch P1 application data
+      const p1Application = await this.applicationService.getApplicationByApplicantId(
+        this.applicant.userId
+      );
+
+      if (p1Application?.extendedInfo?.pitchDeck?.fileUrl) {
+        this.hasP1Deck = true;
+      }
+    } catch (error) {
+      console.error('Error checking P1 deck status:', error);
+      // Default to false if we can't check
+      this.hasP1Deck = false;
+    }
+  }
+
+  private checkIfUserHasP1Deck(): boolean {
+    return this.hasP1Deck;
   }
 
   private wordCountValidator(maxWords: number) {

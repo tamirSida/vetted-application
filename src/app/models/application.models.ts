@@ -81,6 +81,10 @@ export interface Phase3Application extends BaseApplication {
   
   // Part 1: Product & Traction
   productInfo: {
+    companyDeck?: {
+      fileUrl?: string;
+      fileName?: string;
+    };
     productStage: 'LIVE_PAYING' | 'LIVE_BETA' | 'MVP' | 'IDEA_STAGE';
     tractionDetails: string; // max 300 words
     problemCustomer: string; // max 300 words - yellow flag for LLM analysis

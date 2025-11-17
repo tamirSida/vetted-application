@@ -124,6 +124,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <th>Name</th>
                   <th>Email</th>
                   <th>Status</th>
+                  <th>Rating</th>
                   <th>Company</th>
                   <th>Actions</th>
                 </tr>
@@ -140,6 +141,41 @@ type AdminSubView = 'users' | 'interviewers';
                     <span [class]="'status-badge status-' + applicant.status.toLowerCase().replace('_', '-')">
                       {{ getStatusDisplayName(applicant.status) }}
                     </span>
+                  </td>
+                  <td>
+                    <div class="rating-cell">
+                      <div class="rating-dropdown-container">
+                        <span [class]="'rating-badge rating-' + (applicant.rating || 'none')" 
+                              (click)="$event.stopPropagation(); toggleRatingDropdown(applicant.userId)">
+                          {{ getRatingDisplay(applicant.rating) }}
+                          <i class="fas fa-chevron-down rating-arrow"></i>
+                        </span>
+                        <div *ngIf="activeRatingDropdown() === applicant.userId" 
+                             class="rating-dropdown"
+                             (click)="$event.stopPropagation()">
+                          <div class="rating-option rating-option-none"
+                               (click)="setApplicantRating(applicant, null)">
+                            <span class="rating-preview rating-none">—</span>
+                            <span class="rating-label">No Rating</span>
+                          </div>
+                          <div class="rating-option rating-option-1"
+                               (click)="setApplicantRating(applicant, 1)">
+                            <span class="rating-preview rating-1">1</span>
+                            <span class="rating-label">Best</span>
+                          </div>
+                          <div class="rating-option rating-option-2"
+                               (click)="setApplicantRating(applicant, 2)">
+                            <span class="rating-preview rating-2">2</span>
+                            <span class="rating-label">Average</span>
+                          </div>
+                          <div class="rating-option rating-option-3"
+                               (click)="setApplicantRating(applicant, 3)">
+                            <span class="rating-preview rating-3">3</span>
+                            <span class="rating-label">Worst</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
                   <td>
@@ -1166,6 +1202,53 @@ type AdminSubView = 'users' | 'interviewers';
     .viewer-role { background: #f3f4f6; color: #374151; }
     .interviewer-role { background: #f3f4f6; color: #374151; }
 
+    /* Rating badges - Traffic light colors */
+    .rating-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      text-align: center;
+      min-width: 3rem;
+      display: inline-block;
+    }
+    
+    .rating-cell {
+      text-align: center;
+    }
+
+    .rating-1 { 
+      background: #22c55e; 
+      color: white; 
+      border-color: #16a34a;
+    }
+    
+    .rating-2 { 
+      background: #fbbf24; 
+      color: #92400e; 
+      border-color: #f59e0b;
+    }
+    
+    .rating-3 { 
+      background: #ef4444; 
+      color: white; 
+      border-color: #dc2626;
+    }
+    
+    .rating-none { 
+      background: #ffffff; 
+      color: #6b7280; 
+      border: 1px dashed #d1d5db;
+    }
+
+    .rating-badge:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
     /* Sub Navigation */
     .admin-sub-nav {
       display: flex;
@@ -1901,6 +1984,7 @@ export class AdminDashboardComponent implements OnInit {
   showAdminForm = signal(false);
   showInterviewerForm = signal(false);
   editingCohort = signal<Cohort | null>(null);
+  activeRatingDropdown = signal<string | null>(null);
 
   // Forms
   cohortForm: FormGroup;
@@ -2134,6 +2218,45 @@ export class AdminDashboardComponent implements OnInit {
       [ApplicationStatus.ACCEPTED]: 'Accepted'
     };
     return statusNames[status] || status;
+  }
+
+  getRatingDisplay(rating: number | null | undefined): string {
+    if (rating === null || rating === undefined) return '—';
+    switch (rating) {
+      case 1: return '1';
+      case 2: return '2';
+      case 3: return '3';
+      default: return '—';
+    }
+  }
+
+  toggleRatingDropdown(applicantId: string): void {
+    const currentActive = this.activeRatingDropdown();
+    if (currentActive === applicantId) {
+      this.activeRatingDropdown.set(null); // Close if same dropdown
+    } else {
+      this.activeRatingDropdown.set(applicantId); // Open this dropdown
+    }
+  }
+
+  async setApplicantRating(applicant: ApplicantUser, rating: number | null): Promise<void> {
+    try {
+      await this.userService.updateUser(applicant.userId, { rating });
+      
+      // Update local state
+      const updatedApplicants = this.applicants().map(a => 
+        a.userId === applicant.userId ? { ...a, rating } : a
+      );
+      this.applicants.set(updatedApplicants);
+      
+      // Close dropdown
+      this.activeRatingDropdown.set(null);
+      
+      console.log(`✅ Updated rating for ${applicant.name} to ${rating || 'no rating'}`);
+    } catch (error) {
+      console.error('❌ Error updating rating:', error);
+      // Keep dropdown open on error so user can try again
+    }
   }
 
   getCohortName(cohortId: string): string {

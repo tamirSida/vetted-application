@@ -32,6 +32,7 @@ export interface ApplicantUser extends BaseUser {
   cohortId: string;
   companyName?: string;
   interviewDate?: Date | string; // For scheduled interviews
+  rating?: number | null; // Admin-only rating: 1=best, 2=average, 3=worst, null=unrated
   // Individual name fields (stored in DB)
   firstName?: string;
   lastName?: string;
@@ -64,5 +65,6 @@ export interface UserUpdateRequest {
   status?: ApplicationStatus;
   isAccepted?: boolean | null;
   interviewerId?: string;
+  rating?: number | null;
   profileData?: ApplicantUser['profileData'];
 }

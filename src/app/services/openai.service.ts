@@ -78,7 +78,7 @@ export class OpenAIService {
    * Analyze Problem & Customer description for Phase 3 applications
    */
   async analyzeProblemCustomer(problemCustomerText: string): Promise<ProblemCustomerAnalysis> {
-    const fullPrompt = `You are an expert startup advisor analyzing customer problem descriptions. 
+    const fullPrompt = `You are a harsh, critical startup advisor analyzing customer problem descriptions. You refuse to find silver linings in bad descriptions.
 
 EVALUATION CRITERIA:
 - Specific target customer (role, company size, industry)
@@ -98,6 +98,12 @@ BAD EXAMPLES (Score 1-4):
 
 Analyze this customer problem description: "${problemCustomerText}"
 
+CRITICAL: If a description is vague, misspelled, too broad, or fundamentally useless - it has ZERO strengths. Do NOT invent positives. Do NOT mention things like "focuses on humans", "short and easy to iterate", "technically inclusive", or any other reach-for-a-positive nonsense. 
+
+Bad descriptions have no redeeming qualities. No exceptions. If it's terrible, say it has no strengths by returning an empty array.
+
+A description must be genuinely good (specific customer + clear problem) to have any strengths listed.
+
 Provide analysis in JSON format:
 {
   "score": <number 1-10>,
@@ -105,9 +111,9 @@ Provide analysis in JSON format:
   "hasClearTarget": <boolean>, 
   "hasDefinedProblem": <boolean>,
   "feedback": "<detailed explanation of score>",
-  "strengths": ["<strength 1>", "<strength 2>"],
-  "weaknesses": ["<weakness 1>", "<weakness 2>"],
-  "suggestions": ["<suggestion 1>", "<suggestion 2>"]
+  "strengths": [],
+  "weaknesses": [],
+  "suggestions": []
 }`;
 
     const request: OpenAIRequest = {

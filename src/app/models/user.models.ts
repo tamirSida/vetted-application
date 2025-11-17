@@ -50,7 +50,7 @@ export type User = AdminUser | ViewerUser | ApplicantUser;
 export interface UserCreateRequest {
   name: string;
   email: string;
-  password: string;
+  password?: string; // Optional - will be auto-generated for admin/viewer users
   role: UserRole;
   cohortId?: string;
 }

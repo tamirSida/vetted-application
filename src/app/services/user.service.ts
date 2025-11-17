@@ -13,8 +13,10 @@ import {
   QueryConstraint,
   limit,
   startAfter,
-  DocumentSnapshot
+  DocumentSnapshot,
+  setDoc
 } from '@angular/fire/firestore';
+import { Auth, createUserWithEmailAndPassword } from '@angular/fire/auth';
 import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus, Phase } from '../models';
 import { UserRole } from '../models/enums';
 import { EmailService } from './email.service';
@@ -25,6 +27,7 @@ import { SettingsService } from './settings.service';
 })
 export class UserService {
   private firestore = inject(Firestore);
+  private auth = inject(Auth);
   private emailService = inject(EmailService);
   private settingsService = inject(SettingsService);
 
@@ -83,9 +86,9 @@ export class UserService {
 
   async getAllAdmins(): Promise<AdminUser[]> {
     try {
-      const usersRef = collection(this.firestore, 'users');
+      const adminUsersRef = collection(this.firestore, 'admin_users');
       const q = query(
-        usersRef, 
+        adminUsersRef, 
         where('role', '==', UserRole.ADMIN)
       );
       const snapshot = await getDocs(q);
@@ -102,9 +105,9 @@ export class UserService {
 
   async getAllViewers(): Promise<ViewerUser[]> {
     try {
-      const usersRef = collection(this.firestore, 'users');
+      const adminUsersRef = collection(this.firestore, 'admin_users');
       const q = query(
-        usersRef, 
+        adminUsersRef, 
         where('role', '==', UserRole.VIEWER)
       );
       const snapshot = await getDocs(q);
@@ -121,6 +124,7 @@ export class UserService {
 
   async getUserById(userId: string): Promise<ApplicantUser | AdminUser | ViewerUser | null> {
     try {
+      // First check users collection (for applicants)
       const userRef = doc(this.firestore, 'users', userId);
       const userSnap = await getDoc(userRef);
       
@@ -129,6 +133,17 @@ export class UserService {
           userId: userSnap.id,
           ...userSnap.data()
         } as ApplicantUser | AdminUser | ViewerUser;
+      }
+      
+      // If not found, check admin_users collection (for admins/viewers)
+      const adminUserRef = doc(this.firestore, 'admin_users', userId);
+      const adminUserSnap = await getDoc(adminUserRef);
+      
+      if (adminUserSnap.exists()) {
+        return {
+          userId: adminUserSnap.id,
+          ...adminUserSnap.data()
+        } as AdminUser | ViewerUser;
       }
       
       return null;
@@ -176,57 +191,110 @@ export class UserService {
 
   async createUser(userRequest: UserCreateRequest): Promise<string> {
     try {
-      const usersRef = collection(this.firestore, 'users');
       const now = new Date();
-      
-      let userData: any = {
-        ...userRequest,
-        createdAt: now,
-        updatedAt: now
-      };
 
-      // Add role-specific fields
-      switch (userRequest.role) {
-        case UserRole.ADMIN:
+      // For ADMIN and VIEWER users, create Firebase Auth user and save to admin_users collection
+      if (userRequest.role === UserRole.ADMIN || userRequest.role === UserRole.VIEWER) {
+        // Generate a temporary password for the admin/viewer user
+        const tempPassword = this.generateTempPassword();
+        
+        // Create Firebase Auth user
+        const userCredential = await createUserWithEmailAndPassword(this.auth, userRequest.email, tempPassword);
+        const firebaseUid = userCredential.user.uid;
+        
+        // Prepare admin/viewer user data
+        let userData: any = {
+          name: userRequest.name,
+          email: userRequest.email,
+          role: userRequest.role,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        // Add role-specific fields
+        if (userRequest.role === UserRole.ADMIN) {
           userData = {
             ...userData,
             isActive: true,
             permissions: []
           };
-          break;
-        case UserRole.VIEWER:
+        } else if (userRequest.role === UserRole.VIEWER) {
           userData = {
             ...userData,
             canView: true,
             accessLevel: 'BASIC'
           };
-          break;
-        case UserRole.APPLICANT:
-          userData = {
-            ...userData,
-            isAccepted: null,
-            phase: 'SIGNUP',
-            webinarAttended: null,
-            profileData: {}
-          };
-          break;
-      }
+        }
 
-      const docRef = await addDoc(usersRef, userData);
-      return docRef.id;
+        // Save to admin_users collection using Firebase Auth UID as document ID
+        const adminUserRef = doc(this.firestore, 'admin_users', firebaseUid);
+        await setDoc(adminUserRef, userData);
+        
+        console.log(`✅ Created ${userRequest.role} user with Firebase Auth`);
+        return firebaseUid;
+      } 
+      // For APPLICANT users, continue using the old method (users collection)
+      else {
+        const usersRef = collection(this.firestore, 'users');
+        
+        let userData: any = {
+          ...userRequest,
+          createdAt: now,
+          updatedAt: now,
+          isAccepted: null,
+          phase: 'SIGNUP',
+          webinarAttended: null,
+          profileData: {}
+        };
+
+        const docRef = await addDoc(usersRef, userData);
+        return docRef.id;
+      }
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user');
     }
   }
 
+  private generateTempPassword(): string {
+    // Generate a secure temporary password
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  }
+
   async updateUser(userId: string, updates: UserUpdateRequest): Promise<void> {
     try {
-      const userRef = doc(this.firestore, 'users', userId);
-      await updateDoc(userRef, {
-        ...updates,
-        updatedAt: new Date()
-      });
+      // First try to update in users collection
+      try {
+        const userRef = doc(this.firestore, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          await updateDoc(userRef, {
+            ...updates,
+            updatedAt: new Date()
+          });
+          return;
+        }
+      } catch (error) {
+        console.log('User not found in users collection, trying admin_users...');
+      }
+
+      // If not found in users collection, try admin_users collection
+      const adminUserRef = doc(this.firestore, 'admin_users', userId);
+      const adminUserSnap = await getDoc(adminUserRef);
+      if (adminUserSnap.exists()) {
+        await updateDoc(adminUserRef, {
+          ...updates,
+          updatedAt: new Date()
+        });
+        return;
+      }
+
+      throw new Error('User not found in any collection');
     } catch (error) {
       console.error('Error updating user:', error);
       throw new Error('Failed to update user');
@@ -235,8 +303,27 @@ export class UserService {
 
   async deleteUser(userId: string): Promise<void> {
     try {
-      const userRef = doc(this.firestore, 'users', userId);
-      await deleteDoc(userRef);
+      // First try to delete from users collection
+      try {
+        const userRef = doc(this.firestore, 'users', userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          await deleteDoc(userRef);
+          return;
+        }
+      } catch (error) {
+        console.log('User not found in users collection, trying admin_users...');
+      }
+
+      // If not found in users collection, try admin_users collection
+      const adminUserRef = doc(this.firestore, 'admin_users', userId);
+      const adminUserSnap = await getDoc(adminUserRef);
+      if (adminUserSnap.exists()) {
+        await deleteDoc(adminUserRef);
+        return;
+      }
+
+      throw new Error('User not found in any collection');
     } catch (error) {
       console.error('Error deleting user:', error);
       throw new Error('Failed to delete user');
@@ -381,9 +468,9 @@ export class UserService {
     hasMore: boolean;
   }> {
     try {
-      const usersRef = collection(this.firestore, 'users');
+      const adminUsersRef = collection(this.firestore, 'admin_users');
       let q = query(
-        usersRef,
+        adminUsersRef,
         where('role', '==', UserRole.ADMIN),
         limit(pageSize)
       );
@@ -416,9 +503,9 @@ export class UserService {
     hasMore: boolean;
   }> {
     try {
-      const usersRef = collection(this.firestore, 'users');
+      const adminUsersRef = collection(this.firestore, 'admin_users');
       let q = query(
-        usersRef,
+        adminUsersRef,
         where('role', '==', UserRole.VIEWER),
         limit(pageSize)
       );

@@ -51,6 +51,11 @@ export class AuthService {
 
   async signUp(userRequest: UserCreateRequest): Promise<User> {
     try {
+      // Password is required for signup (this is used for applicant registration)
+      if (!userRequest.password) {
+        throw new Error('Password is required for signup');
+      }
+
       const userCredential = await createUserWithEmailAndPassword(
         this.auth,
         userRequest.email,

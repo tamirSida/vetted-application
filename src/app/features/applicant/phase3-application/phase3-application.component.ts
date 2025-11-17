@@ -162,7 +162,7 @@ import { combineLatest } from 'rxjs';
                   <div class="deck-requirement-text">
                     <p>{{ getDeckRequirementText() }}</p>
                   </div>
-                  
+
                   @if (!getSelectedDeckFile() && !getUploadedDeckUrl()) {
                     <div class="upload-area" (click)="deckFileInput.click()">
                       <i class="fas fa-cloud-upload-alt"></i>
@@ -171,7 +171,7 @@ import { combineLatest } from 'rxjs';
                     </div>
                   }
                   <input #deckFileInput type="file" accept=".pdf" (change)="onDeckFileSelect($event)" style="display: none;">
-                  
+
                   @if (getIsDeckUploading()) {
                     <div class="file-preview uploading">
                       <i class="fas fa-spinner fa-spin"></i>
@@ -332,7 +332,7 @@ import { combineLatest } from 'rxjs';
                 <!-- Conditional explanation when "Yes" is selected -->
                 <div *ngIf="applicationForm.get('previousFounders')?.value === 'true'" class="conditional-field">
                   <label for="previousFoundersExplanation" class="form-label">
-                    If yes, please briefly explain the circumstances of their departure and any severance or equity agreements that were made.
+                    Briefly explain the circumstances of their departure and any severance or equity agreements that were made.
                   </label>
                   <textarea
                     id="previousFoundersExplanation"
@@ -1638,7 +1638,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     const hasIpAssignment = this.applicationForm.get('hasIpAssignment')?.value;
     const hasFounderVesting = this.applicationForm.get('hasFounderVesting')?.value;
     const hasBoardStructure = this.applicationForm.get('hasBoardStructure')?.value;
-    
+
     return hasIpAssignment === 'false' || hasFounderVesting === 'false' || hasBoardStructure === 'false';
   }
 
@@ -1796,13 +1796,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         await this.userService.updateUser(currentUser.userId, {
           status: ApplicationStatus.PHASE_3_SUBMITTED
         });
-        
+
         // Send Phase 3 submitted confirmation email
         if (this.applicant) {
           try {
             console.log('📧 Sending Phase 3 submitted email to:', this.applicant.email);
             const emailResult = await this.emailService.sendPhase3SubmittedEmail(this.applicant);
-            
+
             if (emailResult.success) {
               console.log('✅ Phase 3 submitted email sent successfully');
             } else {
@@ -1976,8 +1976,8 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     // Load existing deck data if available
     if (app.productInfo.companyDeck?.fileUrl) {
       this.uploadedDeckUrl = app.productInfo.companyDeck.fileUrl;
-      this.selectedDeckFile = app.productInfo.companyDeck.fileName ? 
-        new File([], app.productInfo.companyDeck.fileName, { type: 'application/pdf' }) : 
+      this.selectedDeckFile = app.productInfo.companyDeck.fileName ?
+        new File([], app.productInfo.companyDeck.fileName, { type: 'application/pdf' }) :
         null;
     }
 
@@ -2073,13 +2073,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
     try {
       const result = await this.storageService.uploadPitchDeck(this.selectedDeckFile, this.applicant.userId);
-      
+
       this.uploadedDeckUrl = result.downloadURL;
       this.uploadedDeckFilePath = result.filePath;
       this.successMessage = 'Company deck uploaded successfully!';
-      
+
       setTimeout(() => this.successMessage = '', 3000);
-      
+
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to upload deck. Please try again.';
     } finally {
@@ -2095,7 +2095,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         console.error('Error deleting deck file:', error);
       }
     }
-    
+
     this.selectedDeckFile = null;
     this.uploadedDeckUrl = '';
     this.uploadedDeckFilePath = '';
@@ -2104,7 +2104,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   getDeckRequirementText(): string {
     // Check if user has uploaded a deck in P1 application
     const hasP1Deck = this.checkIfUserHasP1Deck();
-    
+
     if (hasP1Deck) {
       return "You may upload again if you've refined your deck";
     } else {

@@ -2,9 +2,9 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, WebinarService, ApplicationService, UserService } from '../../../services';
+import { AuthService, WebinarService, ApplicationService, UserService, InterviewerService } from '../../../services';
 import { combineLatest } from 'rxjs';
-import { ApplicantUser, Phase, Webinar, ApplicationStatus } from '../../../models';
+import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '../../../models';
 
 @Component({
   selector: 'app-dashboard',
@@ -214,7 +214,11 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus } from '../../../model
               @if (interviewer()) {
                 <div class="interviewer-info">
                   <h4>Your Interviewer:</h4>
-                  <p><strong>{{ interviewer() }}</strong></p>
+                  <p><strong>{{ interviewer()?.name }}</strong></p>
+                  <a [href]="interviewer()?.calendarUrl" target="_blank" class="calendar-link">
+                    <i class="fas fa-calendar-alt"></i>
+                    Schedule Interview
+                  </a>
                 </div>
               }
               <div class="next-steps">
@@ -303,6 +307,7 @@ export class DashboardComponent implements OnInit {
   private webinarService = inject(WebinarService);
   private applicationService = inject(ApplicationService);
   private userService = inject(UserService);
+  private interviewerService = inject(InterviewerService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -313,7 +318,7 @@ export class DashboardComponent implements OnInit {
   currentPhase = signal<Phase | null>(null);
   applicationStatus = signal<string>('');
   interviewCompleted = signal<boolean>(false);
-  interviewer = signal<string>('');
+  interviewer = signal<Interviewer | null>(null);
   availableWebinars = signal<Webinar[]>([]);
   
   error = signal<string>('');
@@ -373,14 +378,33 @@ export class DashboardComponent implements OnInit {
       console.log('✅ Dashboard: Set currentPhase to:', user.phase);
       console.log('✅ Dashboard: Set applicationStatus to:', user.status || ApplicationStatus.PHASE_1);
 
-      // Mock interviewer and interview status
-      if (user.phase === 'INTERVIEW') {
-        this.interviewer.set(user.interviewerId || 'TBD');
+      // Load interviewer data if in interview phase
+      if (user.phase === 'INTERVIEW' && user.interviewerId) {
+        await this.loadInterviewerData(user.interviewerId);
         this.interviewCompleted.set(false); // This would come from backend
       }
     } catch (error) {
       console.error('Error loading user data:', error);
       this.error.set('Failed to load user information');
+    }
+  }
+
+  private async loadInterviewerData(interviewerId: string): Promise<void> {
+    try {
+      // Load all interviewers and find the assigned one
+      const allInterviewers = await this.interviewerService.getAllInterviewers();
+      const assignedInterviewer = allInterviewers.find(i => i.id === interviewerId);
+      
+      if (assignedInterviewer) {
+        this.interviewer.set(assignedInterviewer);
+        console.log('✅ Loaded interviewer data:', assignedInterviewer.name);
+      } else {
+        console.warn('❌ Interviewer not found:', interviewerId);
+        this.interviewer.set(null);
+      }
+    } catch (error) {
+      console.error('❌ Error loading interviewer data:', error);
+      this.interviewer.set(null);
     }
   }
 

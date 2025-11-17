@@ -451,11 +451,11 @@ import { combineLatest } from 'rxjs';
             <!-- Tab 4: Legal & Corporate Structure -->
             <div *ngIf="currentTab === 3" class="tab-panel active">
               <div class="tab-header">
-                <h3><i class="fas fa-balance-scale"></i> Legal & Corporate Structure</h3>
+                <h3><i class="fas fa-balance-scale"></i> Part 4: Legal & Corporate Structure</h3>
                 <p>Ensuring your company is set up for venture-scale success is a core part of the Vetted program. Please answer the following questions honestly.</p>
               </div>
 
-              <!-- Is Incorporated -->
+              <!-- Question 1: Is Incorporated -->
               <div class="form-group">
                 <label class="form-label">Is your company incorporated?</label>
                 <div class="radio-group">
@@ -478,12 +478,11 @@ import { combineLatest } from 'rxjs';
                 </div>
               </div>
 
-              <!-- Corporation Details -->
-              <div *ngIf="applicationForm.get('isIncorporated')?.value === 'true'" class="conditional-section">
-                <!-- Incorporation Location -->
+              <!-- If Yes - Incorporation Location -->
+              <div *ngIf="applicationForm.get('isIncorporated')?.value === 'true'" class="conditional-field">
                 <div class="form-group">
                   <label for="incorporationLocation" class="form-label">
-                    Where is the company incorporated? (State or Country)
+                    Country & State/Province of Incorporation:
                   </label>
                   <input
                     type="text"
@@ -491,18 +490,19 @@ import { combineLatest } from 'rxjs';
                     formControlName="incorporationLocation"
                     class="form-input"
                     maxlength="200"
-                    placeholder="e.g., Delaware, California, etc."
+                    placeholder="e.g., Delaware, USA or Ontario, Canada"
                     required>
                 </div>
 
-                <!-- Venture Standard Terms -->
-                <div class="venture-terms-section">
-                  <h4 class="section-subtitle">Venture Standard Terms</h4>
-                  <p class="section-description">Does your company currently have the following venture standard terms in place?</p>
+                <!-- Question 2: Corporate Structure Components -->
+                <div class="form-group">
+                  <label class="form-label">
+                    Does your current corporate structure include all of the following?
+                  </label>
 
                   <!-- IP Assignment -->
-                  <div class="form-group">
-                    <label class="form-label">Intellectual Property Assignment Agreements (PIIA) for all founders and employees?</label>
+                  <div class="sub-question">
+                    <label class="form-label">IP Assignment (All IP developed by founders/employees has been assigned to the company by an IP Assignment agreement):</label>
                     <div class="radio-group">
                       <label class="radio-option">
                         <input
@@ -524,8 +524,8 @@ import { combineLatest } from 'rxjs';
                   </div>
 
                   <!-- Founder Vesting -->
-                  <div class="form-group">
-                    <label class="form-label">Founder vesting schedules (typically 4 years with a 1-year cliff)?</label>
+                  <div class="sub-question">
+                    <label class="form-label">Founder Shares: There are vesting schedules for all founders:</label>
                     <div class="radio-group">
                       <label class="radio-option">
                         <input
@@ -547,8 +547,8 @@ import { combineLatest } from 'rxjs';
                   </div>
 
                   <!-- Board Structure -->
-                  <div class="form-group">
-                    <label class="form-label">Board structure appropriate for venture funding (typically odd number of directors with investor representation)?</label>
+                  <div class="sub-question">
+                    <label class="form-label">Founder Board Seats: Founder Board seats are tied to employment/service with the company?:</label>
                     <div class="radio-group">
                       <label class="radio-option">
                         <input
@@ -568,51 +568,52 @@ import { combineLatest } from 'rxjs';
                       </label>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Amendment Willingness -->
-                  <div class="form-group">
-                    <label class="form-label">If any of the above are missing, would you be willing to amend your corporate documents to include these terms?</label>
-                    <div class="radio-group">
-                      <label class="radio-option">
-                        <input
-                          type="radio"
-                          [checked]="applicationForm.get('willAmendDocuments')?.value === 'true'"
-                          (click)="toggleRadioButton('willAmendDocuments', 'true')">
-                        <span class="checkmark"></span>
-                        Yes
-                      </label>
-                      <label class="radio-option">
-                        <input
-                          type="radio"
-                          [checked]="applicationForm.get('willAmendDocuments')?.value === 'false'"
-                          (click)="toggleRadioButton('willAmendDocuments', 'false')">
-                        <span class="checkmark"></span>
-                        No
-                      </label>
-                    </div>
+                <!-- Question 3: Amendment Willingness (only show if any structure item is missing) -->
+                <div *ngIf="showAmendmentQuestion()" class="form-group">
+                  <label class="form-label">
+                    Are you open to amending your corporate documents to include these standard venture terms?
+                  </label>
+                  <div class="radio-group">
+                    <label class="radio-option">
+                      <input
+                        type="radio"
+                        [checked]="applicationForm.get('willAmendDocuments')?.value === 'true'"
+                        (click)="toggleRadioButton('willAmendDocuments', 'true')">
+                      <span class="checkmark"></span>
+                      Yes
+                    </label>
+                    <label class="radio-option">
+                      <input
+                        type="radio"
+                        [checked]="applicationForm.get('willAmendDocuments')?.value === 'false'"
+                        (click)="toggleRadioButton('willAmendDocuments', 'false')">
+                      <span class="checkmark"></span>
+                      No, please explain:
+                    </label>
                   </div>
 
                   <!-- Amendment Explanation -->
                   <div *ngIf="applicationForm.get('willAmendDocuments')?.value === 'false'" class="conditional-field">
-                    <label for="amendDocumentsExplanation" class="form-label">
-                      Please explain why you would not be willing to make these amendments:
-                    </label>
                     <textarea
                       id="amendDocumentsExplanation"
                       formControlName="amendDocumentsExplanation"
                       rows="3"
                       class="form-textarea"
                       maxlength="2000"
-                      placeholder="Explain your concerns about amending corporate documents..."
+                      placeholder="Please explain why..."
                       required></textarea>
                   </div>
                 </div>
               </div>
 
-              <!-- Not Incorporated Section -->
+              <!-- Question 4: Not Incorporated Section -->
               <div *ngIf="applicationForm.get('isIncorporated')?.value === 'false'" class="conditional-section">
                 <div class="form-group">
-                  <label class="form-label">If accepted into the program, would you be willing to incorporate as a Delaware C-Corp with venture standard terms?</label>
+                  <label class="form-label">
+                    Do you agree to sign a side letter obligating you to incorporate with the standard venture terms listed above (IP Assignment, Vesting, Board Structure) prior to the start of the program?
+                  </label>
                   <div class="radio-group">
                     <label class="radio-option">
                       <input
@@ -620,7 +621,7 @@ import { combineLatest } from 'rxjs';
                         [checked]="applicationForm.get('agreesToIncorporate')?.value === 'AGREE'"
                         (click)="toggleRadioButton('agreesToIncorporate', 'AGREE')">
                       <span class="checkmark"></span>
-                      Yes, I agree to incorporate as a Delaware C-Corp
+                      I agree.
                     </label>
                     <label class="radio-option">
                       <input
@@ -628,7 +629,7 @@ import { combineLatest } from 'rxjs';
                         [checked]="applicationForm.get('agreesToIncorporate')?.value === 'DISCUSS'"
                         (click)="toggleRadioButton('agreesToIncorporate', 'DISCUSS')">
                       <span class="checkmark"></span>
-                      I'd like to discuss alternative structures
+                      I would like to discuss this further.
                     </label>
                   </div>
                 </div>
@@ -1062,6 +1063,21 @@ import { combineLatest } from 'rxjs';
     .conditional-field {
       margin-top: 1rem;
       padding-left: 1rem;
+    }
+
+
+    .sub-question {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+
+    .sub-question .form-label {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
     }
 
     .venture-terms-section {
@@ -1684,6 +1700,15 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       // Otherwise, select the new value
       this.applicationForm.get(fieldName)?.setValue(value);
     }
+  }
+
+  showAmendmentQuestion(): boolean {
+    // Show the amendment question only if any of the corporate structure items is "false" (No)
+    const hasIpAssignment = this.applicationForm.get('hasIpAssignment')?.value;
+    const hasFounderVesting = this.applicationForm.get('hasFounderVesting')?.value;
+    const hasBoardStructure = this.applicationForm.get('hasBoardStructure')?.value;
+    
+    return hasIpAssignment === 'false' || hasFounderVesting === 'false' || hasBoardStructure === 'false';
   }
 
   // Get validation error messages for disabled submit button tooltip

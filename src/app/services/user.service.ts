@@ -93,10 +93,15 @@ export class UserService {
       );
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(doc => ({
-        userId: doc.id,
-        ...doc.data()
-      })) as AdminUser[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          userId: doc.id,
+          ...data,
+          createdAt: data['createdAt']?.toDate?.() || data['createdAt'] || new Date(),
+          updatedAt: data['updatedAt']?.toDate?.() || data['updatedAt'] || new Date()
+        };
+      }) as AdminUser[];
     } catch (error) {
       console.error('Error loading admins:', error);
       throw new Error('Failed to load administrators');
@@ -112,10 +117,15 @@ export class UserService {
       );
       const snapshot = await getDocs(q);
       
-      return snapshot.docs.map(doc => ({
-        userId: doc.id,
-        ...doc.data()
-      })) as ViewerUser[];
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          userId: doc.id,
+          ...data,
+          createdAt: data['createdAt']?.toDate?.() || data['createdAt'] || new Date(),
+          updatedAt: data['updatedAt']?.toDate?.() || data['updatedAt'] || new Date()
+        };
+      }) as ViewerUser[];
     } catch (error) {
       console.error('Error loading viewers:', error);
       throw new Error('Failed to load viewers');

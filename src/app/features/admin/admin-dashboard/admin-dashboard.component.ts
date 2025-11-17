@@ -566,9 +566,6 @@ type AdminSubView = 'users' | 'interviewers';
                         {{ admin.isActive ? 'Active' : 'Inactive' }}
                       </span>
                     </div>
-                    <div class="detail-item">
-                      <strong>Created:</strong> {{ admin.createdAt | date:'short' }}
-                    </div>
                   </div>
 
                   <div class="admin-actions">
@@ -607,9 +604,6 @@ type AdminSubView = 'users' | 'interviewers';
                       <span [class]="'status-indicator ' + (viewer.canView ? 'active' : 'inactive')">
                         {{ viewer.canView ? 'Can View' : 'No Access' }}
                       </span>
-                    </div>
-                    <div class="detail-item">
-                      <strong>Created:</strong> {{ viewer.createdAt | date:'short' }}
                     </div>
                   </div>
 

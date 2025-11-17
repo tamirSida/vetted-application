@@ -116,7 +116,7 @@ export class ApplicationService {
           linkedInProfile: formData.extendedInfo.linkedInProfile,
           serviceHistory: formData.extendedInfo.serviceHistory,
           grandmaTest: formData.extendedInfo.grandmaTest,
-          pitchDeck: formData.extendedInfo.pitchDeck,
+          ...(formData.extendedInfo.pitchDeck && { pitchDeck: formData.extendedInfo.pitchDeck }),
           discovery: formData.extendedInfo.discovery,
           timeCommitment: formData.extendedInfo.timeCommitment,
           selectedWebinarSessions: [] // Initialize empty, will be populated in Phase 2

@@ -185,6 +185,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <th>Status</th>
                   <th>Rating</th>
                   <th>Company</th>
+                  <th>Country</th>
                   <th>Actions</th>
                 </tr>
               </thead>

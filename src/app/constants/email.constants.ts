@@ -9,7 +9,8 @@ export const EMAIL_CONSTANTS = {
       REJECTED: 'Vetted: Your Accelerator Application'
     },
     PHASE3: {
-      SUBMITTED: 'Vetted Accelerator Application Confirmation'
+      SUBMITTED: 'Vetted Accelerator Application Confirmation',
+      APPROVED: 'Interview Invite for the Vetted Accelerator Program'
     }
   },
   

@@ -8,7 +8,9 @@ import {
 } from '../templates/email/phase1';
 import {
   Phase3SubmittedEmailTemplate,
-  Phase3SubmittedEmailData
+  Phase3SubmittedEmailData,
+  Phase3ApprovedEmailTemplate,
+  Phase3ApprovedEmailData
 } from '../templates/email/phase3';
 import { EMAIL_CONSTANTS } from '../constants';
 
@@ -185,6 +187,36 @@ export class EmailService {
     return this.sendEmail({
       to: applicant.email,
       subject: Phase3SubmittedEmailTemplate.generateSubject(),
+      html,
+      text
+    });
+  }
+
+  /**
+   * Send Phase 3 approved email (interview invitation)
+   */
+  async sendPhase3ApprovedEmail(applicant: ApplicantUser, interviewerName: string, schedulingUrl: string): Promise<EmailResponse> {
+    const nameData = this.getApplicantNameData(applicant);
+    const fullName = `${nameData.firstName}${nameData.lastName ? ' ' + nameData.lastName : ''}`;
+    
+    const emailData: Phase3ApprovedEmailData = {
+      applicantName: fullName,
+      interviewerName: interviewerName,
+      schedulingUrl: schedulingUrl
+    };
+
+    console.log('📧 Sending Phase 3 approved (interview invite) email to:', {
+      email: applicant.email,
+      applicantName: fullName,
+      interviewer: interviewerName
+    });
+
+    const html = Phase3ApprovedEmailTemplate.generateHtml(emailData);
+    const text = Phase3ApprovedEmailTemplate.generateBody(emailData);
+
+    return this.sendEmail({
+      to: applicant.email,
+      subject: Phase3ApprovedEmailTemplate.generateSubject(),
       html,
       text
     });

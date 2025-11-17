@@ -872,7 +872,7 @@ import { deleteField } from '@angular/fire/firestore';
           <div class="modal-header">
             <h3>
               <i class="fas fa-user-tie"></i>
-              Select Interviewer
+              {{ isAdvancingToPhase4() ? 'Advance to Phase 4 - Select Interviewer' : 'Change Interviewer' }}
             </h3>
             <button class="modal-close" (click)="cancelInterviewerSelection()">
               <i class="fas fa-times"></i>
@@ -880,12 +880,12 @@ import { deleteField } from '@angular/fire/firestore';
           </div>
           
           <div class="modal-body">
-            <p>Please select an interviewer for {{ applicant()?.name }}:</p>
+            <p>{{ isAdvancingToPhase4() ? 'Select an interviewer to advance to Phase 4:' : 'Select a new interviewer:' }}</p>
             
             <div class="interviewer-list">
               <div *ngFor="let interviewer of interviewers()" 
                    class="interviewer-option" 
-                   (click)="confirmAdvanceToPhase4(interviewer.id!)">
+                   (click)="assignInterviewer(interviewer.id!)">
                 <div class="interviewer-info">
                   <h4>{{ interviewer.name }}</h4>
                   <p>{{ interviewer.email }}</p>
@@ -938,6 +938,7 @@ import { deleteField } from '@angular/fire/firestore';
               </div>
               <div class="modal-actions">
                 <button type="button" class="secondary-button" (click)="closeDocumentModal()">
+                  <i class="fas fa-times"></i>
                   Cancel
                 </button>
                 <button type="submit" class="primary-button" [disabled]="!documentForm.valid">
@@ -2307,7 +2308,9 @@ export class ApplicantDetailComponent implements OnInit {
   flaggingResult = signal<FlaggingResult | null>(null);
   phase3FlaggingResult = signal<FlaggingResult | null>(null);
   interviewers = signal<Interviewer[]>([]);
+  allInterviewers = signal<Interviewer[]>([]); // For displaying interviewer names
   showInterviewerSelection = signal(false);
+  isAdvancingToPhase4 = signal(false);
   interview = signal<Interview | null>(null);
   showDocumentModal = signal(false);
   isLoading = signal(true);
@@ -2606,9 +2609,9 @@ export class ApplicantDetailComponent implements OnInit {
     if (!applicant) return;
 
     try {
-      console.log('🚀 Checking interviewers before advancing to Phase 4...');
+      console.log('🚀 Advancing to Phase 4 - loading interviewers...');
       
-      // Check if there are any active interviewers
+      // Load available interviewers
       const availableInterviewers = await this.interviewerService.getAllInterviewers();
       
       if (availableInterviewers.length === 0) {
@@ -2617,75 +2620,120 @@ export class ApplicantDetailComponent implements OnInit {
       }
 
       this.interviewers.set(availableInterviewers);
+      this.isAdvancingToPhase4.set(true);
       
       // Show interviewer selection modal
       this.showInterviewerSelection.set(true);
       
     } catch (error: any) {
-      console.error('❌ Error checking interviewers:', error);
+      console.error('❌ Error loading interviewers for Phase 4:', error);
       this.error.set(error.message || 'Failed to advance to Phase 4');
     }
   }
 
-  async confirmAdvanceToPhase4(interviewerId: string) {
+  async assignInterviewer(interviewerId: string) {
     const applicant = this.applicant();
     if (!applicant || !interviewerId) return;
 
     try {
-      console.log('🚀 Advancing applicant to Phase 4...', applicant.name);
+      const isAdvancing = this.isAdvancingToPhase4();
       
-      // Update applicant status to Phase 4
-      await this.userService.updateUser(applicant.userId, {
-        phase: Phase.INTERVIEW,
-        status: ApplicationStatus.PHASE_4,
-        interviewerId: interviewerId
-      });
+      if (isAdvancing) {
+        console.log('🚀 Advancing applicant to Phase 4 with interviewer:', applicant.name);
+        
+        // Update applicant status to Phase 4
+        await this.userService.updateUser(applicant.userId, {
+          phase: Phase.INTERVIEW,
+          status: ApplicationStatus.PHASE_4,
+          interviewerId: interviewerId
+        });
 
-      // Create interview record
-      await this.interviewerService.createInterview({
-        applicantId: applicant.userId,
-        interviewerId: interviewerId,
-        cohortId: applicant.cohortId
-      });
+        // Create interview record
+        await this.interviewerService.createInterview({
+          applicantId: applicant.userId,
+          interviewerId: interviewerId,
+          cohortId: applicant.cohortId
+        });
 
-      // Update local state
-      this.applicant.set({
-        ...applicant,
-        phase: Phase.INTERVIEW,
-        status: ApplicationStatus.PHASE_4,
-        interviewerId: interviewerId
-      });
+        // Update local state
+        this.applicant.set({
+          ...applicant,
+          phase: Phase.INTERVIEW,
+          status: ApplicationStatus.PHASE_4,
+          interviewerId: interviewerId
+        });
 
-      // Hide selection modal
+        console.log('✅ Successfully advanced to Phase 4');
+
+        // Send Phase 3 approved email (interview invitation)
+        try {
+          // Get interviewer details for email
+          const interviewer = this.allInterviewers().find(i => i.id === interviewerId);
+          const interviewerName = interviewer?.name || 'Unknown Interviewer';
+          const schedulingUrl = interviewer?.calendarUrl || 'Please contact us for scheduling';
+
+          console.log('📧 Sending Phase 3 approved (interview invite) email to:', applicant.email);
+          const emailResult = await this.emailService.sendPhase3ApprovedEmail(
+            applicant,
+            interviewerName,
+            schedulingUrl
+          );
+          
+          if (emailResult.success) {
+            console.log('✅ Phase 3 approved email sent successfully');
+          } else {
+            console.error('❌ Failed to send Phase 3 approved email:', emailResult.error);
+            // Don't fail the advancement if email fails
+          }
+        } catch (emailError) {
+          console.error('❌ Email service error during Phase 3 approval:', emailError);
+          // Don't fail the advancement if email fails
+        }
+        
+        // Refresh to show Phase 4 interface
+        window.location.reload();
+        
+      } else {
+        console.log('🔄 Changing interviewer for Phase 4 applicant:', applicant.name);
+        
+        // Just update the interviewer assignment
+        await this.userService.updateUser(applicant.userId, {
+          interviewerId: interviewerId
+        });
+
+        // Note: We don't update the interview record's interviewerId field
+        // because that requires creating a new interview record with the new interviewer
+        // The interviewerId in the user record is the primary source of truth
+
+        // Update local state
+        this.applicant.set({
+          ...applicant,
+          interviewerId: interviewerId
+        });
+
+        console.log('✅ Successfully changed interviewer');
+      }
+
+      // Hide selection modal and reset state
       this.showInterviewerSelection.set(false);
-
-      console.log('✅ Successfully advanced to Phase 4');
-
-      // TODO: Send Phase 3 approval email (implement when Phase 3 templates are created)
-      // try {
-      //   console.log('📧 Sending Phase 3 approval email to:', applicant.email);
-      //   const emailResult = await this.emailService.sendPhase3ApprovalEmail(applicant);
-      //   
-      //   if (emailResult.success) {
-      //     console.log('✅ Phase 3 approval email sent successfully');
-      //   } else {
-      //     console.error('❌ Failed to send Phase 3 approval email:', emailResult.error);
-      //   }
-      // } catch (emailError) {
-      //   console.error('❌ Email service error during Phase 3 approval:', emailError);
-      // }
+      this.interviewers.set([]);
+      this.isAdvancingToPhase4.set(false);
       
-      // Refresh the current view
-      window.location.reload();
+      // Reload interview data if we're just changing interviewer
+      if (!isAdvancing) {
+        await this.loadInterviewData();
+      }
 
     } catch (error) {
-      console.error('❌ Error advancing to Phase 4:', error);
+      console.error('❌ Error assigning interviewer:', error);
+      this.error.set('Failed to assign interviewer');
     }
   }
 
   cancelInterviewerSelection() {
     this.showInterviewerSelection.set(false);
     this.interviewers.set([]);
+    this.isAdvancingToPhase4.set(false);
   }
 
   async reopenPhase3Application() {
@@ -2819,9 +2867,28 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   // Interview management
-  showInterviewerAssignment() {
-    // TODO: Implement interviewer assignment modal
-    console.log('Show interviewer assignment');
+  async showInterviewerAssignment() {
+    try {
+      console.log('🔄 Loading interviewers for assignment change...');
+      
+      // Load available interviewers
+      const availableInterviewers = await this.interviewerService.getAllInterviewers();
+      
+      if (availableInterviewers.length === 0) {
+        this.error.set('No interviewers available. Please add at least one interviewer first.');
+        return;
+      }
+
+      this.interviewers.set(availableInterviewers);
+      this.isAdvancingToPhase4.set(false); // This is just changing interviewer, not advancing
+      
+      // Show interviewer selection modal
+      this.showInterviewerSelection.set(true);
+      
+    } catch (error: any) {
+      console.error('❌ Error loading interviewers:', error);
+      this.error.set(error.message || 'Failed to load interviewers');
+    }
   }
 
   async loadInterviewData() {
@@ -2829,6 +2896,10 @@ export class ApplicantDetailComponent implements OnInit {
     if (!applicant?.userId) return;
 
     try {
+      // Load all interviewers for name lookup
+      const allInterviewers = await this.interviewerService.getAllInterviewers();
+      this.allInterviewers.set(allInterviewers);
+      
       const interview = await this.interviewerService.getInterviewByApplicantId(applicant.userId);
       this.interview.set(interview);
       
@@ -2848,8 +2919,11 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   getInterviewerName(): string {
-    // TODO: Load interviewer name based on interviewerId
-    return 'John Doe'; // Placeholder
+    const applicant = this.applicant();
+    if (!applicant?.interviewerId) return 'Not assigned';
+    
+    const interviewer = this.allInterviewers().find(i => i.id === applicant.interviewerId);
+    return interviewer?.name || 'Unknown Interviewer';
   }
 
   async saveNotes() {

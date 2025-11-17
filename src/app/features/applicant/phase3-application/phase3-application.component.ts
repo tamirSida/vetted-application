@@ -7,6 +7,7 @@ import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
 import { OpenAIService } from '../../../services/openai.service';
 import { StorageService } from '../../../services/storage.service';
+import { EmailService } from '../../../services/email.service';
 import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
 import { Router } from '@angular/router';
@@ -1345,6 +1346,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   private userService = inject(UserService);
   private openaiService = inject(OpenAIService);
   private storageService = inject(StorageService);
+  private emailService = inject(EmailService);
   private router = inject(Router);
 
   applicationForm!: FormGroup;
@@ -1794,6 +1796,22 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         await this.userService.updateUser(currentUser.userId, {
           status: ApplicationStatus.PHASE_3_SUBMITTED
         });
+        
+        // Send Phase 3 submitted confirmation email
+        if (this.applicant) {
+          try {
+            console.log('📧 Sending Phase 3 submitted email to:', this.applicant.email);
+            const emailResult = await this.emailService.sendPhase3SubmittedEmail(this.applicant);
+            
+            if (emailResult.success) {
+              console.log('✅ Phase 3 submitted email sent successfully');
+            } else {
+              console.error('❌ Failed to send Phase 3 submitted email:', emailResult.error);
+            }
+          } catch (emailError) {
+            console.error('❌ Email service error during Phase 3 submission:', emailError);
+          }
+        }
       }
 
       // Trigger OpenAI analysis in the background (fire and forget)

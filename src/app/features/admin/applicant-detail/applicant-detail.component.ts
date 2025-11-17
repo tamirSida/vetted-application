@@ -9,6 +9,7 @@ import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus,
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 import { OpenAIService } from '../../../services/openai.service';
 import { EmailService } from '../../../services/email.service';
+import { deleteField } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-applicant-detail',
@@ -389,6 +390,10 @@ import { EmailService } from '../../../services/email.service';
               <button *ngIf="canAdvanceFromPhase3()" class="advance-button" (click)="advanceToPhase4()">
                 <i class="fas fa-arrow-right"></i>
                 Advance to Phase 4
+              </button>
+              <button *ngIf="canReopenPhase3Application()" class="reopen-button" (click)="reopenPhase3Application()">
+                <i class="fas fa-edit"></i>
+                Reopen Application
               </button>
               <button class="recalc-button" (click)="reevaluatePhase3Flags()" [disabled]="isReevaluatingPhase3()">
                 <i [class]="isReevaluatingPhase3() ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i>
@@ -1987,6 +1992,11 @@ export class ApplicantDetailComponent implements OnInit {
     return status === ApplicationStatus.PHASE_3_SUBMITTED;
   }
 
+  canReopenPhase3Application(): boolean {
+    const status = this.applicant()?.status;
+    return status === ApplicationStatus.PHASE_3_SUBMITTED;
+  }
+
   canAdvanceFromPhase4(): boolean {
     const status = this.applicant()?.status;
     return status === ApplicationStatus.PHASE_4_POST_INTERVIEW;
@@ -2106,6 +2116,50 @@ export class ApplicantDetailComponent implements OnInit {
 
     } catch (error) {
       console.error('❌ Error advancing to Phase 4:', error);
+    }
+  }
+
+  async reopenPhase3Application() {
+    const applicant = this.applicant();
+    const phase3App = this.phase3Application();
+    if (!applicant || !phase3App) return;
+
+    try {
+      console.log('🔄 Reopening Phase 3 application for:', applicant.name || applicant.email);
+      
+      // Update applicant status back to Phase 3 In Progress
+      await this.userService.updateUser(applicant.userId, {
+        phase: Phase.IN_DEPTH_APPLICATION,
+        status: ApplicationStatus.PHASE_3_IN_PROGRESS
+      });
+
+      // Update Phase 3 application status back to DRAFT
+      const updateData: any = {
+        status: 'DRAFT',
+        submittedAt: deleteField() // Clear the submission timestamp using Firebase deleteField
+      };
+      await this.applicationService.updatePhase3Application(phase3App.id!, updateData);
+
+      // Update local state
+      this.applicant.set({
+        ...applicant,
+        phase: Phase.IN_DEPTH_APPLICATION,
+        status: ApplicationStatus.PHASE_3_IN_PROGRESS
+      });
+
+      this.phase3Application.set({
+        ...phase3App,
+        status: 'DRAFT',
+        submittedAt: undefined // This is okay for local state
+      });
+
+      console.log('✅ Successfully reopened Phase 3 application');
+      
+      // Refresh the current view to reflect changes
+      window.location.reload();
+
+    } catch (error) {
+      console.error('❌ Error reopening Phase 3 application:', error);
     }
   }
 

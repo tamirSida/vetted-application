@@ -52,10 +52,14 @@ The Vetted Team`;
             border-radius: 8px 8px 0 0;
             text-align: center;
         }
-        .logo {
-            max-width: 150px;
-            height: auto;
-            margin-bottom: 20px;
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 400;
         }
         .content {
             background: #ffffff;
@@ -113,9 +117,8 @@ The Vetted Team`;
 </head>
 <body>
     <div class="header">
-        <img src="cid:logo" alt="Vetted Accelerator" class="logo" />
-        <h1>Let's Meet!</h1>
-        <p style="margin: 10px 0 0 0; font-size: 18px;">[Add Vetted Logo]</p>
+        <h1>Vetted Accelerator</h1>
+        <h2>Let's Meet!</h2>
     </div>
     
     <div class="content">
@@ -124,7 +127,7 @@ The Vetted Team`;
         <p>We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members:</p>
         
         <div class="interview-info">
-            <p style="margin: 0;">[interviewer Schedule]</p>
+            <p style="margin: 0;"><strong>Your Interviewer:</strong></p>
             <div class="interviewer-name">${data.interviewerName}, ${data.interviewerTitle}</div>
         </div>
         

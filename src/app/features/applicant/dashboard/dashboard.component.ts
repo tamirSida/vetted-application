@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, WebinarService, ApplicationService, UserService, InterviewerService } from '../../../services';
+import { AuthService, WebinarService, ApplicationService, UserService, InterviewerService, CohortService } from '../../../services';
 import { combineLatest } from 'rxjs';
 import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '../../../models';
 
@@ -149,18 +149,8 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
               </div>
               <div class="status-content">
                 <h2>Application Under Review</h2>
-                <p class="status-message">Thank you for submitting your in-depth application! Our team is currently reviewing your detailed information.</p>
-                <div class="status-detail">
-                  <strong>Current Status:</strong> We are reviewing your application
-                </div>
-                <div class="next-steps">
-                  <h4>What happens next?</h4>
-                  <ul>
-                    <li>Our team will thoroughly review your application within 5-7 business days</li>
-                    <li>If selected, you'll be invited for an interview</li>
-                    <li>We'll email you with updates on your application status</li>
-                  </ul>
-                </div>
+                <p class="status-message">Thank you for submitting your application for the Vetted Accelerator.</p>
+                <p class="status-message">We have received your submission and our team will now begin the review process. We review applications on a rolling basis. Expect to hear from us in the coming days / weeks but no later than {{ applicationEndDate() }}</p>
               </div>
             </div>
           } @else if (applicationStatus() === ApplicationStatus.PHASE_3) {
@@ -290,6 +280,7 @@ export class DashboardComponent implements OnInit {
   private applicationService = inject(ApplicationService);
   private userService = inject(UserService);
   private interviewerService = inject(InterviewerService);
+  private cohortService = inject(CohortService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -302,6 +293,7 @@ export class DashboardComponent implements OnInit {
   interviewCompleted = signal<boolean>(false);
   interviewer = signal<Interviewer | null>(null);
   availableWebinars = signal<Webinar[]>([]);
+  applicationEndDate = signal<string>('[Application End Date]');
   
   error = signal<string>('');
   success = signal<string>('');
@@ -334,6 +326,7 @@ export class DashboardComponent implements OnInit {
         console.log('✅ Dashboard: User is an applicant, loading data');
         this.loadUserData(user as ApplicantUser);
         this.loadWebinars();
+        this.loadCohortData(user as ApplicantUser);
       } else if (user === null) {
         console.log('❌ Dashboard: No user found, redirecting to login');
         // Auth is initialized and user is null - redirect to login
@@ -400,6 +393,24 @@ export class DashboardComponent implements OnInit {
       }
     } catch (error) {
       console.error('Error loading webinars:', error);
+    }
+  }
+
+  private async loadCohortData(user: ApplicantUser) {
+    try {
+      if (user.cohortId) {
+        const cohort = await this.cohortService.getCohortById(user.cohortId);
+        if (cohort) {
+          const applicationEndDate = new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }).format(new Date(cohort.applicationEndDate));
+          this.applicationEndDate.set(applicationEndDate);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading cohort data:', error);
     }
   }
 

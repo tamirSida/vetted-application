@@ -126,21 +126,6 @@ type AdminSubView = 'users' | 'interviewers';
             </div>
             
             <div *ngIf="showStats()" class="stats-content">
-              <!-- Status Filter for Stats -->
-              <div class="stats-filter">
-                <label for="stats-status-filter">Filter by Status:</label>
-                <div class="select-wrapper">
-                  <select id="stats-status-filter" class="filter-select" 
-                          [value]="statsStatusFilter()" (change)="updateStatsStatusFilter($event)">
-                    <option value="all">All Statuses</option>
-                    <option *ngFor="let status of availableStatuses()" [value]="status">
-                      {{ getStatusDisplayName(status) }}
-                    </option>
-                  </select>
-                  <i class="fas fa-chevron-down select-arrow"></i>
-                </div>
-              </div>
-
               <!-- Stats Grid -->
               <div class="stats-grid">
                 <!-- Country Distribution -->
@@ -148,6 +133,19 @@ type AdminSubView = 'users' | 'interviewers';
                   <div class="stat-header">
                     <i class="fas fa-globe"></i>
                     <h4>Country Distribution</h4>
+                  </div>
+                  <div class="stat-filter">
+                    <label for="country-stats-status-filter">Filter by Status:</label>
+                    <div class="select-wrapper">
+                      <select id="country-stats-status-filter" class="filter-select" 
+                              [value]="countryStatsStatusFilter()" (change)="updateCountryStatsStatusFilter($event)">
+                        <option value="all">All Statuses</option>
+                        <option *ngFor="let status of availableStatuses()" [value]="status">
+                          {{ getStatusDisplayName(status) }}
+                        </option>
+                      </select>
+                      <i class="fas fa-chevron-down select-arrow"></i>
+                    </div>
                   </div>
                   <div class="stat-content">
                     <div class="stat-item">
@@ -171,27 +169,31 @@ type AdminSubView = 'users' | 'interviewers';
                     <i class="fas fa-star"></i>
                     <h4>Rating Distribution</h4>
                   </div>
+                  <div class="stat-filter">
+                    <label for="rating-stats-country-filter">Filter by Country:</label>
+                    <div class="select-wrapper">
+                      <select id="rating-stats-country-filter" class="filter-select" 
+                              [value]="ratingStatsCountryFilter()" (change)="updateRatingStatsCountryFilter($event)">
+                        <option value="all">All Countries</option>
+                        <option *ngFor="let country of availableCountries(); trackBy: trackByCountry" [value]="country">
+                          {{ country }}
+                        </option>
+                      </select>
+                      <i class="fas fa-chevron-down select-arrow"></i>
+                    </div>
+                  </div>
                   <div class="stat-content">
                     <div class="stat-item">
                       <span class="stat-label">Rating 1 (Best):</span>
-                      <span class="stat-value">
-                        {{ ratingStats().rating1.total }}
-                        <small>(US: {{ ratingStats().rating1.US }}, IL: {{ ratingStats().rating1.Israel }})</small>
-                      </span>
+                      <span class="stat-value">{{ ratingStats().rating1.total }}</span>
                     </div>
                     <div class="stat-item">
                       <span class="stat-label">Rating 2 (Average):</span>
-                      <span class="stat-value">
-                        {{ ratingStats().rating2.total }}
-                        <small>(US: {{ ratingStats().rating2.US }}, IL: {{ ratingStats().rating2.Israel }})</small>
-                      </span>
+                      <span class="stat-value">{{ ratingStats().rating2.total }}</span>
                     </div>
                     <div class="stat-item">
                       <span class="stat-label">Rating 3 (Worst):</span>
-                      <span class="stat-value">
-                        {{ ratingStats().rating3.total }}
-                        <small>(US: {{ ratingStats().rating3.US }}, IL: {{ ratingStats().rating3.Israel }})</small>
-                      </span>
+                      <span class="stat-value">{{ ratingStats().rating3.total }}</span>
                     </div>
                   </div>
                 </div>
@@ -1633,16 +1635,19 @@ type AdminSubView = 'users' | 'interviewers';
     }
 
     .stats-filter {
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: #f1f5f9;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
     }
 
     .stats-filter label {
       font-weight: 500;
       color: #374151;
-      white-space: nowrap;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+      display: block;
     }
 
     .stats-grid {
@@ -2575,16 +2580,13 @@ export class AdminDashboardComponent implements OnInit {
     return Array.from(countries).sort();
   });
 
-  // Stats computed signals
-  statsApplicants = computed(() => {
-    const statusFilter = this.statsStatusFilter();
-    return this.applicants().filter(applicant => 
+  // Stats computed signals with independent filters
+  countryStats = computed(() => {
+    const statusFilter = this.countryStatsStatusFilter();
+    const applicants = this.applicants().filter(applicant => 
       statusFilter === 'all' || applicant.status === statusFilter
     );
-  });
-
-  countryStats = computed(() => {
-    const applicants = this.statsApplicants();
+    
     const stats = { US: 0, Israel: 0, Other: 0 };
     
     for (const applicant of applicants) {
@@ -2602,7 +2604,13 @@ export class AdminDashboardComponent implements OnInit {
   });
 
   ratingStats = computed(() => {
-    const applicants = this.statsApplicants();
+    const countryFilter = this.ratingStatsCountryFilter();
+    const applicants = this.applicants().filter(applicant => {
+      if (countryFilter === 'all') return true;
+      const country = this.getCountryFromCache(applicant.userId);
+      return country === countryFilter;
+    });
+    
     const stats = { 
       rating1: { total: 0, US: 0, Israel: 0 },
       rating2: { total: 0, US: 0, Israel: 0 },
@@ -2627,7 +2635,8 @@ export class AdminDashboardComponent implements OnInit {
   });
 
   unratedPhase3Stats = computed(() => {
-    const applicants = this.statsApplicants().filter(applicant => 
+    // No filters for this stat - just count all unrated P3 submissions
+    const applicants = this.applicants().filter(applicant => 
       (applicant.rating === null || applicant.rating === undefined) && 
       this.hasPhase3Submission(applicant.userId)
     );
@@ -2674,7 +2683,10 @@ export class AdminDashboardComponent implements OnInit {
   
   // Stats section
   showStats = signal(false);
-  statsStatusFilter = signal<ApplicationStatus | 'all'>('all');
+  
+  // Independent filters for each stat card
+  countryStatsStatusFilter = signal<ApplicationStatus | 'all'>('all');
+  ratingStatsCountryFilter = signal<string>('all');
 
   // Forms
   cohortForm: FormGroup;
@@ -3108,9 +3120,18 @@ export class AdminDashboardComponent implements OnInit {
     this.showStats.update(show => !show);
   }
 
-  updateStatsStatusFilter(event: Event): void {
+  updateCountryStatsStatusFilter(event: Event): void {
     const target = event.target as HTMLSelectElement;
-    this.statsStatusFilter.set(target.value as ApplicationStatus | 'all');
+    this.countryStatsStatusFilter.set(target.value as ApplicationStatus | 'all');
+  }
+
+  updateRatingStatsCountryFilter(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.ratingStatsCountryFilter.set(target.value);
+  }
+
+  trackByCountry(index: number, country: string): string {
+    return country;
   }
 
   getCohortName(cohortId: string): string {

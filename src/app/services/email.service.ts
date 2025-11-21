@@ -208,13 +208,14 @@ export class EmailService {
   /**
    * Send Phase 3 approved email (interview invitation)
    */
-  async sendPhase3ApprovedEmail(applicant: ApplicantUser, interviewerName: string, schedulingUrl: string): Promise<EmailResponse> {
+  async sendPhase3ApprovedEmail(applicant: ApplicantUser, interviewerName: string, interviewerTitle: string, schedulingUrl: string): Promise<EmailResponse> {
     const nameData = this.getApplicantNameData(applicant);
     const fullName = `${nameData.firstName}${nameData.lastName ? ' ' + nameData.lastName : ''}`;
     
     const emailData: Phase3ApprovedEmailData = {
       applicantName: fullName,
       interviewerName: interviewerName,
+      interviewerTitle: interviewerTitle,
       schedulingUrl: schedulingUrl
     };
 

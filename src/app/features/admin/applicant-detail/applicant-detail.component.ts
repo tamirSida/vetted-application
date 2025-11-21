@@ -2674,17 +2674,20 @@ export class ApplicantDetailComponent implements OnInit {
           }
 
           const interviewerName = interviewer.name;
+          const interviewerTitle = interviewer.title;
           const schedulingUrl = interviewer.calendarUrl;
           
           console.log('📧 Sending Phase 3 approved email:', {
             to: applicant.email,
             interviewer: interviewerName,
+            interviewerTitle,
             schedulingUrl
           });
 
           const emailResult = await this.emailService.sendPhase3ApprovedEmail(
             applicant,
             interviewerName,
+            interviewerTitle,
             schedulingUrl
           );
           

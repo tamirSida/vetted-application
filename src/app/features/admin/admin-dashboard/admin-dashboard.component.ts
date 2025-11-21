@@ -4209,6 +4209,7 @@ export class AdminDashboardComponent implements OnInit {
         html = Phase3ApprovedEmailTemplate.generateHtml({
           applicantName: sampleData.name,
           interviewerName: 'Sarah Johnson',
+          interviewerTitle: 'Senior Software Engineer',
           schedulingUrl: 'https://calendly.com/vetted/interview'
         });
         break;

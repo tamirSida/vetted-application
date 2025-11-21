@@ -3,24 +3,28 @@ import { EMAIL_CONSTANTS } from '../../../constants/email.constants';
 export interface Phase3ApprovedEmailData {
   applicantName: string;
   interviewerName: string;
+  interviewerTitle: string;
   schedulingUrl: string;
 }
 
 export class Phase3ApprovedEmailTemplate {
   static generateSubject(): string {
-    return EMAIL_CONSTANTS.SUBJECTS.PHASE3.APPROVED;
+    return 'Welcome to the final phase of the Vetted Accelerator application';
   }
 
   static generateBody(data: Phase3ApprovedEmailData): string {
     return `Hi ${data.applicantName},
 
-We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members: ${data.interviewerName}.
+We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members:
+
+Schedule with ${data.interviewerName}, ${data.interviewerTitle}
 
 Please click the link to schedule a time that works best for you: ${data.schedulingUrl}
 
 Feel free to reach out to Eden at eden@thevetted.vc, if you have any questions before the meeting.
 
-${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
+Best regards,
+The Vetted Team`;
   }
 
   static generateHtml(data: Phase3ApprovedEmailData): string {
@@ -110,8 +114,8 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
 <body>
     <div class="header">
         <img src="cid:logo" alt="Vetted Accelerator" class="logo" />
-        <h1>🎉 Congratulations!</h1>
-        <p style="margin: 10px 0 0 0; font-size: 18px;">You've been invited to interview for the Vetted Accelerator</p>
+        <h1>Let's Meet!</h1>
+        <p style="margin: 10px 0 0 0; font-size: 18px;">[Add Vetted Logo]</p>
     </div>
     
     <div class="content">
@@ -120,14 +124,14 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
         <p>We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members:</p>
         
         <div class="interview-info">
-            <p style="margin: 0;"><strong>Your Interviewer:</strong></p>
-            <div class="interviewer-name">${data.interviewerName}</div>
+            <p style="margin: 0;">[interviewer Schedule]</p>
+            <div class="interviewer-name">${data.interviewerName}, ${data.interviewerTitle}</div>
         </div>
         
-        <p>Please click the link below to schedule a time that works best for you:</p>
+        <p>Please click the link to schedule a time that works best for you.</p>
         
         <p style="text-align: center;">
-            <a href="${data.schedulingUrl}" class="schedule-link">Schedule Your Interview</a>
+            <a href="${data.schedulingUrl}" class="schedule-link">Schedule with ${data.interviewerName}, ${data.interviewerTitle}</a>
         </p>
         
         <div class="contact-info">

@@ -17,7 +17,7 @@ import { StorageService, ApplicationService, ApplicationSubmissionData, AuthServ
             <i class="fas fa-arrow-left"></i>
             Back to Login
           </button>
-          <h1>Phase 1 Application</h1>
+          <h1>Initial Sign Up</h1>
           <p>{{ currentPage() === 1 ? 'Company & Personal Information' : 'Extended Information' }}</p>
           <p class="form-note">This will create your user account and sign you in automatically.</p>
         </header>

@@ -180,12 +180,37 @@ type AdminSubView = 'users' | 'interviewers';
             <table class="applicants-table">
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th class="sortable-header" (click)="sort('name')">
+                    Name
+                    <i class="fas" 
+                       [class.fa-sort]="sortField() !== 'name'"
+                       [class.fa-sort-up]="sortField() === 'name' && sortDirection() === 'asc'"
+                       [class.fa-sort-down]="sortField() === 'name' && sortDirection() === 'desc'"></i>
+                  </th>
                   <th>Email</th>
-                  <th>Status</th>
-                  <th>Rating</th>
+                  <th class="sortable-header" (click)="sort('status')">
+                    Status
+                    <i class="fas" 
+                       [class.fa-sort]="sortField() !== 'status'"
+                       [class.fa-sort-up]="sortField() === 'status' && sortDirection() === 'asc'"
+                       [class.fa-sort-down]="sortField() === 'status' && sortDirection() === 'desc'"></i>
+                  </th>
+                  <th class="sortable-header" (click)="sort('rating')">
+                    Rating
+                    <i class="fas" 
+                       [class.fa-sort]="sortField() !== 'rating'"
+                       [class.fa-sort-up]="sortField() === 'rating' && sortDirection() === 'asc'"
+                       [class.fa-sort-down]="sortField() === 'rating' && sortDirection() === 'desc'"></i>
+                  </th>
                   <th>Company</th>
                   <th>Country</th>
+                  <th class="sortable-header" (click)="sort('p3submission')">
+                    P3 Submission
+                    <i class="fas" 
+                       [class.fa-sort]="sortField() !== 'p3submission'"
+                       [class.fa-sort-up]="sortField() === 'p3submission' && sortDirection() === 'asc'"
+                       [class.fa-sort-down]="sortField() === 'p3submission' && sortDirection() === 'desc'"></i>
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -239,6 +264,7 @@ type AdminSubView = 'users' | 'interviewers';
                   </td>
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
                   <td>{{ getCountryFromCache(applicant.userId) }}</td>
+                  <td>{{ getP3SubmissionDisplay(applicant.userId) }}</td>
                   <td>
                     <button class="table-action-btn delete-btn" (click)="$event.stopPropagation(); deleteApplicant(applicant)">
                       <i class="fas fa-trash"></i>
@@ -1227,6 +1253,30 @@ type AdminSubView = 'users' | 'interviewers';
       background: #2563eb;
     }
 
+    /* Sortable Headers */
+    .sortable-header {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: background-color 0.2s;
+    }
+
+    .sortable-header:hover {
+      background: #e5e7eb !important;
+    }
+
+    .sortable-header i {
+      margin-left: 0.5rem;
+      opacity: 0.6;
+      font-size: 0.75rem;
+    }
+
+    .sortable-header .fa-sort-up,
+    .sortable-header .fa-sort-down {
+      opacity: 1;
+      color: #3b82f6;
+    }
+
     /* Status Badges */
     .status-badge, .phase-badge, .role-badge {
       padding: 0.25rem 0.75rem;
@@ -2032,14 +2082,24 @@ export class AdminDashboardComponent implements OnInit {
   ratingFilter = signal<string>('all');
   countryFilter = signal<string>('all');
 
-  // Computed signals for filtering
+  // Sorting
+  sortField = signal<'name' | 'status' | 'rating' | 'p3submission'>('p3submission');
+  sortDirection = signal<'asc' | 'desc'>('desc');
+
+  // Cache for Phase 3 applications submission dates
+  p3SubmissionCache = signal<Map<string, Date | null>>(new Map());
+
+  // Computed signals for filtering and sorting
   filteredApplicants = computed(() => {
     const applicants = this.applicants();
     const statusFilter = this.statusFilter();
     const ratingFilter = this.ratingFilter();
     const countryFilter = this.countryFilter();
+    const sortField = this.sortField();
+    const sortDirection = this.sortDirection();
     
-    return applicants.filter(applicant => {
+    // First, filter the applicants
+    const filtered = applicants.filter(applicant => {
       // Status filter
       if (statusFilter !== 'all' && applicant.status !== statusFilter) {
         return false;
@@ -2064,6 +2124,47 @@ export class AdminDashboardComponent implements OnInit {
       }
       
       return true;
+    });
+
+    // Then sort the filtered results
+    return filtered.sort((a, b) => {
+      let compareValue = 0;
+
+      switch (sortField) {
+        case 'name':
+          compareValue = `${a.name}`.localeCompare(`${b.name}`);
+          break;
+
+        case 'status':
+          compareValue = `${a.status || ''}`.localeCompare(`${b.status || ''}`);
+          break;
+
+        case 'rating':
+          // Rating: ascending order, null values after 3
+          const ratingA = a.rating ?? 999; // null values get high number
+          const ratingB = b.rating ?? 999;
+          compareValue = ratingA - ratingB;
+          break;
+
+        case 'p3submission':
+          // P3 submission date, fallback to name
+          const p3DateA = this.getP3SubmissionFromCache(a.userId);
+          const p3DateB = this.getP3SubmissionFromCache(b.userId);
+          
+          if (p3DateA && p3DateB) {
+            compareValue = p3DateA.getTime() - p3DateB.getTime();
+          } else if (p3DateA && !p3DateB) {
+            compareValue = -1; // A has submission, B doesn't - A comes first
+          } else if (!p3DateA && p3DateB) {
+            compareValue = 1; // B has submission, A doesn't - B comes first
+          } else {
+            // Neither has submission - sort alphabetically by name
+            compareValue = `${a.name}`.localeCompare(`${b.name}`);
+          }
+          break;
+      }
+
+      return sortDirection === 'desc' ? -compareValue : compareValue;
     });
   });
 
@@ -2389,6 +2490,48 @@ export class AdminDashboardComponent implements OnInit {
 
   getCountryFromCache(userId: string): string {
     return this.countryCache().get(userId) || 'Loading...';
+  }
+
+  async getApplicantP3SubmissionDate(applicant: ApplicantUser): Promise<Date | null> {
+    try {
+      // Query the phase3_applications collection for this applicant
+      const phase3App = await this.applicationService.getPhase3Application(applicant.userId, applicant.cohortId);
+      return phase3App?.submittedAt || null;
+    } catch (error) {
+      console.warn(`Failed to load P3 submission date for applicant ${applicant.userId}:`, error);
+      return null;
+    }
+  }
+
+  getP3SubmissionFromCache(userId: string): Date | null {
+    return this.p3SubmissionCache().get(userId) || null;
+  }
+
+  getP3SubmissionDisplay(userId: string): string {
+    const submissionDate = this.getP3SubmissionFromCache(userId);
+    if (submissionDate) {
+      return new Intl.DateTimeFormat('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      }).format(submissionDate);
+    }
+    return 'Not submitted';
+  }
+
+  // Sorting methods
+  sort(field: 'name' | 'status' | 'rating' | 'p3submission'): void {
+    const currentField = this.sortField();
+    const currentDirection = this.sortDirection();
+
+    if (currentField === field) {
+      // Same field, toggle direction
+      this.sortDirection.set(currentDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, set to ascending by default (except for rating which is always ascending)
+      this.sortField.set(field);
+      this.sortDirection.set(field === 'rating' ? 'asc' : 'desc');
+    }
   }
 
   // Filter methods
@@ -2913,9 +3056,10 @@ export class AdminDashboardComponent implements OnInit {
         this.applicants.update(current => [...current, ...result.users]);
       }
       
-      // Load country data for each applicant and cache it
+      // Load country data and P3 submission dates for each applicant and cache them
       for (const applicant of result.users) {
         this.loadCountryForApplicant(applicant.userId);
+        this.loadP3SubmissionForApplicant(applicant);
       }
       
       this.applicantsLastDoc.set(result.lastDoc);
@@ -2941,6 +3085,26 @@ export class AdminDashboardComponent implements OnInit {
       this.countryCache.update(cache => {
         const newCache = new Map(cache);
         newCache.set(userId, 'Not specified');
+        return newCache;
+      });
+    }
+  }
+
+  private async loadP3SubmissionForApplicant(applicant: ApplicantUser) {
+    try {
+      const submissionDate = await this.getApplicantP3SubmissionDate(applicant);
+      
+      // Update the cache
+      this.p3SubmissionCache.update(cache => {
+        const newCache = new Map(cache);
+        newCache.set(applicant.userId, submissionDate);
+        return newCache;
+      });
+    } catch (error) {
+      console.warn(`Failed to load P3 submission date for applicant ${applicant.userId}:`, error);
+      this.p3SubmissionCache.update(cache => {
+        const newCache = new Map(cache);
+        newCache.set(applicant.userId, null);
         return newCache;
       });
     }

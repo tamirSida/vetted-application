@@ -2263,17 +2263,19 @@ export class AdminDashboardComponent implements OnInit {
           const p3DateA = this.getP3SubmissionFromCache(a.userId);
           const p3DateB = this.getP3SubmissionFromCache(b.userId);
           
-          if (p3DateA && p3DateB) {
-            // Ensure dates are Date objects
-            const dateA = p3DateA instanceof Date ? p3DateA : new Date(p3DateA);
-            const dateB = p3DateB instanceof Date ? p3DateB : new Date(p3DateB);
-            compareValue = dateA.getTime() - dateB.getTime();
-          } else if (p3DateA && !p3DateB) {
+          // Check if dates are valid Date objects
+          const validDateA = p3DateA && p3DateA instanceof Date && !isNaN(p3DateA.getTime());
+          const validDateB = p3DateB && p3DateB instanceof Date && !isNaN(p3DateB.getTime());
+          
+          if (validDateA && validDateB) {
+            // Both have valid submission dates - sort by date (desc - newest first)
+            compareValue = p3DateB.getTime() - p3DateA.getTime();
+          } else if (validDateA && !validDateB) {
             compareValue = -1; // A has submission, B doesn't - A comes first
-          } else if (!p3DateA && p3DateB) {
+          } else if (!validDateA && validDateB) {
             compareValue = 1; // B has submission, A doesn't - B comes first
           } else {
-            // Neither has submission - sort alphabetically by name
+            // Neither has valid submission date - sort alphabetically by name
             compareValue = `${a.name}`.localeCompare(`${b.name}`);
           }
           break;
@@ -2612,7 +2614,29 @@ export class AdminDashboardComponent implements OnInit {
     try {
       // Query the phase3_applications collection for this applicant
       const phase3App = await this.applicationService.getPhase3Application(applicant.userId, applicant.cohortId);
-      return phase3App?.submittedAt || null;
+      const submittedAt = phase3App?.submittedAt;
+      
+      if (!submittedAt) {
+        return null;
+      }
+      
+      // Handle Firestore Timestamp conversion
+      if (submittedAt instanceof Date) {
+        return submittedAt;
+      }
+      
+      // Handle Firestore Timestamp object
+      if (submittedAt && typeof submittedAt === 'object' && 'toDate' in submittedAt) {
+        return (submittedAt as any).toDate();
+      }
+      
+      // Handle string dates
+      if (typeof submittedAt === 'string') {
+        const date = new Date(submittedAt);
+        return isNaN(date.getTime()) ? null : date;
+      }
+      
+      return null;
     } catch (error) {
       console.warn(`Failed to load P3 submission date for applicant ${applicant.userId}:`, error);
       return null;
@@ -2625,7 +2649,7 @@ export class AdminDashboardComponent implements OnInit {
 
   getP3SubmissionDisplay(userId: string): string {
     const submissionDate = this.getP3SubmissionFromCache(userId);
-    if (submissionDate) {
+    if (submissionDate && submissionDate instanceof Date && !isNaN(submissionDate.getTime())) {
       return new Intl.DateTimeFormat('en-US', {
         month: '2-digit',
         day: '2-digit',

@@ -651,10 +651,17 @@ export class Phase1ApplicationComponent {
       this.success.set('Application submitted successfully! Redirecting to your applicant dashboard...');
       
       // The user is now automatically signed in with their new account
-      // Redirect to their applicant dashboard
-      setTimeout(() => {
-        this.router.navigate(['/dashboard']);
-      }, 2000);
+      // Wait a bit longer for backend processing, then check user's current phase and redirect accordingly
+      setTimeout(async () => {
+        try {
+          // Force refresh of current user data to get the latest phase
+          await this.refreshUserDataAndNavigate();
+        } catch (error) {
+          console.error('Error refreshing user data after submission:', error);
+          // Fallback to general dashboard if refresh fails
+          this.router.navigate(['/dashboard']);
+        }
+      }, 3000);
       
     } catch (error: any) {
       console.error('Phase 1 submission error:', error);
@@ -786,7 +793,33 @@ export class Phase1ApplicationComponent {
     return null;
   }
 
-
-
+  /**
+   * Refresh user data and navigate to the appropriate dashboard based on current phase
+   */
+  private async refreshUserDataAndNavigate(): Promise<void> {
+    try {
+      // Wait for auth service to update with latest user data
+      // The auth service should automatically refresh when Firebase auth state updates
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const currentUser = this.authService.getCurrentUser();
+      console.log('Current user after submission:', currentUser);
+      
+      if (currentUser && currentUser.role === UserRole.APPLICANT) {
+        const applicantUser = currentUser as any; // ApplicantUser type
+        console.log('User phase after submission:', applicantUser.phase);
+        
+        // Navigate to dashboard - the dashboard will handle showing the correct phase
+        // based on the user's current phase
+        this.router.navigate(['/dashboard']);
+      } else {
+        console.warn('User not found or not an applicant after submission');
+        this.router.navigate(['/dashboard']);
+      }
+    } catch (error) {
+      console.error('Error in refreshUserDataAndNavigate:', error);
+      throw error;
+    }
+  }
 
 }

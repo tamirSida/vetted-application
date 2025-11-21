@@ -48,6 +48,11 @@ The Vetted Team`;
             border-radius: 8px 8px 0 0;
             text-align: center;
         }
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+        }
         .content {
             background: #ffffff;
             padding: 30px;
@@ -86,6 +91,7 @@ The Vetted Team`;
 </head>
 <body>
     <div class="header">
+        <img src="cid:logo" alt="Vetted Accelerator" class="logo" />
         <h1>Application Update</h1>
     </div>
     

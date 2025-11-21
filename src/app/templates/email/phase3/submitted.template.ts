@@ -2,6 +2,7 @@ import { EMAIL_CONSTANTS } from '../../../constants/email.constants';
 
 export interface Phase3SubmittedEmailData {
   applicantName: string;
+  applicationEndDate: string; // Formatted date string
 }
 
 export class Phase3SubmittedEmailTemplate {
@@ -14,7 +15,7 @@ export class Phase3SubmittedEmailTemplate {
 
 Thank you for submitting your application for the Vetted Accelerator.
 
-We have received your submission and our team will now begin the review process. We will be in touch with you regarding the next steps in the coming weeks.
+We have received your submission and our team will now begin the review process. We review applications on a rolling basis. Expect to hear from us in the coming days / weeks but no later than ${data.applicationEndDate}
 
 ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
   }
@@ -43,6 +44,11 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
             padding: 30px;
             border-radius: 8px 8px 0 0;
             text-align: center;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
         }
         .content {
             background: #ffffff;
@@ -79,6 +85,7 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
 </head>
 <body>
     <div class="header">
+        <img src="cid:logo" alt="Vetted Accelerator" class="logo" />
         <h1>Application Confirmation</h1>
         <p>Your application has been received</p>
     </div>
@@ -89,7 +96,7 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
         <div class="confirmation-box">
             <p><span class="status-icon">✓</span><strong>Thank you for submitting your application for the Vetted Accelerator.</strong></p>
             
-            <p>We have received your submission and our team will now begin the review process. We will be in touch with you regarding the next steps in the coming weeks.</p>
+            <p>We have received your submission and our team will now begin the review process. We review applications on a rolling basis. Expect to hear from us in the coming days / weeks but no later than <strong>${data.applicationEndDate}</strong></p>
         </div>
         
         <div class="signature">

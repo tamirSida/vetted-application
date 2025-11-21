@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ApplicantUser } from '../models';
+import { CohortService } from './cohort.service';
 import { 
   Phase1ApprovedEmailTemplate,
   Phase1ApprovedEmailData,
@@ -34,6 +35,7 @@ export interface EmailResponse {
 export class EmailService {
   private readonly API_URL = '/.netlify/functions/send-email';
   private readonly FROM_EMAIL = 'application@thevetted.vc';
+  private cohortService = inject(CohortService);
 
   constructor() {}
 
@@ -172,8 +174,19 @@ export class EmailService {
     const nameData = this.getApplicantNameData(applicant);
     const fullName = `${nameData.firstName}${nameData.lastName ? ' ' + nameData.lastName : ''}`;
     
+    // Get cohort application end date
+    const cohort = await this.cohortService.getCohortById(applicant.cohortId);
+    const applicationEndDate = cohort ? 
+      new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(new Date(cohort.applicationEndDate)) : 
+      'the application deadline';
+    
     const emailData: Phase3SubmittedEmailData = {
-      applicantName: fullName
+      applicantName: fullName,
+      applicationEndDate
     };
 
     console.log('📧 Sending Phase 3 submitted confirmation email to:', {

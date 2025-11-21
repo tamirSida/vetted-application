@@ -61,6 +61,11 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
             border-radius: 8px 8px 0 0;
             text-align: center;
         }
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+        }
         .content {
             background: #ffffff;
             padding: 30px;
@@ -112,6 +117,7 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
 </head>
 <body>
     <div class="header">
+        <img src="cid:logo" alt="Vetted Accelerator" class="logo" />
         <h1>Welcome to Vetted Accelerator!</h1>
     </div>
     

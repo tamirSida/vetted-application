@@ -48,6 +48,11 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
             border-radius: 8px 8px 0 0;
             text-align: center;
         }
+        .logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+        }
         .content {
             background: #ffffff;
             padding: 30px;
@@ -104,6 +109,7 @@ ${EMAIL_CONSTANTS.SIGNATURE.STANDARD}`;
 </head>
 <body>
     <div class="header">
+        <img src="cid:logo" alt="Vetted Accelerator" class="logo" />
         <h1>🎉 Congratulations!</h1>
         <p style="margin: 10px 0 0 0; font-size: 18px;">You've been invited to interview for the Vetted Accelerator</p>
     </div>

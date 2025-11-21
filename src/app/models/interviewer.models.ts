@@ -5,6 +5,7 @@ export interface Interviewer {
   userId: string; // Reference to Admin or Viewer user
   name: string;
   email: string;
+  title: string; // Required title/position of the interviewer
   role: UserRole.ADMIN | UserRole.VIEWER;
   calendarUrl: string; // Required Google Calendar URL
   isActive: boolean;
@@ -14,10 +15,12 @@ export interface Interviewer {
 
 export interface InterviewerCreateRequest {
   userId: string;
+  title: string;
   calendarUrl: string;
 }
 
 export interface InterviewerUpdateRequest {
+  title?: string;
   calendarUrl?: string;
   isActive?: boolean;
 }

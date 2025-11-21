@@ -116,6 +116,7 @@ export class InterviewerService {
         userId: request.userId,
         name: user.name,
         email: user.email,
+        title: request.title,
         role: user.role as UserRole.ADMIN | UserRole.VIEWER,
         calendarUrl: request.calendarUrl,
         isActive: true,

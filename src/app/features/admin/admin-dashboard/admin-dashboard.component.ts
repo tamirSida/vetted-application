@@ -953,6 +953,18 @@ type AdminSubView = 'users' | 'interviewers';
               </div>
 
               <div class="form-group">
+                <label for="interviewer-title">Title</label>
+                <input
+                  type="text"
+                  id="interviewer-title"
+                  formControlName="title"
+                  placeholder="e.g., Senior Software Engineer, CTO"
+                  class="form-input"
+                />
+                <small class="form-hint">Enter the interviewer's job title or position</small>
+              </div>
+
+              <div class="form-group">
                 <label for="interviewer-calendar">Calendar URL</label>
                 <input
                   type="url"
@@ -989,6 +1001,7 @@ type AdminSubView = 'users' | 'interviewers';
                 <div class="admin-header">
                   <div class="admin-info">
                     <h4>{{ interviewer.name }}</h4>
+                    <p class="admin-title">{{ interviewer.title }}</p>
                     <p class="admin-email">{{ interviewer.email }}</p>
                   </div>
                   <span class="role-badge interviewer-role">
@@ -1017,8 +1030,12 @@ type AdminSubView = 'users' | 'interviewers';
                 </div>
 
                 <div class="admin-actions">
+                  <button class="action-button edit-button" (click)="editInterviewerTitle(interviewer)">
+                    <i class="fas fa-user-edit"></i>
+                    Edit Title
+                  </button>
                   <button class="action-button edit-button" (click)="editInterviewerCalendar(interviewer)">
-                    <i class="fas fa-edit"></i>
+                    <i class="fas fa-calendar-alt"></i>
                     Edit Calendar
                   </button>
                   <button class="action-button delete-button" (click)="deleteInterviewer(interviewer.id!)">
@@ -2958,6 +2975,7 @@ export class AdminDashboardComponent implements OnInit {
 
     this.interviewerForm = this.fb.group({
       userId: ['', Validators.required],
+      title: ['', Validators.required],
       calendarUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
     });
   }
@@ -3725,6 +3743,7 @@ export class AdminDashboardComponent implements OnInit {
       
       await this.interviewerService.createInterviewer({
         userId: formValue.userId,
+        title: formValue.title,
         calendarUrl: formValue.calendarUrl
       });
       
@@ -3785,6 +3804,31 @@ export class AdminDashboardComponent implements OnInit {
     const newUrl = prompt('Enter new calendar URL:', interviewer.calendarUrl);
     if (newUrl && newUrl !== interviewer.calendarUrl) {
       this.updateInterviewerCalendar(interviewer, newUrl);
+    }
+  }
+
+  editInterviewerTitle(interviewer: Interviewer) {
+    const newTitle = prompt('Enter new title:', interviewer.title);
+    if (newTitle && newTitle !== interviewer.title) {
+      this.updateInterviewerTitle(interviewer, newTitle);
+    }
+  }
+
+  async updateInterviewerTitle(interviewer: Interviewer, newTitle: string) {
+    try {
+      await this.interviewerService.updateInterviewer(interviewer.id!, {
+        title: newTitle
+      });
+
+      this.interviewers.update(interviewers => 
+        interviewers.map(i => i.id === interviewer.id ? { ...i, title: newTitle } : i)
+      );
+      
+      this.success.set('Title updated successfully!');
+      setTimeout(() => this.success.set(''), 3000);
+    } catch (error: any) {
+      this.error.set(error.message || 'Failed to update title');
+      setTimeout(() => this.error.set(''), 5000);
     }
   }
 

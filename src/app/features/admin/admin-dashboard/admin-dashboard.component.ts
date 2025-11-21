@@ -2405,7 +2405,10 @@ export class AdminDashboardComponent implements OnInit {
       this.error.set('');
 
       if (this.currentView() === 'applicants') {
-        await this.loadApplicantsPage(true);
+        await Promise.all([
+          this.loadApplicantsPage(true),
+          this.loadAllAdminsForDropdown() // Load admin users for the assigned dropdown
+        ]);
       } else if (this.currentView() === 'cohorts') {
         await this.loadCohortsPage(true);
       } else if (this.currentView() === 'admin') {
@@ -3318,6 +3321,16 @@ export class AdminDashboardComponent implements OnInit {
       this.hasMoreAdmins.set(result.hasMore);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to load admins');
+    }
+  }
+
+  async loadAllAdminsForDropdown() {
+    try {
+      const allAdmins = await this.userService.getAllAdmins();
+      this.adminUsers.set(allAdmins);
+    } catch (error: any) {
+      console.error('Error loading all admins for dropdown:', error);
+      this.error.set('Failed to load admin users for assignment');
     }
   }
 

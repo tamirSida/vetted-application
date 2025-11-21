@@ -2152,7 +2152,10 @@ export class AdminDashboardComponent implements OnInit {
           const p3DateB = this.getP3SubmissionFromCache(b.userId);
           
           if (p3DateA && p3DateB) {
-            compareValue = p3DateA.getTime() - p3DateB.getTime();
+            // Ensure dates are Date objects
+            const dateA = p3DateA instanceof Date ? p3DateA : new Date(p3DateA);
+            const dateB = p3DateB instanceof Date ? p3DateB : new Date(p3DateB);
+            compareValue = dateA.getTime() - dateB.getTime();
           } else if (p3DateA && !p3DateB) {
             compareValue = -1; // A has submission, B doesn't - A comes first
           } else if (!p3DateA && p3DateB) {

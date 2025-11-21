@@ -16,15 +16,6 @@ import {
   Phase3SubmittedEmailTemplate,
   Phase3ApprovedEmailTemplate
 } from '../../../templates/email';
-import {
-  Phase1SignupDashboardTemplate,
-  Phase1PendingDashboardTemplate,
-  Phase2WebinarDashboardTemplate,
-  Phase3ApplicationDashboardTemplate,
-  Phase3SubmittedDashboardTemplate,
-  Phase4InterviewDashboardTemplate,
-  Phase5AcceptedDashboardTemplate
-} from '../../../templates/dashboard';
 
 type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings' | 'preview';
 type AdminSubView = 'users' | 'interviewers';
@@ -4318,31 +4309,25 @@ export class AdminDashboardComponent implements OnInit {
     
     switch (type) {
       case 'phase1-signup':
-        return Phase1SignupDashboardTemplate.generateTemplate({ applicant: sampleData });
+        return '<div class="preview-card"><h3>Phase 1: Sign Up</h3><p>Initial application signup dashboard - content integrated into main dashboard component</p></div>';
         
       case 'phase1-pending':
-        return Phase1PendingDashboardTemplate.generateTemplate({ 
-          applicant: sampleData,
-          submissionDate: new Date()
-        });
+        return '<div class="preview-card"><h3>Phase 1: Pending</h3><p>Application pending review dashboard - content integrated into main dashboard component</p></div>';
         
       case 'phase2-webinar':
-        return Phase2WebinarDashboardTemplate.generateTemplate({ applicant: sampleData });
+        return '<div class="preview-card"><h3>Phase 2: Webinar</h3><p>Webinar attendance dashboard - content integrated into main dashboard component</p></div>';
         
       case 'phase3-application':
-        return Phase3ApplicationDashboardTemplate.generateTemplate({ applicant: sampleData });
+        return '<div class="preview-card"><h3>Phase 3: Application</h3><p>In-depth application dashboard - content integrated into main dashboard component</p></div>';
         
       case 'phase3-submitted':
-        return Phase3SubmittedDashboardTemplate.generateTemplate({ 
-          applicant: sampleData,
-          submissionDate: new Date()
-        });
+        return '<div class="preview-card"><h3>Phase 3: Submitted</h3><p>Application submitted dashboard - content integrated into main dashboard component</p></div>';
         
       case 'phase4-interview':
-        return Phase4InterviewDashboardTemplate.generateTemplate({ applicant: sampleData });
+        return '<div class="preview-card"><h3>Phase 4: Interview</h3><p>Interview scheduling dashboard - content integrated into main dashboard component</p></div>';
         
       case 'phase5-accepted':
-        return Phase5AcceptedDashboardTemplate.generateTemplate({ applicant: sampleData });
+        return '<div class="preview-card"><h3>Phase 5: Accepted</h3><p>Acceptance celebration dashboard - content integrated into main dashboard component</p></div>';
         
       default:
         return '<p>Preview not available</p>';

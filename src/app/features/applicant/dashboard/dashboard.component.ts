@@ -40,26 +40,15 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
           </div>
         }
 
-        <!-- Phase 1: Awaiting Approval -->
+        <!-- Phase 1: Application Rejected (Red Flags) -->
         @if (currentPhase() === 'SIGNUP' && applicationStatus() === ApplicationStatus.PHASE_1) {
-          <div class="status-card status-pending">
+          <div class="status-card status-error">
             <div class="status-icon">
-              <i class="fas fa-clock"></i>
+              <i class="fas fa-times-circle"></i>
             </div>
             <div class="status-content">
-              <h2>Application Submitted</h2>
-              <p class="status-message">Thank you for submitting your initial application! Our team is currently reviewing your information.</p>
-              <div class="status-detail">
-                <strong>Current Status:</strong> Awaiting team's approval
-              </div>
-              <div class="next-steps">
-                <h4>What happens next?</h4>
-                <ul>
-                  <li>Our team will review your application within 3-5 business days</li>
-                  <li>If approved, you'll receive access to our webinar sessions</li>
-                  <li>We'll email you with updates on your application status</li>
-                </ul>
-              </div>
+              <h2>Application Review Complete</h2>
+              <p class="status-message">Thank you for applying to the Vetted Accelerator. After reviewing the application, it looks like you don't meet our requirements for applying. If you feel this might be incorrect please reach out to application@thevetted.vc.</p>
             </div>
           </div>
         }
@@ -209,30 +198,23 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
               <i class="fas fa-handshake"></i>
             </div>
             <div class="status-content">
-              <h2>Congratulations! Interview Invitation</h2>
-              <p class="status-message">Excellent work! We'd like to invite you to an interview to discuss your startup and the accelerator program.</p>
+              <h2>Phase 4: Interview</h2>
+              <p class="status-message">We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members:</p>
+              
               @if (interviewer()) {
                 <div class="interviewer-info">
-                  <h4>Your Interviewer:</h4>
-                  <p><strong>{{ interviewer()?.name }}</strong></p>
+                  <h4>[interviewer Schedule]</h4>
+                  <p><strong>{{ interviewer()?.name }}, {{ interviewer()?.title }}</strong></p>
                   <a [href]="interviewer()?.calendarUrl" target="_blank" class="calendar-link">
                     <i class="fas fa-calendar-alt"></i>
-                    Schedule Interview
+                    Schedule with {{ interviewer()?.name }}, {{ interviewer()?.title }}
                   </a>
                 </div>
               }
-              <div class="next-steps">
-                <h4>Next Steps:</h4>
-                <ul>
-                  <li>Check your email for interview scheduling details</li>
-                  <li>Prepare to discuss your startup and business goals</li>
-                  <li>Review your application materials</li>
-                  <li>Be ready to ask questions about the program</li>
-                </ul>
-              </div>
-              <div class="contact-info">
-                <p><strong>Questions?</strong> Reply to the interview scheduling email or contact us directly.</p>
-              </div>
+              
+              <p>Please click the link to schedule a time that works best for you.</p>
+              
+              <p>Feel free to reach out to Eden at eden@thevetted.vc, if you have any questions before the meeting.</p>
             </div>
           </div>
         }

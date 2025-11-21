@@ -7,15 +7,6 @@ import { Phase2WebinarComponent } from '../phase2-webinar/phase2-webinar.compone
 import { Phase3ApplicationTabbedComponent } from '../phase3-application/phase3-application.component';
 import { Phase4InterviewComponent } from '../phase4-interview/phase4-interview.component';
 import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.component';
-import {
-  Phase1SignupDashboardTemplate,
-  Phase1PendingDashboardTemplate,
-  Phase2WebinarDashboardTemplate,
-  Phase3ApplicationDashboardTemplate,
-  Phase3SubmittedDashboardTemplate,
-  Phase4InterviewDashboardTemplate,
-  Phase5AcceptedDashboardTemplate
-} from '../../../templates/dashboard';
 
 @Component({
   selector: 'app-applicant-dashboard',
@@ -420,42 +411,36 @@ export class ApplicantDashboardComponent implements OnInit {
   // Template rendering methods
   getPhase1SignupTemplate(): string {
     if (!this.applicant) return '';
-    return Phase1SignupDashboardTemplate.generateTemplate({ applicant: this.applicant });
+    return '<div class="dashboard-note"><p>Phase 1 content is displayed in the main dashboard component</p></div>';
   }
 
   getPhase1PendingTemplate(): string {
     if (!this.applicant) return '';
-    return Phase1PendingDashboardTemplate.generateTemplate({ 
-      applicant: this.applicant,
-      submissionDate: this.getSubmissionDate()
-    });
+    return '<div class="dashboard-note"><p>Phase 1 pending content is displayed in the main dashboard component</p></div>';
   }
 
   getPhase2WebinarTemplate(): string {
     if (!this.applicant) return '';
-    return Phase2WebinarDashboardTemplate.generateTemplate({ applicant: this.applicant });
+    return '<div class="dashboard-note"><p>Phase 2 webinar content is displayed in the main dashboard component</p></div>';
   }
 
   getPhase3ApplicationTemplate(): string {
     if (!this.applicant) return '';
-    return Phase3ApplicationDashboardTemplate.generateTemplate({ applicant: this.applicant });
+    return '<div class="dashboard-note"><p>Phase 3 application content is displayed in the main dashboard component</p></div>';
   }
 
   getPhase3SubmittedTemplate(): string {
     if (!this.applicant) return '';
-    return Phase3SubmittedDashboardTemplate.generateTemplate({ 
-      applicant: this.applicant,
-      submissionDate: this.getPhase3SubmissionDate()
-    });
+    return '<div class="dashboard-note"><p>Phase 3 submitted content is displayed in the main dashboard component</p></div>';
   }
 
   getPhase4InterviewTemplate(): string {
     if (!this.applicant) return '';
-    return Phase4InterviewDashboardTemplate.generateTemplate({ applicant: this.applicant });
+    return '<div class="dashboard-note"><p>Phase 4 interview content is displayed in the main dashboard component</p></div>';
   }
 
   getPhase5AcceptedTemplate(): string {
     if (!this.applicant) return '';
-    return Phase5AcceptedDashboardTemplate.generateTemplate({ applicant: this.applicant });
+    return '<div class="dashboard-note"><p>Phase 5 accepted content is displayed in the main dashboard component</p></div>';
   }
 }

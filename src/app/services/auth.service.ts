@@ -250,6 +250,25 @@ export class AuthService {
     this.currentUserSubject.next(updatedUser);
   }
 
+  /**
+   * Force refresh current user data from Firestore and update auth cache
+   */
+  async refreshCurrentUser(): Promise<User | null> {
+    const firebaseUser = this.auth.currentUser;
+    if (!firebaseUser) {
+      return null;
+    }
+
+    try {
+      const userData = await this.getUserData(firebaseUser.uid);
+      this.currentUserSubject.next(userData);
+      return userData;
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      return null;
+    }
+  }
+
   private getCollectionNameForRole(role: UserRole): string {
     switch (role) {
       case UserRole.ADMIN:

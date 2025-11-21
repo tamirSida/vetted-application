@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Phase1Application, ServiceCountry, UserRole } from '../../../../models';
-import { StorageService, ApplicationService, ApplicationSubmissionData, AuthService, CohortService } from '../../../../services';
+import { StorageService, ApplicationService, ApplicationSubmissionData, AuthService, CohortService, UserService } from '../../../../services';
 
 @Component({
   selector: 'app-phase1-application',
@@ -483,6 +483,7 @@ export class Phase1ApplicationComponent {
   private applicationService = inject(ApplicationService);
   private authService = inject(AuthService);
   private cohortService = inject(CohortService);
+  private userService = inject(UserService);
 
   currentPage = signal(1);
   error = signal<string>('');
@@ -801,24 +802,57 @@ export class Phase1ApplicationComponent {
       );
       
       const waitForUserUpdate = new Promise<void>((resolve) => {
-        const checkUser = () => {
-          const currentUser = this.authService.getCurrentUser();
-          console.log('Checking user after submission:', currentUser);
+        let checkCount = 0;
+        const maxChecks = 20; // 20 seconds max
+        
+        const checkUser = async () => {
+          checkCount++;
+          console.log(`Checking user after submission (attempt ${checkCount}/${maxChecks})...`);
           
-          if (currentUser && currentUser.role === UserRole.APPLICANT) {
-            const applicantUser = currentUser as any; // ApplicantUser type
-            console.log('User phase after submission:', applicantUser.phase);
+          // Force reload user data from database every few checks
+          if (checkCount % 3 === 0) {
+            console.log('🔄 Force reloading user data from database...');
+            try {
+              // Use AuthService refresh to update the auth cache
+              const refreshedUser = await this.authService.refreshCurrentUser();
+              console.log('📡 Refreshed user from database:', refreshedUser);
+              
+              if (refreshedUser && refreshedUser.role === UserRole.APPLICANT) {
+                const applicantUser = refreshedUser as any; // ApplicantUser type
+                if (applicantUser.phase !== 'SIGNUP') {
+                  console.log('✅ User has been processed and advanced to:', applicantUser.phase);
+                  resolve();
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error('Error force-reloading user data:', error);
+            }
+          } else {
+            // Check cached user data
+            const currentUser = this.authService.getCurrentUser();
+            console.log('Checking cached user after submission:', currentUser);
             
-            // Check if user has been processed (phase should not be SIGNUP anymore if auto-advanced)
-            if (applicantUser.phase !== 'SIGNUP') {
-              console.log('✅ User has been processed and advanced to:', applicantUser.phase);
-              resolve();
-              return;
+            if (currentUser && currentUser.role === UserRole.APPLICANT) {
+              const applicantUser = currentUser as any; // ApplicantUser type
+              console.log('User phase after submission:', applicantUser.phase);
+              
+              // Check if user has been processed (phase should not be SIGNUP anymore if auto-advanced)
+              if (applicantUser.phase !== 'SIGNUP') {
+                console.log('✅ User has been processed and advanced to:', applicantUser.phase);
+                resolve();
+                return;
+              }
             }
           }
           
-          // If user not ready yet, check again in 1 second
-          setTimeout(checkUser, 1000);
+          // If user not ready yet and we haven't exceeded max checks, check again in 1 second
+          if (checkCount < maxChecks) {
+            setTimeout(checkUser, 1000);
+          } else {
+            console.warn('⚠️ Max check attempts reached, giving up');
+            resolve(); // Resolve anyway to avoid infinite waiting
+          }
         };
         
         // Start checking immediately

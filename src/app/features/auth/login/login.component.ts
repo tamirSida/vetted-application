@@ -118,7 +118,7 @@ import { UserRole } from '../../../models';
 
             <button type="button" class="submit-button" (click)="startApplication()">
               <i class="fas fa-arrow-right"></i>
-              Start Your Application
+              Sign Up Now
             </button>
 
             <p class="application-note">

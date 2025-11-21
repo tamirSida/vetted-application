@@ -651,17 +651,14 @@ export class Phase1ApplicationComponent {
       this.success.set('Application submitted successfully! Redirecting to your applicant dashboard...');
       
       // The user is now automatically signed in with their new account
-      // Wait a bit longer for backend processing, then check user's current phase and redirect accordingly
-      setTimeout(async () => {
-        try {
-          // Force refresh of current user data to get the latest phase
-          await this.refreshUserDataAndNavigate();
-        } catch (error) {
-          console.error('Error refreshing user data after submission:', error);
-          // Fallback to general dashboard if refresh fails
-          this.router.navigate(['/dashboard']);
-        }
-      }, 3000);
+      // Wait for backend processing to complete, then check user's current phase and redirect accordingly
+      try {
+        // Force refresh of current user data to get the latest phase
+        await this.refreshUserDataAndNavigate();
+      } catch (error) {
+        console.error('Error refreshing user data after submission:', error);
+        // Fallback already handled in refreshUserDataAndNavigate
+      }
       
     } catch (error: any) {
       console.error('Phase 1 submission error:', error);
@@ -798,26 +795,46 @@ export class Phase1ApplicationComponent {
    */
   private async refreshUserDataAndNavigate(): Promise<void> {
     try {
-      // Wait for auth service to update with latest user data
-      // The auth service should automatically refresh when Firebase auth state updates
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for auth service to update with latest user data with 20-second timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout waiting for user data update')), 20000)
+      );
       
-      const currentUser = this.authService.getCurrentUser();
-      console.log('Current user after submission:', currentUser);
-      
-      if (currentUser && currentUser.role === UserRole.APPLICANT) {
-        const applicantUser = currentUser as any; // ApplicantUser type
-        console.log('User phase after submission:', applicantUser.phase);
+      const waitForUserUpdate = new Promise<void>((resolve) => {
+        const checkUser = () => {
+          const currentUser = this.authService.getCurrentUser();
+          console.log('Checking user after submission:', currentUser);
+          
+          if (currentUser && currentUser.role === UserRole.APPLICANT) {
+            const applicantUser = currentUser as any; // ApplicantUser type
+            console.log('User phase after submission:', applicantUser.phase);
+            
+            // Check if user has been processed (phase should not be SIGNUP anymore if auto-advanced)
+            if (applicantUser.phase !== 'SIGNUP') {
+              console.log('✅ User has been processed and advanced to:', applicantUser.phase);
+              resolve();
+              return;
+            }
+          }
+          
+          // If user not ready yet, check again in 1 second
+          setTimeout(checkUser, 1000);
+        };
         
-        // Navigate to dashboard - the dashboard will handle showing the correct phase
-        // based on the user's current phase
-        this.router.navigate(['/dashboard']);
-      } else {
-        console.warn('User not found or not an applicant after submission');
-        this.router.navigate(['/dashboard']);
-      }
+        // Start checking immediately
+        checkUser();
+      });
+      
+      // Race between user update and timeout
+      await Promise.race([waitForUserUpdate, timeoutPromise]);
+      
+      // Navigate to dashboard - the dashboard will handle showing the correct phase
+      this.router.navigate(['/dashboard']);
+      
     } catch (error) {
       console.error('Error in refreshUserDataAndNavigate:', error);
+      // Even if timeout, still navigate to dashboard as fallback
+      this.router.navigate(['/dashboard']);
       throw error;
     }
   }

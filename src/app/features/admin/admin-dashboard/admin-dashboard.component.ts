@@ -112,6 +112,115 @@ type AdminSubView = 'users' | 'interviewers';
             </div>
           </div>
 
+          <!-- Stats Section -->
+          <div *ngIf="applicants().length > 0" class="stats-section">
+            <div class="stats-header">
+              <h3>
+                <i class="fas fa-chart-bar"></i>
+                Dashboard Stats
+              </h3>
+              <button class="stats-toggle-btn" (click)="toggleStats()">
+                <i class="fas" [class.fa-chevron-down]="!showStats()" [class.fa-chevron-up]="showStats()"></i>
+                {{ showStats() ? 'Collapse' : 'Expand' }}
+              </button>
+            </div>
+            
+            <div *ngIf="showStats()" class="stats-content">
+              <!-- Status Filter for Stats -->
+              <div class="stats-filter">
+                <label for="stats-status-filter">Filter by Status:</label>
+                <div class="select-wrapper">
+                  <select id="stats-status-filter" class="filter-select" 
+                          [value]="statsStatusFilter()" (change)="updateStatsStatusFilter($event)">
+                    <option value="all">All Statuses</option>
+                    <option *ngFor="let status of availableStatuses()" [value]="status">
+                      {{ getStatusDisplayName(status) }}
+                    </option>
+                  </select>
+                  <i class="fas fa-chevron-down select-arrow"></i>
+                </div>
+              </div>
+
+              <!-- Stats Grid -->
+              <div class="stats-grid">
+                <!-- Country Distribution -->
+                <div class="stat-card">
+                  <div class="stat-header">
+                    <i class="fas fa-globe"></i>
+                    <h4>Country Distribution</h4>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-item">
+                      <span class="stat-label">USA:</span>
+                      <span class="stat-value">{{ countryStats().US }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Israel:</span>
+                      <span class="stat-value">{{ countryStats().Israel }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Other:</span>
+                      <span class="stat-value">{{ countryStats().Other }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Rating Distribution -->
+                <div class="stat-card">
+                  <div class="stat-header">
+                    <i class="fas fa-star"></i>
+                    <h4>Rating Distribution</h4>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-item">
+                      <span class="stat-label">Rating 1 (Best):</span>
+                      <span class="stat-value">
+                        {{ ratingStats().rating1.total }}
+                        <small>(US: {{ ratingStats().rating1.US }}, IL: {{ ratingStats().rating1.Israel }})</small>
+                      </span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Rating 2 (Average):</span>
+                      <span class="stat-value">
+                        {{ ratingStats().rating2.total }}
+                        <small>(US: {{ ratingStats().rating2.US }}, IL: {{ ratingStats().rating2.Israel }})</small>
+                      </span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Rating 3 (Worst):</span>
+                      <span class="stat-value">
+                        {{ ratingStats().rating3.total }}
+                        <small>(US: {{ ratingStats().rating3.US }}, IL: {{ ratingStats().rating3.Israel }})</small>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Unrated P3 Submissions -->
+                <div class="stat-card">
+                  <div class="stat-header">
+                    <i class="fas fa-question-circle"></i>
+                    <h4>Unrated P3 Submissions</h4>
+                  </div>
+                  <div class="stat-content">
+                    <div class="stat-item">
+                      <span class="stat-label">Total Unrated:</span>
+                      <span class="stat-value">{{ unratedPhase3Stats().total }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">USA:</span>
+                      <span class="stat-value">{{ unratedPhase3Stats().US }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Israel:</span>
+                      <span class="stat-value">{{ unratedPhase3Stats().Israel }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Filters -->
           <div *ngIf="applicants().length > 0" class="filters-section">
             <div class="filters-header">
@@ -1472,6 +1581,143 @@ type AdminSubView = 'users' | 'interviewers';
       font-style: italic;
     }
 
+    /* Stats Section */
+    .stats-section {
+      margin-bottom: 1.5rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .stats-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stats-toggle-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .stats-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .stats-content {
+      padding: 1.5rem;
+    }
+
+    .stats-filter {
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .stats-filter label {
+      font-weight: 500;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .stat-header i {
+      color: #3b82f6;
+      font-size: 1.25rem;
+    }
+
+    .stat-header h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .stat-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.5rem 0;
+    }
+
+    .stat-label {
+      font-weight: 500;
+      color: #4b5563;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: #1f2937;
+      font-size: 1.125rem;
+      text-align: right;
+    }
+
+    .stat-value small {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+
     /* Sub Navigation */
     .admin-sub-nav {
       display: flex;
@@ -2032,6 +2278,8 @@ type AdminSubView = 'users' | 'interviewers';
       .form-actions { flex-direction: column; }
       .pagination-controls { flex-direction: column; gap: 1rem; }
       .pagination-buttons { justify-content: center; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .stats-filter { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
       .sign-out-button {
         padding: 0.6rem 1.2rem;
         font-size: 0.85rem;
@@ -2327,6 +2575,78 @@ export class AdminDashboardComponent implements OnInit {
     return Array.from(countries).sort();
   });
 
+  // Stats computed signals
+  statsApplicants = computed(() => {
+    const statusFilter = this.statsStatusFilter();
+    return this.applicants().filter(applicant => 
+      statusFilter === 'all' || applicant.status === statusFilter
+    );
+  });
+
+  countryStats = computed(() => {
+    const applicants = this.statsApplicants();
+    const stats = { US: 0, Israel: 0, Other: 0 };
+    
+    for (const applicant of applicants) {
+      const country = this.getCountryFromCache(applicant.userId);
+      if (country === 'USA') {
+        stats.US++;
+      } else if (country === 'Israel') {
+        stats.Israel++;
+      } else if (country && country !== 'Loading...' && country !== 'Not specified') {
+        stats.Other++;
+      }
+    }
+    
+    return stats;
+  });
+
+  ratingStats = computed(() => {
+    const applicants = this.statsApplicants();
+    const stats = { 
+      rating1: { total: 0, US: 0, Israel: 0 },
+      rating2: { total: 0, US: 0, Israel: 0 },
+      rating3: { total: 0, US: 0, Israel: 0 }
+    };
+    
+    for (const applicant of applicants) {
+      if (applicant.rating === 1 || applicant.rating === 2 || applicant.rating === 3) {
+        const country = this.getCountryFromCache(applicant.userId);
+        const key = `rating${applicant.rating}` as keyof typeof stats;
+        
+        stats[key].total++;
+        if (country === 'USA') {
+          stats[key].US++;
+        } else if (country === 'Israel') {
+          stats[key].Israel++;
+        }
+      }
+    }
+    
+    return stats;
+  });
+
+  unratedPhase3Stats = computed(() => {
+    const applicants = this.statsApplicants().filter(applicant => 
+      (applicant.rating === null || applicant.rating === undefined) && 
+      this.hasPhase3Submission(applicant.userId)
+    );
+    
+    const stats = { total: 0, US: 0, Israel: 0 };
+    
+    for (const applicant of applicants) {
+      const country = this.getCountryFromCache(applicant.userId);
+      stats.total++;
+      if (country === 'USA') {
+        stats.US++;
+      } else if (country === 'Israel') {
+        stats.Israel++;
+      }
+    }
+    
+    return stats;
+  });
+
   // Pagination
   pageSize = signal(25);
   currentPage = signal(1);
@@ -2351,6 +2671,10 @@ export class AdminDashboardComponent implements OnInit {
   editingCohort = signal<Cohort | null>(null);
   activeRatingDropdown = signal<string | null>(null);
   activeAssignedDropdown = signal<string | null>(null);
+  
+  // Stats section
+  showStats = signal(false);
+  statsStatusFilter = signal<ApplicationStatus | 'all'>('all');
 
   // Forms
   cohortForm: FormGroup;
@@ -2650,6 +2974,11 @@ export class AdminDashboardComponent implements OnInit {
     return this.p3SubmissionCache().get(userId) || null;
   }
 
+  hasPhase3Submission(userId: string): boolean {
+    const submissionDate = this.getP3SubmissionFromCache(userId);
+    return submissionDate instanceof Date && !isNaN(submissionDate.getTime());
+  }
+
   getP3SubmissionDisplay(userId: string): string {
     const submissionDate = this.getP3SubmissionFromCache(userId);
     if (submissionDate && submissionDate instanceof Date && !isNaN(submissionDate.getTime())) {
@@ -2772,6 +3101,16 @@ export class AdminDashboardComponent implements OnInit {
       console.error('❌ Error updating assignment:', error);
       // Keep dropdown open on error so user can try again
     }
+  }
+
+  // Stats helper methods
+  toggleStats(): void {
+    this.showStats.update(show => !show);
+  }
+
+  updateStatsStatusFilter(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.statsStatusFilter.set(target.value as ApplicationStatus | 'all');
   }
 
   getCohortName(cohortId: string): string {

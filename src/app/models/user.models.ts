@@ -29,6 +29,7 @@ export interface ApplicantUser extends BaseUser {
   status: ApplicationStatus;
   webinarAttended: number | null;
   interviewerId?: string;
+  assignedTo?: string | null; // Admin user ID for assigned reviewer
   cohortId: string;
   companyName?: string;
   interviewDate?: Date | string; // For scheduled interviews
@@ -65,6 +66,7 @@ export interface UserUpdateRequest {
   status?: ApplicationStatus;
   isAccepted?: boolean | null;
   interviewerId?: string;
+  assignedTo?: string | null;
   rating?: number | null;
   profileData?: ApplicantUser['profileData'];
 }

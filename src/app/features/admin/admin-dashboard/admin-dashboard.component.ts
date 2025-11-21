@@ -211,6 +211,7 @@ type AdminSubView = 'users' | 'interviewers';
                        [class.fa-sort-up]="sortField() === 'p3submission' && sortDirection() === 'asc'"
                        [class.fa-sort-down]="sortField() === 'p3submission' && sortDirection() === 'desc'"></i>
                   </th>
+                  <th>Assigned To</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -265,6 +266,30 @@ type AdminSubView = 'users' | 'interviewers';
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
                   <td>{{ getCountryFromCache(applicant.userId) }}</td>
                   <td>{{ getP3SubmissionDisplay(applicant.userId) }}</td>
+                  <td>
+                    <div class="assigned-cell">
+                      <div class="assigned-dropdown-container">
+                        <span [class]="'assigned-badge'" 
+                              (click)="$event.stopPropagation(); toggleAssignedDropdown(applicant.userId)">
+                          {{ getAssignedDisplay(applicant.assignedTo) }}
+                          <i class="fas fa-chevron-down assigned-arrow"></i>
+                        </span>
+                        <div *ngIf="activeAssignedDropdown() === applicant.userId" 
+                             class="assigned-dropdown"
+                             (click)="$event.stopPropagation()">
+                          <div class="assigned-option assigned-option-none"
+                               (click)="setApplicantAssignment(applicant, null)">
+                            <span class="assigned-preview assigned-none">None</span>
+                          </div>
+                          <div *ngFor="let admin of adminUsers()" 
+                               class="assigned-option"
+                               (click)="setApplicantAssignment(applicant, admin.userId)">
+                            <span class="assigned-preview">{{ admin.name }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <button class="table-action-btn delete-btn" (click)="$event.stopPropagation(); deleteApplicant(applicant)">
                       <i class="fas fa-trash"></i>
@@ -1360,6 +1385,93 @@ type AdminSubView = 'users' | 'interviewers';
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
 
+    /* Rating and Assignment Dropdowns */
+    .rating-dropdown-container, .assigned-dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .rating-dropdown, .assigned-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      min-width: 160px;
+      margin-top: 4px;
+    }
+
+    .rating-option, .assigned-option {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid #f3f4f6;
+      transition: background-color 0.2s;
+    }
+
+    .rating-option:last-child, .assigned-option:last-child {
+      border-bottom: none;
+    }
+
+    .rating-option:hover, .assigned-option:hover {
+      background: #f8fafc;
+    }
+
+    .rating-preview, .assigned-preview {
+      min-width: 1.5rem;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .rating-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .rating-arrow, .assigned-arrow {
+      margin-left: 0.5rem;
+      font-size: 0.75rem;
+      opacity: 0.7;
+      transition: transform 0.2s;
+    }
+
+    /* Assigned badge styles */
+    .assigned-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      color: #374151;
+      text-align: center;
+      min-width: 3rem;
+      display: inline-block;
+    }
+
+    .assigned-badge:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      background: #f1f5f9;
+    }
+
+    .assigned-cell {
+      text-align: center;
+    }
+
+    .assigned-none {
+      color: #9ca3af;
+      font-style: italic;
+    }
+
     /* Sub Navigation */
     .admin-sub-nav {
       display: flex;
@@ -2236,6 +2348,7 @@ export class AdminDashboardComponent implements OnInit {
   showInterviewerForm = signal(false);
   editingCohort = signal<Cohort | null>(null);
   activeRatingDropdown = signal<string | null>(null);
+  activeAssignedDropdown = signal<string | null>(null);
 
   // Forms
   cohortForm: FormGroup;
@@ -2595,6 +2708,41 @@ export class AdminDashboardComponent implements OnInit {
       console.log(`✅ Updated rating for ${applicant.name} to ${rating || 'no rating'}`);
     } catch (error) {
       console.error('❌ Error updating rating:', error);
+      // Keep dropdown open on error so user can try again
+    }
+  }
+
+  getAssignedDisplay(assignedTo: string | null | undefined): string {
+    if (!assignedTo) return 'None';
+    const admin = this.adminUsers().find(admin => admin.userId === assignedTo);
+    return admin?.name || 'Unknown';
+  }
+
+  toggleAssignedDropdown(applicantId: string): void {
+    const currentActive = this.activeAssignedDropdown();
+    if (currentActive === applicantId) {
+      this.activeAssignedDropdown.set(null); // Close if same dropdown
+    } else {
+      this.activeAssignedDropdown.set(applicantId); // Open this dropdown
+    }
+  }
+
+  async setApplicantAssignment(applicant: ApplicantUser, assignedTo: string | null): Promise<void> {
+    try {
+      await this.userService.updateUser(applicant.userId, { assignedTo });
+      
+      // Update local state
+      const updatedApplicants = this.applicants().map(a => 
+        a.userId === applicant.userId ? { ...a, assignedTo } : a
+      );
+      this.applicants.set(updatedApplicants);
+      
+      // Close dropdown
+      this.activeAssignedDropdown.set(null);
+      
+      console.log(`✅ Updated assignment for ${applicant.name} to ${this.getAssignedDisplay(assignedTo)}`);
+    } catch (error) {
+      console.error('❌ Error updating assignment:', error);
       // Keep dropdown open on error so user can try again
     }
   }

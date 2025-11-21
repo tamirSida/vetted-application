@@ -7,6 +7,15 @@ import { Phase2WebinarComponent } from '../phase2-webinar/phase2-webinar.compone
 import { Phase3ApplicationTabbedComponent } from '../phase3-application/phase3-application.component';
 import { Phase4InterviewComponent } from '../phase4-interview/phase4-interview.component';
 import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.component';
+import {
+  Phase1SignupDashboardTemplate,
+  Phase1PendingDashboardTemplate,
+  Phase2WebinarDashboardTemplate,
+  Phase3ApplicationDashboardTemplate,
+  Phase3SubmittedDashboardTemplate,
+  Phase4InterviewDashboardTemplate,
+  Phase5AcceptedDashboardTemplate
+} from '../../../templates/dashboard';
 
 @Component({
   selector: 'app-applicant-dashboard',
@@ -87,64 +96,47 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
       <main class="main-content">
         <div class="phase-container">
           <!-- Phase 1: Sign Up -->
-          <div *ngIf="applicant?.phase === Phase.SIGNUP && applicant" class="phase-content">
-            <div class="phase-card">
-              <h2>Phase 1: Application Signup</h2>
-              <p>Complete your initial application to get started with the Vetted Accelerator program.</p>
-              <a href="/application/phase1" class="btn btn-primary">
-                <i class="fas fa-edit"></i>
-                Start Application
-              </a>
-            </div>
-          </div>
+          <div *ngIf="applicant?.phase === Phase.SIGNUP && applicant && !isPhase1Submitted()" [innerHTML]="getPhase1SignupTemplate()"></div>
 
           <!-- Phase 1 Submitted - Pending Approval -->
-          <div 
-            *ngIf="applicant?.phase === Phase.SIGNUP && isPhase1Submitted()"
-            class="status-message pending"
-          >
-            <div class="status-icon">⏳</div>
-            <h3>Application Under Review</h3>
-            <p>Your account is pending approval. We will be in touch soon!</p>
-            <small>Submitted on {{ getSubmissionDate() | date:'medium' }}</small>
-          </div>
+          <div *ngIf="applicant?.phase === Phase.SIGNUP && isPhase1Submitted()" [innerHTML]="getPhase1PendingTemplate()"></div>
 
           <!-- Phase 2: Webinar -->
-          <app-phase2-webinar 
-            *ngIf="applicant?.phase === Phase.WEBINAR && applicant"
-            [applicant]="applicant"
-            (phaseCompleted)="onPhaseCompleted($event)"
-          ></app-phase2-webinar>
-
-          <!-- Phase 3: In-Depth Application -->
-          <app-phase3-application-tabbed 
-            *ngIf="applicant?.phase === Phase.IN_DEPTH_APPLICATION && applicant"
-            [applicant]="applicant"
-            (phaseCompleted)="onPhaseCompleted($event)"
-          ></app-phase3-application-tabbed>
-
-          <!-- Phase 3 Submitted - Under Review -->
-          <div 
-            *ngIf="applicant?.phase === Phase.IN_DEPTH_APPLICATION && isPhase3Submitted()"
-            class="status-message under-review"
-          >
-            <div class="status-icon">📋</div>
-            <h3>Application Under Review</h3>
-            <p>We are reviewing your application. This process typically takes 3-5 business days.</p>
-            <small>Submitted on {{ getPhase3SubmissionDate() | date:'medium' }}</small>
+          <div *ngIf="applicant?.phase === Phase.WEBINAR && applicant">
+            <div [innerHTML]="getPhase2WebinarTemplate()"></div>
+            <app-phase2-webinar 
+              [applicant]="applicant"
+              (phaseCompleted)="onPhaseCompleted($event)"
+            ></app-phase2-webinar>
           </div>
 
+          <!-- Phase 3: In-Depth Application -->
+          <div *ngIf="applicant?.phase === Phase.IN_DEPTH_APPLICATION && applicant && !isPhase3Submitted()">
+            <div [innerHTML]="getPhase3ApplicationTemplate()"></div>
+            <app-phase3-application-tabbed 
+              [applicant]="applicant"
+              (phaseCompleted)="onPhaseCompleted($event)"
+            ></app-phase3-application-tabbed>
+          </div>
+
+          <!-- Phase 3 Submitted - Under Review -->
+          <div *ngIf="applicant?.phase === Phase.IN_DEPTH_APPLICATION && isPhase3Submitted()" [innerHTML]="getPhase3SubmittedTemplate()"></div>
+
           <!-- Phase 4: Interview -->
-          <app-phase4-interview 
-            *ngIf="applicant?.phase === Phase.INTERVIEW && applicant"
-            [applicant]="applicant"
-          ></app-phase4-interview>
+          <div *ngIf="applicant?.phase === Phase.INTERVIEW && applicant">
+            <div [innerHTML]="getPhase4InterviewTemplate()"></div>
+            <app-phase4-interview 
+              [applicant]="applicant"
+            ></app-phase4-interview>
+          </div>
 
           <!-- Phase 5: Accepted -->
-          <app-phase5-accepted 
-            *ngIf="applicant?.phase === Phase.ACCEPTED && applicant"
-            [applicant]="applicant"
-          ></app-phase5-accepted>
+          <div *ngIf="applicant?.phase === Phase.ACCEPTED && applicant">
+            <div [innerHTML]="getPhase5AcceptedTemplate()"></div>
+            <app-phase5-accepted 
+              [applicant]="applicant"
+            ></app-phase5-accepted>
+          </div>
         </div>
       </main>
     </div>
@@ -423,5 +415,47 @@ export class ApplicantDashboardComponent implements OnInit {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }
+
+  // Template rendering methods
+  getPhase1SignupTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase1SignupDashboardTemplate.generateTemplate({ applicant: this.applicant });
+  }
+
+  getPhase1PendingTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase1PendingDashboardTemplate.generateTemplate({ 
+      applicant: this.applicant,
+      submissionDate: this.getSubmissionDate()
+    });
+  }
+
+  getPhase2WebinarTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase2WebinarDashboardTemplate.generateTemplate({ applicant: this.applicant });
+  }
+
+  getPhase3ApplicationTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase3ApplicationDashboardTemplate.generateTemplate({ applicant: this.applicant });
+  }
+
+  getPhase3SubmittedTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase3SubmittedDashboardTemplate.generateTemplate({ 
+      applicant: this.applicant,
+      submissionDate: this.getPhase3SubmissionDate()
+    });
+  }
+
+  getPhase4InterviewTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase4InterviewDashboardTemplate.generateTemplate({ applicant: this.applicant });
+  }
+
+  getPhase5AcceptedTemplate(): string {
+    if (!this.applicant) return '';
+    return Phase5AcceptedDashboardTemplate.generateTemplate({ applicant: this.applicant });
   }
 }

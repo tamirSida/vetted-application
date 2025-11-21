@@ -7,21 +7,22 @@ export interface Phase3SubmittedTemplateData {
 
 export class Phase3SubmittedDashboardTemplate {
   static generateTemplate(data: Phase3SubmittedTemplateData): string {
-    const submissionDateDisplay = data.submissionDate ? 
+    const submissionDateDisplay = data.submissionDate ?
       new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: 'numeric',
         minute: 'numeric'
-      }).format(data.submissionDate) : 
+      }).format(data.submissionDate) :
       'Recently';
 
     return `
       <div class="status-message under-review">
         <div class="status-icon">📋</div>
         <h3>Application Under Review</h3>
-        <p>We are reviewing your application. This process typically takes 3-5 business days.</p>
+        <p>Thank you for submitting your application for the Vetted Accelerator. <br>
+         We have received your submission and our team will now begin the review process.</p>
         <small>Submitted on ${submissionDateDisplay}</small>
       </div>
     `;

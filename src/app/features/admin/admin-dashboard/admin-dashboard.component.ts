@@ -10,8 +10,23 @@ import { ApplicationService } from '../../../services/application.service';
 import { SettingsService, SystemSettings } from '../../../services/settings.service';
 import { InterviewerService } from '../../../services/interviewer.service';
 import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus, Interviewer, InterviewerCreateRequest } from '../../../models';
+import {
+  Phase1ApprovedEmailTemplate,
+  Phase1RejectedEmailTemplate,
+  Phase3SubmittedEmailTemplate,
+  Phase3ApprovedEmailTemplate
+} from '../../../templates/email';
+import {
+  Phase1SignupDashboardTemplate,
+  Phase1PendingDashboardTemplate,
+  Phase2WebinarDashboardTemplate,
+  Phase3ApplicationDashboardTemplate,
+  Phase3SubmittedDashboardTemplate,
+  Phase4InterviewDashboardTemplate,
+  Phase5AcceptedDashboardTemplate
+} from '../../../templates/dashboard';
 
-type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings';
+type AdminView = 'applicants' | 'cohorts' | 'admin' | 'settings' | 'preview';
 type AdminSubView = 'users' | 'interviewers';
 
 @Component({
@@ -72,6 +87,13 @@ type AdminSubView = 'users' | 'interviewers';
           (click)="switchView('settings')">
           <i class="fas fa-cog"></i>
           Settings
+        </button>
+        <button 
+          class="nav-button"
+          [class.active]="currentView() === 'preview'"
+          (click)="switchView('preview')">
+          <i class="fas fa-eye"></i>
+          Preview
         </button>
       </nav>
 
@@ -1038,6 +1060,102 @@ type AdminSubView = 'users' | 'interviewers';
                   <span class="toggle-label">
                     {{ systemSettings().skipPhase2 ? 'Enabled' : 'Disabled' }}
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview View -->
+        <div *ngIf="currentView() === 'preview' && !isLoading()" class="preview-view">
+          <div class="view-header">
+            <h2>
+              <i class="fas fa-eye"></i>
+              Email & Dashboard Preview
+            </h2>
+          </div>
+          
+          <div class="preview-controls">
+            <div class="preview-type-selector">
+              <label>
+                <input 
+                  type="radio" 
+                  name="previewType" 
+                  value="email" 
+                  [checked]="previewType() === 'email'"
+                  (change)="setPreviewType('email')">
+                Email Templates
+              </label>
+              <label>
+                <input 
+                  type="radio" 
+                  name="previewType" 
+                  value="dashboard" 
+                  [checked]="previewType() === 'dashboard'"
+                  (change)="setPreviewType('dashboard')">
+                Dashboard Templates
+              </label>
+            </div>
+            
+            <!-- Email Template Selector -->
+            <div *ngIf="previewType() === 'email'" class="preview-selector">
+              <label for="emailSelect">Select Email Template:</label>
+              <select 
+                id="emailSelect"
+                [value]="selectedEmailPreview()"
+                (change)="setSelectedEmailPreview($event)">
+                <option *ngFor="let emailType of emailPreviewTypes" [value]="emailType.type">
+                  {{ emailType.title }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- Dashboard Template Selector -->
+            <div *ngIf="previewType() === 'dashboard'" class="preview-selector">
+              <label for="dashboardSelect">Select Dashboard State:</label>
+              <select 
+                id="dashboardSelect"
+                [value]="selectedDashboardPreview()"
+                (change)="setSelectedDashboardPreview($event)">
+                <option *ngFor="let dashboardType of dashboardPreviewTypes" [value]="dashboardType.type">
+                  {{ dashboardType.title }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Preview Display -->
+          <div class="preview-display">
+            <!-- Email Preview -->
+            <div *ngIf="previewType() === 'email'" class="email-preview-section">
+              <div class="preview-card">
+                <div class="preview-header">
+                  <h3>{{ getSelectedEmailType().title }}</h3>
+                  <p>{{ getSelectedEmailType().description }}</p>
+                </div>
+                <div class="preview-iframe-container">
+                  <iframe 
+                    class="preview-iframe"
+                    [srcdoc]="getEmailPreview(selectedEmailPreview())"
+                    frameborder="0">
+                  </iframe>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard Preview -->
+            <div *ngIf="previewType() === 'dashboard'" class="dashboard-preview-section">
+              <div class="preview-card">
+                <div class="preview-header">
+                  <h3>{{ getSelectedDashboardType().title }}</h3>
+                  <p>{{ getSelectedDashboardType().description }}</p>
+                </div>
+                <div class="preview-iframe-container">
+                  <iframe 
+                    class="preview-iframe"
+                    [srcdoc]="getDashboardPreviewHTML(selectedDashboardPreview())"
+                    frameborder="0">
+                  </iframe>
                 </div>
               </div>
             </div>
@@ -2410,6 +2528,129 @@ type AdminSubView = 'users' | 'interviewers';
       opacity: 0.6;
       cursor: not-allowed;
     }
+
+    /* Preview Styles */
+    .preview-view {
+      max-width: 1200px;
+    }
+
+    .preview-controls {
+      margin-bottom: 2rem;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .preview-type-selector {
+      display: flex;
+      gap: 2rem;
+    }
+    
+    .preview-type-selector label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    .preview-type-selector input[type="radio"] {
+      margin: 0;
+      accent-color: #1e40af;
+    }
+    
+    .preview-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .preview-selector label {
+      font-weight: 500;
+      color: #374151;
+      font-size: 0.875rem;
+    }
+    
+    .preview-selector select {
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      font-size: 0.875rem;
+      color: #374151;
+      cursor: pointer;
+    }
+    
+    .preview-selector select:focus {
+      outline: none;
+      border-color: #1e40af;
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    }
+
+    .preview-display {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .preview-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .preview-header {
+      background: #f8fafc;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .preview-header h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    .preview-header p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .preview-iframe-container {
+      width: 100%;
+      height: 600px;
+      background: #f9fafb;
+    }
+
+    .preview-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+
+    @media (max-width: 768px) {
+      .preview-type-selector {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .preview-iframe-container {
+        height: 400px;
+      }
+      
+      .preview-controls {
+        padding: 1rem;
+      }
+    }
   `]
 })
 export class AdminDashboardComponent implements OnInit {
@@ -2438,6 +2679,10 @@ export class AdminDashboardComponent implements OnInit {
   interviewers = signal<Interviewer[]>([]);
   eligibleInterviewers = signal<{userId: string, name: string, email: string, role: UserRole}[]>([]);
   systemSettings = signal<SystemSettings>({ skipPhase2: true });
+  // Preview functionality
+  previewType = signal<'email' | 'dashboard'>('email');
+  selectedEmailPreview = signal<string>('phase1-approved');
+  selectedDashboardPreview = signal<string>('phase1-signup');
 
   // Country cache for applicants
   countryCache = signal<Map<string, string>>(new Map());
@@ -3795,5 +4040,285 @@ export class AdminDashboardComponent implements OnInit {
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  // Preview functionality methods
+  setPreviewType(type: 'email' | 'dashboard') {
+    this.previewType.set(type);
+  }
+  
+  setSelectedEmailPreview(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.selectedEmailPreview.set(target.value);
+  }
+  
+  setSelectedDashboardPreview(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.selectedDashboardPreview.set(target.value);
+  }
+  
+  getSelectedEmailType() {
+    const selected = this.selectedEmailPreview();
+    return this.emailPreviewTypes.find(type => type.type === selected) || this.emailPreviewTypes[0];
+  }
+  
+  getSelectedDashboardType() {
+    const selected = this.selectedDashboardPreview();
+    return this.dashboardPreviewTypes.find(type => type.type === selected) || this.dashboardPreviewTypes[0];
+  }
+
+  // Email preview types
+  get emailPreviewTypes() {
+    return [
+      {
+        type: 'phase1-approved',
+        title: 'Phase 1 Approved',
+        description: 'Registration confirmation email sent when Phase 1 application is approved'
+      },
+      {
+        type: 'phase1-rejected',
+        title: 'Phase 1 Rejected',
+        description: 'Rejection email sent when Phase 1 application is declined'
+      },
+      {
+        type: 'phase3-submitted',
+        title: 'Phase 3 Submitted',
+        description: 'Confirmation email sent when Phase 3 application is submitted'
+      },
+      {
+        type: 'phase3-approved',
+        title: 'Phase 3 Approved',
+        description: 'Interview invitation email sent when Phase 3 application is approved'
+      }
+    ];
+  }
+
+  // Dashboard preview types
+  get dashboardPreviewTypes() {
+    return [
+      {
+        type: 'phase1-signup',
+        title: 'Phase 1 - Signup',
+        description: 'Initial signup form state'
+      },
+      {
+        type: 'phase1-pending',
+        title: 'Phase 1 - Pending',
+        description: 'Waiting for approval after Phase 1 submission'
+      },
+      {
+        type: 'phase2-webinar',
+        title: 'Phase 2 - Webinar',
+        description: 'Webinar attendance phase'
+      },
+      {
+        type: 'phase3-application',
+        title: 'Phase 3 - Application',
+        description: 'In-depth application form'
+      },
+      {
+        type: 'phase3-submitted',
+        title: 'Phase 3 - Submitted',
+        description: 'Application under review state'
+      },
+      {
+        type: 'phase4-interview',
+        title: 'Phase 4 - Interview',
+        description: 'Interview scheduling phase'
+      },
+      {
+        type: 'phase5-accepted',
+        title: 'Phase 5 - Accepted',
+        description: 'Congratulations and next steps'
+      }
+    ];
+  }
+
+  // Generate email preview HTML
+  getEmailPreview(type: string): string {
+    const sampleData = this.getSampleApplicantData();
+    
+    let html = '';
+    switch (type) {
+      case 'phase1-approved':
+        html = Phase1ApprovedEmailTemplate.generateHtml({
+          applicantName: sampleData.name,
+          dashboardUrl: 'https://app.thevetted.vc/dashboard'
+        });
+        break;
+        
+      case 'phase1-rejected':
+        html = Phase1RejectedEmailTemplate.generateHtml({
+          applicantName: sampleData.name,
+          supportEmail: 'application@thevetted.vc'
+        });
+        break;
+        
+      case 'phase3-submitted':
+        html = Phase3SubmittedEmailTemplate.generateHtml({
+          applicantName: sampleData.name,
+          applicationEndDate: 'March 15, 2025'
+        });
+        break;
+        
+      case 'phase3-approved':
+        html = Phase3ApprovedEmailTemplate.generateHtml({
+          applicantName: sampleData.name,
+          interviewerName: 'Sarah Johnson',
+          schedulingUrl: 'https://calendly.com/vetted/interview'
+        });
+        break;
+        
+      default:
+        return '<p>Preview not available</p>';
+    }
+    
+    // Replace cid:logo with actual logo URL for preview
+    html = html.replace(/src="cid:logo"/g, 'src="https://dummyimage.com/150x50/1e40af/ffffff&text=Vetted+Logo"');
+    
+    return html;
+  }
+
+  // Generate dashboard preview HTML with wrapper
+  getDashboardPreviewHTML(type: string): string {
+    const dashboardContent = this.getDashboardPreview(type);
+    
+    // Wrap dashboard content in a basic HTML structure for iframe
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dashboard Preview</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f8fafc;
+          }
+          .phase-content, .status-message {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          }
+          .phase-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+          }
+          .phase-card h2 {
+            margin: 0 0 1rem 0;
+            color: #1e40af;
+            font-size: 1.5rem;
+          }
+          .phase-card p {
+            color: #6b7280;
+            margin: 0 0 1.5rem 0;
+          }
+          .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #1e40af;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+          }
+          .btn:hover {
+            background: #1d4ed8;
+          }
+          .status-message {
+            text-align: center;
+            padding: 3rem 2rem;
+          }
+          .status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+          }
+          .status-message h3 {
+            margin: 0 0 1rem 0;
+            color: #374151;
+            font-size: 1.5rem;
+          }
+          .status-message p {
+            margin: 0 0 1rem 0;
+            color: #6b7280;
+            font-size: 1.1rem;
+          }
+          .status-message small {
+            color: #9ca3af;
+            font-size: 0.9rem;
+          }
+          .pending {
+            border-left: 4px solid #f59e0b;
+          }
+          .under-review {
+            border-left: 4px solid #3b82f6;
+          }
+        </style>
+      </head>
+      <body>
+        ${dashboardContent}
+      </body>
+      </html>
+    `;
+  }
+
+  // Generate dashboard preview content
+  getDashboardPreview(type: string): string {
+    const sampleData = this.getSampleApplicantData();
+    
+    switch (type) {
+      case 'phase1-signup':
+        return Phase1SignupDashboardTemplate.generateTemplate({ applicant: sampleData });
+        
+      case 'phase1-pending':
+        return Phase1PendingDashboardTemplate.generateTemplate({ 
+          applicant: sampleData,
+          submissionDate: new Date()
+        });
+        
+      case 'phase2-webinar':
+        return Phase2WebinarDashboardTemplate.generateTemplate({ applicant: sampleData });
+        
+      case 'phase3-application':
+        return Phase3ApplicationDashboardTemplate.generateTemplate({ applicant: sampleData });
+        
+      case 'phase3-submitted':
+        return Phase3SubmittedDashboardTemplate.generateTemplate({ 
+          applicant: sampleData,
+          submissionDate: new Date()
+        });
+        
+      case 'phase4-interview':
+        return Phase4InterviewDashboardTemplate.generateTemplate({ applicant: sampleData });
+        
+      case 'phase5-accepted':
+        return Phase5AcceptedDashboardTemplate.generateTemplate({ applicant: sampleData });
+        
+      default:
+        return '<p>Preview not available</p>';
+    }
+  }
+
+  // Generate sample applicant data for previews
+  private getSampleApplicantData(): ApplicantUser {
+    return {
+      userId: 'sample-user-id',
+      name: 'John Doe',
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      role: UserRole.APPLICANT,
+      phase: Phase.SIGNUP,
+      webinarAttended: null,
+      isAccepted: null,
+      cohortId: 'sample-cohort-id',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as ApplicantUser;
   }
 }

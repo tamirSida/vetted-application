@@ -9,11 +9,11 @@ export class Phase1SignupDashboardTemplate {
     return `
       <div class="phase-content">
         <div class="phase-card">
-          <h2>Phase 1: Application Signup</h2>
-          <p>Complete your initial application to get started with the Vetted Accelerator program.</p>
+          <h2>Initial Signup</h2>
+          <p>Complete your initial signup to get started with the Vetted Accelerator program.</p>
           <a href="/application/phase1" class="btn btn-primary">
             <i class="fas fa-edit"></i>
-            Start Application
+            Sign Up
           </a>
         </div>
       </div>

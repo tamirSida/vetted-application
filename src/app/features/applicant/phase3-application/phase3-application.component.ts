@@ -210,15 +210,22 @@ import { combineLatest } from 'rxjs';
               <!-- Video Pitch -->
               <div class="form-group">
                 <label for="videoPitch" class="form-label required">
-                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building. <span class="required-asterisk">*</span>
+                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building, or any URL of a publicly visible video. <span class="required-asterisk">*</span>
                 </label>
                 <input
                   type="url"
                   id="videoPitch"
                   formControlName="videoPitch"
                   class="form-input"
+                  [class.invalid-url]="showUrlError"
                   placeholder="https://www.youtube.com/..."
+                  (paste)="onVideoPitchPaste($event)"
+                  (input)="onVideoPitchInput($event)"
+                  (blur)="onVideoPitchBlur()"
                   required>
+                <div *ngIf="showUrlError" class="url-error-message">
+                  URL only
+                </div>
               </div>
             </div>
 
@@ -1061,6 +1068,19 @@ import { combineLatest } from 'rxjs';
       font-size: 0.85em;
     }
 
+    /* Real-time URL validation styling */
+    .form-input.invalid-url {
+      border-color: #ef4444;
+      background-color: #fef2f2;
+    }
+
+    .url-error-message {
+      margin-top: 0.25rem;
+      color: #ef4444;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
     .form-textarea {
       resize: vertical;
     }
@@ -1497,6 +1517,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   uploadedDeckFilePath = '';
   isDeckUploading = false;
   hasP1Deck = false;
+  showUrlError = false;
 
   // Tab navigation and gamification
   currentTab = 0;
@@ -2295,6 +2316,40 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
   isDeckRequired(): boolean {
     return !this.hasP1Deck;
+  }
+
+  // Real-time URL validation for video pitch
+  private isValidUrl(url: string): boolean {
+    if (!url || url.trim() === '') return true; // Don't show error for empty field
+    
+    try {
+      const urlPattern = /^https?:\/\/.+/;
+      return urlPattern.test(url.trim());
+    } catch {
+      return false;
+    }
+  }
+
+  onVideoPitchPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const pastedText = event.clipboardData?.getData('text') || '';
+    
+    if (this.isValidUrl(pastedText)) {
+      this.applicationForm.get('videoPitch')?.setValue(pastedText);
+      this.showUrlError = false;
+    } else {
+      this.showUrlError = true;
+    }
+  }
+
+  onVideoPitchInput(event: any): void {
+    const value = event.target.value;
+    this.showUrlError = !this.isValidUrl(value);
+  }
+
+  onVideoPitchBlur(): void {
+    const value = this.applicationForm.get('videoPitch')?.value;
+    this.showUrlError = !this.isValidUrl(value);
   }
 
   private wordCountValidator(maxWords: number) {

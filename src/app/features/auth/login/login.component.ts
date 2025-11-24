@@ -1,9 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../services';
-import { UserRole } from '../../../models';
+import { CohortService } from '../../../services/cohort.service';
+import { UserRole, Cohort } from '../../../models';
 
 @Component({
   selector: 'app-login',
@@ -99,31 +100,83 @@ import { UserRole } from '../../../models';
             </div>
           </form>
         } @else {
-          <div class="signup-info">
-            <div class="info-section">
-              <i class="fas fa-rocket"></i>
-              <h3>Join Vetted Accelerator</h3>
-              <p>Ready to accelerate your Combat Veteran-founded startup? Our exclusive program is designed specifically for Combat Veteran entrepreneurs.</p>
+          <!-- Applications Open -->
+          @if (applicationsOpen()) {
+            <div class="signup-info">
+              <div class="info-section">
+                <i class="fas fa-rocket"></i>
+                <h3>Join Vetted Accelerator</h3>
+                <p>Ready to accelerate your Combat Veteran-founded startup? Our exclusive program is designed specifically for Combat Veteran entrepreneurs.</p>
+              </div>
+
+              <div class="requirements">
+                <h4>Program Requirements:</h4>
+                <ul>
+                  <li><i class="fas fa-check"></i> Must be a founder of your company</li>
+                  <li><i class="fas fa-check"></i> Proof of combat service required</li>
+                  <li><i class="fas fa-check"></i> 100% Participation in Program</li>
+                </ul>
+              </div>
+
+              <button type="button" class="submit-button" (click)="startApplication()">
+                <i class="fas fa-arrow-right"></i>
+                Sign Up Now
+              </button>
+
+              <p class="application-note">
+                The application process consists of multiple phases including webinar attendance and in-depth evaluation.
+              </p>
             </div>
+          }
 
-            <div class="requirements">
-              <h4>Program Requirements:</h4>
-              <ul>
-                <li><i class="fas fa-check"></i> Must be a founder of your company</li>
-                <li><i class="fas fa-check"></i> Proof of combat service required</li>
-                <li><i class="fas fa-check"></i> 100% Participation in Program</li>
-              </ul>
+          <!-- Applications Closed - Before Open -->
+          @if (!applicationsOpen() && !isManuallyDisabled() && applicationStartDate()) {
+            <div class="signup-info closed">
+              <div class="info-section">
+                <i class="fas fa-calendar-clock"></i>
+                <h3>Applications Opening Soon</h3>
+                <p>Get ready to accelerate your Combat Veteran-founded startup! Our exclusive program is designed specifically for Combat Veteran entrepreneurs.</p>
+              </div>
+
+              <div class="closed-message">
+                <h4>Applications will open on:</h4>
+                <div class="date-display">
+                  {{ formatStartDate(applicationStartDate()) }}
+                </div>
+                <p>Sign up and applications start on {{ formatStartDate(applicationStartDate()) }}</p>
+              </div>
+
+              <button type="button" class="submit-button disabled" disabled>
+                <i class="fas fa-clock"></i>
+                Applications Not Yet Open
+              </button>
             </div>
+          }
 
-            <button type="button" class="submit-button" (click)="startApplication()">
-              <i class="fas fa-arrow-right"></i>
-              Sign Up Now
-            </button>
+          <!-- Applications Closed - Manually Disabled -->
+          @if (!applicationsOpen() && isManuallyDisabled()) {
+            <div class="signup-info closed">
+              <div class="info-section">
+                <i class="fas fa-pause-circle"></i>
+                <h3>Applications Currently Closed</h3>
+                <p>Thank you for your interest in the Vetted Accelerator program for Combat Veteran entrepreneurs.</p>
+              </div>
 
-            <p class="application-note">
-              The application process consists of multiple phases including webinar attendance and in-depth evaluation.
-            </p>
-          </div>
+              <div class="closed-message">
+                <h4>Not accepting applications at this time</h4>
+                <p>Sorry we aren't accepting applications anymore - stay tuned for possible updates</p>
+                <a href="https://accelerator.thevetted.vc" target="_blank" class="website-link">
+                  <i class="fas fa-external-link-alt"></i>
+                  Visit our website for updates
+                </a>
+              </div>
+
+              <button type="button" class="submit-button disabled" disabled>
+                <i class="fas fa-times-circle"></i>
+                Applications Closed
+              </button>
+            </div>
+          }
         }
 
         <div class="auth-toggle">
@@ -138,15 +191,21 @@ import { UserRole } from '../../../models';
     </div>
   `
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
+  private cohortService = inject(CohortService);
 
   isLogin = signal(false);
   isLoading = signal(false);
   error = signal<string>('');
   success = signal<string>('');
+  
+  // Application window status
+  applicationsOpen = signal(true);
+  applicationStartDate = signal<Date | null>(null);
+  isManuallyDisabled = signal(false);
 
   loginForm: FormGroup;
 
@@ -155,6 +214,56 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+  }
+
+  async ngOnInit() {
+    await this.checkApplicationWindowStatus();
+  }
+
+  private async checkApplicationWindowStatus(): Promise<void> {
+    try {
+      // Get all cohorts and filter for active ones
+      const allCohorts = await this.cohortService.getAllCohorts();
+      const activeCohorts = allCohorts.filter((cohort: Cohort) => cohort.isActive);
+      const now = new Date();
+      
+      if (activeCohorts.length === 0) {
+        this.applicationsOpen.set(false);
+        this.isManuallyDisabled.set(true);
+        return;
+      }
+
+      // Find the current cohort accepting applications
+      const currentCohort = activeCohorts.find((cohort: Cohort) => {
+        const appStart = new Date(cohort.applicationStartDate);
+        const appEnd = new Date(cohort.applicationEndDate);
+        return now >= appStart && now <= appEnd;
+      });
+
+      if (currentCohort) {
+        this.applicationsOpen.set(true);
+      } else {
+        // Check if there's a future cohort
+        const futureCohort = activeCohorts.find((cohort: Cohort) => {
+          const appStart = new Date(cohort.applicationStartDate);
+          return now < appStart;
+        });
+
+        if (futureCohort) {
+          this.applicationsOpen.set(false);
+          this.applicationStartDate.set(new Date(futureCohort.applicationStartDate));
+          this.isManuallyDisabled.set(false);
+        } else {
+          this.applicationsOpen.set(false);
+          this.isManuallyDisabled.set(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking application window status:', error);
+      // Default to closed if we can't check
+      this.applicationsOpen.set(false);
+      this.isManuallyDisabled.set(true);
+    }
   }
 
   toggleMode(): void {
@@ -227,6 +336,23 @@ export class LoginComponent {
 
 
   startApplication(): void {
-    this.router.navigate(['/application/phase1']);
+    if (this.applicationsOpen()) {
+      this.router.navigate(['/application/phase1']);
+    }
+  }
+
+  formatStartDate(date: Date | null): string {
+    if (!date) return 'TBD';
+    const dateStr = date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString([], { 
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+    return `${dateStr} at ${timeStr} in your time zone`;
   }
 }

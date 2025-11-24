@@ -248,6 +248,87 @@
     line-height: 1.5;
     font-style: italic;
   }
+
+  // Closed applications styling
+  &.closed {
+    .info-section {
+      i {
+        color: #f59e0b;
+      }
+      
+      h3 {
+        color: #d97706;
+      }
+    }
+
+    .closed-message {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      text-align: center;
+
+      h4 {
+        color: #92400e;
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      p {
+        color: #78350f;
+        margin: 0.5rem 0;
+        line-height: 1.5;
+      }
+
+      .date-display {
+        background: white;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        color: #92400e;
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+
+      .website-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #1e40af;
+        text-decoration: none;
+        font-weight: 500;
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid #1e40af;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #1e40af;
+          color: white;
+          transform: translateY(-1px);
+        }
+
+        i {
+          font-size: 0.9rem;
+        }
+      }
+    }
+
+    .submit-button.disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      box-shadow: none;
+
+      &:hover {
+        background: #9ca3af;
+        transform: none;
+      }
+    }
+  }
 }
 
 .auth-toggle {

@@ -678,6 +678,18 @@ import { combineLatest } from 'rxjs';
               *ngIf="currentTab === totalTabs - 1"
               class="submit-button-container"
               [class.has-tooltip]="!applicationForm.valid && !isSubmitting">
+              <!-- Debug Button (Temporary) - Uncomment if needed for debugging -->
+              <!--
+              <button
+                type="button"
+                class="nav-btn debug-btn"
+                (click)="checkValidationErrors()"
+                style="background: #f59e0b; margin-right: 10px;">
+                <i class="fas fa-bug"></i>
+                Check Errors
+              </button>
+              -->
+              
               <button
                 type="button"
                 class="nav-btn success"
@@ -1678,21 +1690,14 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       fundingDetailsControl?.updateValueAndValidity();
     });
 
-    // Setup conditional validation for incorporationLocation
-    this.applicationForm.get('isIncorporated')?.valueChanges.subscribe(value => {
-      const incorporationLocationControl = this.applicationForm.get('incorporationLocation');
-      if (value === 'true') {
-        incorporationLocationControl?.setValidators([Validators.required, this.charLimitValidator(200)]);
-      } else {
-        incorporationLocationControl?.setValidators([this.charLimitValidator(200)]);
-      }
-      incorporationLocationControl?.updateValueAndValidity();
-    });
 
     // Setup conditional validation for amendDocumentsExplanation
     this.applicationForm.get('willAmendDocuments')?.valueChanges.subscribe(value => {
       const explanationControl = this.applicationForm.get('amendDocumentsExplanation');
-      if (value === 'false') {
+      const isIncorporated = this.applicationForm.get('isIncorporated')?.value;
+      
+      // Only add validators if company is incorporated AND willAmendDocuments is false
+      if (isIncorporated === 'true' && value === 'false') {
         explanationControl?.setValidators([Validators.required, this.charLimitValidator(2000)]);
       } else {
         explanationControl?.setValidators([this.charLimitValidator(2000)]);
@@ -1700,15 +1705,62 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       explanationControl?.updateValueAndValidity();
     });
 
-    // Setup conditional validation for agreesToIncorporate
+    // Setup conditional validation for incorporation-related fields
     this.applicationForm.get('isIncorporated')?.valueChanges.subscribe(value => {
       const agreesToIncorporateControl = this.applicationForm.get('agreesToIncorporate');
+      const incorporationLocationControl = this.applicationForm.get('incorporationLocation');
+      const hasIpAssignmentControl = this.applicationForm.get('hasIpAssignment');
+      const hasFounderVestingControl = this.applicationForm.get('hasFounderVesting');
+      const hasBoardStructureControl = this.applicationForm.get('hasBoardStructure');
+      const willAmendDocumentsControl = this.applicationForm.get('willAmendDocuments');
+      const amendDocumentsExplanationControl = this.applicationForm.get('amendDocumentsExplanation');
+      
       if (value === 'false') {
+        // Company not incorporated - only require agreesToIncorporate
         agreesToIncorporateControl?.setValidators([Validators.required]);
-      } else {
+        incorporationLocationControl?.clearValidators();
+        hasIpAssignmentControl?.clearValidators();
+        hasFounderVestingControl?.clearValidators();
+        hasBoardStructureControl?.clearValidators();
+        willAmendDocumentsControl?.clearValidators();
+        amendDocumentsExplanationControl?.clearValidators(); // Clear validators completely
+        
+        // Clear values for fields that shouldn't be filled when not incorporated
+        incorporationLocationControl?.setValue('');
+        hasIpAssignmentControl?.setValue(null);
+        hasFounderVestingControl?.setValue(null);
+        hasBoardStructureControl?.setValue(null);
+        willAmendDocumentsControl?.setValue(null);
+        amendDocumentsExplanationControl?.setValue('');
+      } else if (value === 'true') {
+        // Company is incorporated - require incorporation fields
         agreesToIncorporateControl?.clearValidators();
+        agreesToIncorporateControl?.setValue(null);
+        incorporationLocationControl?.setValidators([Validators.required, this.charLimitValidator(200)]);
+        hasIpAssignmentControl?.setValidators([Validators.required]);
+        hasFounderVestingControl?.setValidators([Validators.required]);
+        hasBoardStructureControl?.setValidators([Validators.required]);
+        // Don't set validators for willAmendDocuments and amendDocumentsExplanation here
+        // They will be handled by their own change listeners
+      } else {
+        // No incorporation answer yet - clear all related validators
+        agreesToIncorporateControl?.clearValidators();
+        incorporationLocationControl?.clearValidators();
+        hasIpAssignmentControl?.clearValidators();
+        hasFounderVestingControl?.clearValidators();
+        hasBoardStructureControl?.clearValidators();
+        willAmendDocumentsControl?.clearValidators();
+        amendDocumentsExplanationControl?.clearValidators();
       }
+      
+      // Update validity for all affected controls
       agreesToIncorporateControl?.updateValueAndValidity();
+      incorporationLocationControl?.updateValueAndValidity();
+      hasIpAssignmentControl?.updateValueAndValidity();
+      hasFounderVestingControl?.updateValueAndValidity();
+      hasBoardStructureControl?.updateValueAndValidity();
+      willAmendDocumentsControl?.updateValueAndValidity();
+      amendDocumentsExplanationControl?.updateValueAndValidity();
     });
 
   }
@@ -2406,5 +2458,84 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       const charCount = control.value.length;
       return charCount > maxChars ? { charLimit: { max: maxChars, actual: charCount } } : null;
     };
+  }
+
+  // Debug method to check validation errors
+  checkValidationErrors() {
+    console.log('🐛 VALIDATION DEBUG REPORT');
+    console.log('========================');
+    
+    const formValue = this.applicationForm.value;
+    console.log('📋 Current Form Values:', formValue);
+    console.log('✅ Form Valid:', this.applicationForm.valid);
+    console.log('📊 Form Status:', this.applicationForm.status);
+    
+    // Check each form control
+    console.log('\n🔍 Individual Control Status:');
+    Object.keys(this.applicationForm.controls).forEach(key => {
+      const control = this.applicationForm.get(key);
+      if (control) {
+        console.log(`  ${key}:`, {
+          value: control.value,
+          valid: control.valid,
+          errors: control.errors,
+          status: control.status,
+          validators: control.validator ? 'Has validators' : 'No validators'
+        });
+      }
+    });
+    
+    // Check current tab validation
+    console.log('\n📋 Current Tab (3 - Legal) Validation:');
+    console.log('  isIncorporated:', formValue.isIncorporated);
+    
+    if (formValue.isIncorporated === 'true') {
+      console.log('  Company IS incorporated - checking corporate structure:');
+      console.log('    incorporationLocation:', formValue.incorporationLocation);
+      console.log('    hasIpAssignment:', formValue.hasIpAssignment);
+      console.log('    hasFounderVesting:', formValue.hasFounderVesting);
+      console.log('    hasBoardStructure:', formValue.hasBoardStructure);
+      
+      const showAmendment = this.showAmendmentQuestion();
+      console.log('    showAmendmentQuestion():', showAmendment);
+      
+      if (showAmendment) {
+        console.log('    willAmendDocuments:', formValue.willAmendDocuments);
+        console.log('    amendDocumentsExplanation:', formValue.amendDocumentsExplanation);
+      }
+    } else if (formValue.isIncorporated === 'false') {
+      console.log('  Company IS NOT incorporated - checking agreement:');
+      console.log('    agreesToIncorporate:', formValue.agreesToIncorporate);
+    } else {
+      console.log('  No incorporation answer yet');
+    }
+    
+    // Check equity breakdown
+    console.log('\n💰 Equity Breakdown:');
+    console.log('  equityRows.length:', this.equityRows.length);
+    console.log('  equityRows:', this.equityRows);
+    
+    const founderRows = this.equityRows.filter(row => row.category === 'founder');
+    const foundersWithShares = founderRows.filter(row => (row.shares || 0) > 0);
+    console.log('  founderRows:', founderRows.length);
+    console.log('  foundersWithShares:', foundersWithShares.length);
+    
+    // Check current tab validity
+    console.log('\n🎯 Tab Validation Results:');
+    for (let i = 0; i < this.totalTabs; i++) {
+      const isValid = this.isTabValid(i);
+      console.log(`  Tab ${i} (${this.tabTitles[i]}): ${isValid ? '✅ Valid' : '❌ Invalid'}`);
+    }
+    
+    console.log('\n🚀 Overall Form Validation:');
+    console.log('  canProceedToNext():', this.canProceedToNext());
+    console.log('  isCurrentTabValid():', this.isCurrentTabValid());
+    console.log('  applicationForm.valid:', this.applicationForm.valid);
+    
+    console.log('\n🎯 Submit Button Tooltip:');
+    console.log(this.getSubmitButtonTooltip());
+    
+    console.log('========================');
+    console.log('🐛 END VALIDATION DEBUG');
   }
 }

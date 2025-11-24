@@ -242,13 +242,13 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
             </div>
             <div class="status-content">
               <h2>🎉 Congratulations! You're In!</h2>
-              <p class="status-message">Welcome to the Vetted Accelerator! We're excited to have you join our community of veteran entrepreneurs.</p>
+              <p class="status-message">Welcome to the Vetted Accelerator! We're excited to have you join our community of Combat Veteran entrepreneurs.</p>
               <div class="celebration-content">
                 <h4>What's Next?</h4>
                 <ul>
                   <li>You'll receive a welcome package with program details</li>
                   <li>Program orientation starts soon - watch your email</li>
-                  <li>Join our exclusive veteran founder community</li>
+                  <li>Join our exclusive Combat Veteran founder community</li>
                   <li>Get ready to accelerate your startup!</li>
                 </ul>
               </div>

@@ -91,7 +91,7 @@ import { UserRole } from '../../../models';
                 Sign In
               }
             </button>
-            
+
             <div class="forgot-password">
               <button type="button" class="forgot-password-button" (click)="onForgotPassword()" [disabled]="isLoading()">
                 Forgot your password?
@@ -103,7 +103,7 @@ import { UserRole } from '../../../models';
             <div class="info-section">
               <i class="fas fa-rocket"></i>
               <h3>Join Vetted Accelerator</h3>
-              <p>Ready to accelerate your veteran-founded startup? Our exclusive program is designed specifically for veteran entrepreneurs.</p>
+              <p>Ready to accelerate your Combat Veteran-founded startup? Our exclusive program is designed specifically for Combat Veteran entrepreneurs.</p>
             </div>
 
             <div class="requirements">
@@ -144,7 +144,7 @@ export class LoginComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  isLogin = signal(true);
+  isLogin = signal(false);
   isLoading = signal(false);
   error = signal<string>('');
   success = signal<string>('');
@@ -172,11 +172,11 @@ export class LoginComponent {
       this.error.set('');
 
       const { email, password } = this.loginForm.value;
-      
+
       const user = await this.authService.signIn(email, password);
-      
+
       this.success.set('Login successful! Redirecting...');
-      
+
       // Redirect based on user role
       if (user.role === UserRole.ADMIN || user.role === UserRole.VIEWER) {
         setTimeout(() => this.router.navigate(['/admin']), 1500);
@@ -184,10 +184,10 @@ export class LoginComponent {
         // All applicants go to dashboard
         setTimeout(() => this.router.navigate(['/dashboard']), 1500);
       }
-      
+
     } catch (error: any) {
       let errorMessage = 'Invalid email or password. Please try again.';
-      
+
       if (error.message?.includes('user-not-found')) {
         errorMessage = 'No account found with this email address.';
       } else if (error.message?.includes('wrong-password')) {
@@ -195,7 +195,7 @@ export class LoginComponent {
       } else if (error.message?.includes('user-disabled')) {
         errorMessage = 'This account has been disabled. Please contact support.';
       }
-      
+
       this.error.set(errorMessage);
     } finally {
       this.isLoading.set(false);
@@ -204,7 +204,7 @@ export class LoginComponent {
 
   onForgotPassword(): void {
     const email = this.loginForm.get('email')?.value;
-    
+
     if (!email) {
       this.error.set('Please enter your email address to reset your password.');
       return;

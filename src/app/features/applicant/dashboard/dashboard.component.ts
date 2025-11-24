@@ -136,7 +136,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
         }
 
         <!-- Phase 3: In-Depth Application -->
-        @if (currentPhase() === 'IN_DEPTH_APPLICATION' && !applicationsStopped()) {
+        @if (currentPhase() === 'IN_DEPTH_APPLICATION' && (!applicationsStopped() || applicationStatus() === ApplicationStatus.PHASE_3_SUBMITTED)) {
           @if (applicationStatus() === ApplicationStatus.PHASE_3_IN_PROGRESS) {
             <div class="status-card status-action">
               <div class="status-icon">
@@ -572,9 +572,17 @@ export class DashboardComponent implements OnInit {
       return false;
     }
 
-    // For Phase 3 users, we need to check if they submitted (this would require async check)
-    // For now, we'll show the blocked message and let the route guard handle the actual blocking
-    // Block users in Phase 1, Phase 2, and Phase 3 (the guard will do the detailed check)
+    // Allow Phase 3 users who have submitted (check by their application status)
+    if (applicant.phase === Phase.IN_DEPTH_APPLICATION) {
+      // Check the user's status directly from the applicant object, not the signal
+      console.log('🔍 Checking Phase 3 status:', applicant.status, 'Expected:', ApplicationStatus.PHASE_3_SUBMITTED);
+      // If they have submitted - don't block them (they can view their submitted application)
+      if (applicant.status === ApplicationStatus.PHASE_3_SUBMITTED) {
+        return false;
+      }
+    }
+
+    // Block users in Phase 1, Phase 2, and Phase 3 (draft only)
     return applicant.phase === Phase.SIGNUP || 
            applicant.phase === Phase.WEBINAR || 
            applicant.phase === Phase.IN_DEPTH_APPLICATION;

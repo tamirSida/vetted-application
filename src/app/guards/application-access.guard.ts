@@ -43,7 +43,7 @@ export class ApplicationAccessGuard implements CanActivate {
               try {
                 const phase3App = await this.applicationService.getPhase3Application(applicant.userId, applicant.cohortId);
                 // Allow if they have submitted their Phase 3 application
-                if (phase3App && phase3App.status === 'SUBMITTED') {
+                if (phase3App && (phase3App.status === 'SUBMITTED' || phase3App.status === 'UNDER_REVIEW' || phase3App.status === 'COMPLETED')) {
                   return true;
                 }
               } catch (error) {

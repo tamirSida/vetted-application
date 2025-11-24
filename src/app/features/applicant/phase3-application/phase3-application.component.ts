@@ -1138,6 +1138,7 @@ import { combineLatest } from 'rxjs';
     }
 
     .submit-button-container:hover .submit-tooltip,
+    .submit-button-container.has-tooltip:hover .submit-tooltip,
     .submit-button-container.has-tooltip:active .submit-tooltip {
       opacity: 1;
       visibility: visible;
@@ -1659,36 +1660,44 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     const errors: string[] = [];
     const formValue = this.applicationForm.value;
 
-    // Check each tab for errors
-    if (!this.isTabValid(0)) {
-      if (!formValue.productStage) errors.push('• Select your product stage');
-      if (!formValue.tractionDetails) errors.push('• Describe your traction details');
-      if (!formValue.problemCustomer) errors.push('• Describe your problem & customer');
-      if (!formValue.videoPitch) errors.push('• Provide a video pitch URL');
-    }
+    // Check Tab 1: Product & Traction
+    if (!formValue.productStage) errors.push('• Select your product stage');
+    if (!formValue.tractionDetails || formValue.tractionDetails.trim() === '') errors.push('• Describe your traction details');
+    if (!formValue.problemCustomer || formValue.problemCustomer.trim() === '') errors.push('• Describe your problem & customer');
+    if (!formValue.videoPitch || formValue.videoPitch.trim() === '') errors.push('• Provide a video pitch URL');
 
-    if (!this.isTabValid(1)) {
-      if (!formValue.coFounders) errors.push('• List your co-founders');
-      if (!formValue.capacity) errors.push('• Select team capacity');
-      if (formValue.capacity === 'OTHER' && !formValue.capacityOther) errors.push('• Explain your team capacity');
-      if (!formValue.hasPreviousCollaboration) errors.push('• Answer previous collaboration question');
-      if (formValue.hasPreviousCollaboration === 'true' && !formValue.previousCollaboration) errors.push('• Explain previous collaboration');
-      if (!formValue.previousFounders) errors.push('• Answer previous founders question');
-      if (formValue.previousFounders === 'true' && !formValue.previousFoundersExplanation) errors.push('• Explain previous founders departure');
-      if (!formValue.equitySplitRoles) errors.push('• Describe equity split and roles');
-    }
+    // Check Tab 2: Team
+    if (!formValue.coFounders || formValue.coFounders.trim() === '') errors.push('• List your co-founders');
+    if (formValue.capacity === null || formValue.capacity === undefined) errors.push('• Select team capacity');
+    if (formValue.capacity === 'OTHER' && (!formValue.capacityOther || formValue.capacityOther.trim() === '')) errors.push('• Explain your team capacity');
+    if (formValue.hasPreviousCollaboration === null || formValue.hasPreviousCollaboration === undefined) errors.push('• Answer previous collaboration question');
+    if (formValue.hasPreviousCollaboration === 'true' && (!formValue.previousCollaboration || formValue.previousCollaboration.trim() === '')) errors.push('• Explain previous collaboration');
+    if (formValue.previousFounders === null || formValue.previousFounders === undefined) errors.push('• Answer previous founders question');
+    if (formValue.previousFounders === 'true' && (!formValue.previousFoundersExplanation || formValue.previousFoundersExplanation.trim() === '')) errors.push('• Explain previous founders departure');
+    if (!formValue.equitySplitRoles || formValue.equitySplitRoles.trim() === '') errors.push('• Describe equity split and roles');
 
-    if (!this.isTabValid(2)) {
-      if (!formValue.hasRaisedCapital) errors.push('• Answer funding history question');
-      if (formValue.hasRaisedCapital === 'true' && !formValue.fundingDetails) errors.push('• Provide funding details');
-      if (this.equityRows.length === 0) errors.push('• Add equity breakdown entries');
-    }
+    // Check Tab 3: Funding
+    if (formValue.hasRaisedCapital === null || formValue.hasRaisedCapital === undefined) errors.push('• Answer funding history question');
+    if (formValue.hasRaisedCapital === 'true' && (!formValue.fundingDetails || formValue.fundingDetails.trim() === '')) errors.push('• Provide funding details');
+    if (this.equityRows.length === 0) errors.push('• Add equity breakdown entries');
 
-    if (!this.isTabValid(3)) {
-      if (!formValue.isIncorporated) errors.push('• Answer incorporation question');
-      if (formValue.isIncorporated === 'true' && !formValue.incorporationLocation) errors.push('• Provide incorporation location');
-      if (formValue.isIncorporated === 'false' && !formValue.agreesToIncorporate) errors.push('• Answer incorporation agreement question');
+    // Check Tab 4: Legal
+    if (formValue.isIncorporated === null || formValue.isIncorporated === undefined) errors.push('• Answer incorporation question');
+    if (formValue.isIncorporated === 'true') {
+      if (!formValue.incorporationLocation || formValue.incorporationLocation.trim() === '') errors.push('• Provide incorporation location');
+      
+      // Check corporate structure questions when incorporated
+      if (formValue.hasIpAssignment === null || formValue.hasIpAssignment === undefined) errors.push('• Answer IP assignment question');
+      if (formValue.hasFounderVesting === null || formValue.hasFounderVesting === undefined) errors.push('• Answer founder vesting question');
+      if (formValue.hasBoardStructure === null || formValue.hasBoardStructure === undefined) errors.push('• Answer board structure question');
+      
+      // Check amendment willingness if any corporate structure item is "No"
+      if (this.showAmendmentQuestion()) {
+        if (formValue.willAmendDocuments === null || formValue.willAmendDocuments === undefined) errors.push('• Answer amendment willingness question');
+        if (formValue.willAmendDocuments === 'false' && (!formValue.amendDocumentsExplanation || formValue.amendDocumentsExplanation.trim() === '')) errors.push('• Explain why you cannot amend documents');
+      }
     }
+    if (formValue.isIncorporated === 'false' && (formValue.agreesToIncorporate === null || formValue.agreesToIncorporate === undefined)) errors.push('• Answer incorporation agreement question');
 
     return errors.length > 0 ?
       `<strong>Complete the following to submit:</strong><br><br>${errors.join('<br>')}` :
@@ -1758,6 +1767,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           await this.userService.updateUser(currentUser.userId, {
             status: ApplicationStatus.PHASE_3_IN_PROGRESS
           });
+          
+          // Refresh the auth service's user data to ensure any navigation shows correct state
+          await this.authService.refreshCurrentUser();
           console.log('✅ User status updated to PHASE_3_IN_PROGRESS');
         } else {
           console.warn('⚠️ No current user found for status update');
@@ -1805,6 +1817,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           status: ApplicationStatus.PHASE_3_SUBMITTED
         });
 
+        // Refresh the auth service's user data to ensure dashboard shows correct state
+        await this.authService.refreshCurrentUser();
+
         // Send Phase 3 submitted confirmation email
         if (this.applicant) {
           try {
@@ -1825,12 +1840,13 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       // Trigger OpenAI analysis in the background (fire and forget)
       this.triggerOpenAIAnalysis(submittedApplication);
 
-      this.successMessage = 'Application submitted successfully!';
+      this.successMessage = 'Application submitted successfully! Redirecting to dashboard...';
       this.phaseCompleted.emit();
 
+      // Wait a bit longer to ensure user sees the success message before redirecting
       setTimeout(() => {
         this.router.navigate(['/dashboard']);
-      }, 2000);
+      }, 3000);
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to submit application';
     } finally {

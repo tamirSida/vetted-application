@@ -247,11 +247,14 @@ export class AuthService {
     } as User;
 
     await setDoc(doc(this.firestore, collectionName, currentUser.userId), updatedUser);
+
+    // Update the local user state immediately to prevent stale data
     this.currentUserSubject.next(updatedUser);
   }
 
   /**
-   * Force refresh current user data from Firestore and update auth cache
+   * Refreshes the current user data from Firestore
+   * Useful when user data has been updated externally
    */
   async refreshCurrentUser(): Promise<User | null> {
     const firebaseUser = this.auth.currentUser;
@@ -265,7 +268,7 @@ export class AuthService {
       return userData;
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      return null;
+      throw error;
     }
   }
 

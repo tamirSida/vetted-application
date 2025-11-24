@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
 import { PhaseProgressionService } from '../../../services/phase-progression.service';
-import { ApplicantUser, Phase } from '../../../models';
+import { ApplicantUser, Phase, ApplicationStatus } from '../../../models';
 import { Phase2WebinarComponent } from '../phase2-webinar/phase2-webinar.component';
 import { Phase3ApplicationTabbedComponent } from '../phase3-application/phase3-application.component';
 import { Phase4InterviewComponent } from '../phase4-interview/phase4-interview.component';
@@ -375,13 +375,14 @@ export class ApplicantDashboardComponent implements OnInit {
   }
 
   isPhase1Submitted(): boolean {
-    // TODO: Check if Phase 1 application is submitted
-    return false;
+    // Phase 1 is considered submitted when user has moved beyond PHASE_1 status
+    return this.applicant?.status !== ApplicationStatus.PHASE_1;
   }
 
   isPhase3Submitted(): boolean {
-    // TODO: Check if Phase 3 application is submitted
-    return false;
+    // Check if Phase 3 application is submitted based on status
+    return this.applicant?.status === ApplicationStatus.PHASE_3_SUBMITTED ||
+           this.applicant?.status === ApplicationStatus.PHASE_3_REJECTED;
   }
 
   getSubmissionDate(): Date {

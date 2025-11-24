@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../services';
 import { CohortService } from '../../../services/cohort.service';
+import { ApplicationSettingsService } from '../../../services/application-settings.service';
 import { UserRole, Cohort } from '../../../models';
 
 @Component({
@@ -101,7 +102,7 @@ import { UserRole, Cohort } from '../../../models';
           </form>
         } @else {
           <!-- Applications Open -->
-          @if (applicationsOpen()) {
+          @if (applicationsOpen() && !applicationsStopped()) {
             <div class="signup-info">
               <div class="info-section">
                 <i class="fas fa-rocket"></i>
@@ -177,16 +178,37 @@ import { UserRole, Cohort } from '../../../models';
               </button>
             </div>
           }
+
+          <!-- Applications Stopped -->
+          @if (applicationsStopped()) {
+            <div class="signup-info closed">
+              <div class="info-section">
+                <i class="fas fa-stop"></i>
+                <h3>We aren't accepting applications any more!</h3>
+              </div>
+
+              <p class="contact-info">
+                If you have questions, please contact us at <strong>info@thevetted.vc</strong>
+              </p>
+
+              <button type="button" class="submit-button" (click)="toggleMode()">
+                <i class="fas fa-sign-in-alt"></i>
+                Already have an account? Sign In
+              </button>
+            </div>
+          }
         }
 
-        <div class="auth-toggle">
-          <p>
-            {{ isLogin() ? "Don't have an account?" : "Already have an account?" }}
-            <button type="button" class="toggle-button" (click)="toggleMode()">
-              {{ isLogin() ? 'Apply Now' : 'Sign In' }}
-            </button>
-          </p>
-        </div>
+        @if (!applicationsStopped()) {
+          <div class="auth-toggle">
+            <p>
+              {{ isLogin() ? "Don't have an account?" : "Already have an account?" }}
+              <button type="button" class="toggle-button" (click)="toggleMode()">
+                {{ isLogin() ? 'Apply Now' : 'Sign In' }}
+              </button>
+            </p>
+          </div>
+        }
       </div>
     </div>
   `
@@ -196,6 +218,7 @@ export class LoginComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private cohortService = inject(CohortService);
+  private applicationSettingsService = inject(ApplicationSettingsService);
 
   isLogin = signal(false);
   isLoading = signal(false);
@@ -206,6 +229,7 @@ export class LoginComponent implements OnInit {
   applicationsOpen = signal(true);
   applicationStartDate = signal<Date | null>(null);
   isManuallyDisabled = signal(false);
+  applicationsStopped = signal(false);
 
   loginForm: FormGroup;
 
@@ -218,6 +242,7 @@ export class LoginComponent implements OnInit {
 
   async ngOnInit() {
     await this.checkApplicationWindowStatus();
+    await this.checkApplicationSettings();
   }
 
   private async checkApplicationWindowStatus(): Promise<void> {
@@ -354,5 +379,16 @@ export class LoginComponent implements OnInit {
       minute: '2-digit'
     });
     return `${dateStr} at ${timeStr} in your time zone`;
+  }
+
+  private async checkApplicationSettings(): Promise<void> {
+    try {
+      const settings = await this.applicationSettingsService.getApplicationSettings();
+      if (settings) {
+        this.applicationsStopped.set(!settings.acceptingApplications);
+      }
+    } catch (error) {
+      console.error('Error checking application settings:', error);
+    }
   }
 }

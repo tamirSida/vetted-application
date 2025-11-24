@@ -318,6 +318,28 @@
       }
     }
 
+    .contact-info {
+      text-align: center;
+      margin: 1.5rem 0;
+      color: #78350f;
+      font-size: 1.1rem;
+      
+      strong {
+        color: #dc2626;
+      }
+    }
+
+    // Applications stopped styling (red stop sign)
+    &.closed .info-section {
+      .fa-stop {
+        color: #dc3545 !important;
+      }
+      
+      h3 {
+        color: #dc3545 !important;
+      }
+    }
+
     .submit-button.disabled {
       background: #9ca3af;
       cursor: not-allowed;
@@ -343,17 +365,22 @@
   }
 
   .toggle-button {
-    background: none;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
     border: none;
-    color: #1e293b;
+    color: white;
     font-weight: 600;
     cursor: pointer;
-    padding: 0;
+    padding: 0.75rem 1.5rem;
     margin-left: 0.5rem;
-    text-decoration: underline;
+    text-decoration: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    transition: all 0.2s ease;
 
     &:hover {
-      color: #334155;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(30, 64, 175, 0.4);
     }
   }
 }

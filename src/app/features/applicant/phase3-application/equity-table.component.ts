@@ -193,7 +193,7 @@ import { EquityBreakdownRow } from '../../../models';
       </div>
 
       <!-- Validation Messages -->
-      <div *ngIf="getTotalPercentage() !== 100" class="validation-warning">
+      <div *ngIf="!isPercentageValid()" class="validation-warning">
         <i class="warning-icon">⚠️</i>
         Total ownership percentage is {{ getTotalPercentage().toFixed(2) }}%. It should equal 100%.
       </div>
@@ -510,6 +510,12 @@ export class EquityTableComponent implements OnInit {
 
   getFoundersWithShares(): number {
     return this.getRowsByCategory('founder').filter(row => (row.shares || 0) > 0).length;
+  }
+
+  isPercentageValid(): boolean {
+    const totalPercentage = this.getTotalPercentage();
+    // Use a tolerance of 0.01% to account for floating-point precision errors
+    return Math.abs(totalPercentage - 100) < 0.01;
   }
 
   recalculatePercentages() {

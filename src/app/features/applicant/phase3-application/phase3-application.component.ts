@@ -54,6 +54,20 @@ import { combineLatest } from 'rxjs';
 
       <!-- Main Content with Tabs -->
       <main class="main-content">
+        <!-- Field Legend -->
+        <div *ngIf="!isLoading" class="field-legend">
+          <div class="legend-item">
+            <span class="legend-required">
+              <span class="required-asterisk">*</span> Required field
+            </span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-optional">
+              <span class="optional-label">(Optional)</span> Optional field
+            </span>
+          </div>
+        </div>
+
         <!-- Loading State -->
         <div *ngIf="isLoading" class="loading-state">
           <div class="spinner"></div>
@@ -84,7 +98,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Product Stage -->
               <div class="form-group">
-                <label class="form-label">Product Stage: How far along are you in building the service or product?</label>
+                <label class="form-label required">Product Stage: How far along are you in building the service or product? <span class="required-asterisk">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input
@@ -123,8 +137,8 @@ import { combineLatest } from 'rxjs';
 
               <!-- Traction Details -->
               <div class="form-group">
-                <label for="tractionDetails" class="form-label">
-                  Traction Details: Describe the traction above. For example 100 unpaid users within 3 months of beta launch / five paying customers with average ACV of $20K/year/ launching MVP in Q3 of this year.
+                <label for="tractionDetails" class="form-label required">
+                  Traction Details: Describe the traction above. For example 100 unpaid users within 3 months of beta launch / five paying customers with average ACV of $20K/year/ launching MVP in Q3 of this year. <span class="required-asterisk">*</span>
                 </label>
                 <textarea
                   id="tractionDetails"
@@ -140,8 +154,8 @@ import { combineLatest } from 'rxjs';
 
               <!-- Problem & Customer -->
               <div class="form-group">
-                <label for="problemCustomer" class="form-label">
-                  Problem & Customer: Who is the exact person you're helping, and what problem do they face? Be specific — not just a company or age group, but a real role or situation. (Example: "New moms recovering from childbirth who struggle to find time for healthy meals" or "Office managers at small law firms who waste hours ordering supplies.")
+                <label for="problemCustomer" class="form-label required">
+                  Problem & Customer: Who is the exact person you're helping, and what problem do they face? Be specific — not just a company or age group, but a real role or situation. (Example: "New moms recovering from childbirth who struggle to find time for healthy meals" or "Office managers at small law firms who waste hours ordering supplies.") <span class="required-asterisk">*</span>
                 </label>
                 <textarea
                   id="problemCustomer"
@@ -158,7 +172,11 @@ import { combineLatest } from 'rxjs';
               <!-- Company Deck Upload -->
               <div class="form-group">
                 <div class="deck-upload-section">
-                  <label class="form-label">Upload Company Deck</label>
+                  <label class="form-label" [class.required]="!hasP1Deck" [class.optional]="hasP1Deck">
+                    Upload Company Deck 
+                    <span *ngIf="!hasP1Deck" class="required-asterisk">*</span>
+                    <span *ngIf="hasP1Deck" class="optional-label">(Optional - You may refine your deck)</span>
+                  </label>
                   <div class="deck-requirement-text">
                     <p>{{ getDeckRequirementText() }}</p>
                   </div>
@@ -191,8 +209,8 @@ import { combineLatest } from 'rxjs';
 
               <!-- Video Pitch -->
               <div class="form-group">
-                <label for="videoPitch" class="form-label">
-                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building.
+                <label for="videoPitch" class="form-label required">
+                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building. <span class="required-asterisk">*</span>
                 </label>
                 <input
                   type="url"
@@ -213,8 +231,8 @@ import { combineLatest } from 'rxjs';
 
               <!-- Co-Founders -->
               <div class="form-group">
-                <label for="coFounders" class="form-label">
-                  Co-Founders: Please list all co-founders, their roles, and a link to their LinkedIn profiles.
+                <label for="coFounders" class="form-label required">
+                  Co-Founders: Please list all co-founders, their roles, and a link to their LinkedIn profiles. <span class="required-asterisk">*</span>
                 </label>
                 <textarea
                   id="coFounders"
@@ -230,7 +248,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Capacity -->
               <div class="form-group">
-                <label class="form-label">Capacity: What are you and your co-founders current capacity?</label>
+                <label class="form-label required">Capacity: What are you and your co-founders current capacity? <span class="required-asterisk">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input
@@ -268,7 +286,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Previous Collaboration -->
               <div class="form-group">
-                <label class="form-label">Have any team members worked together before?</label>
+                <label class="form-label required">Have any team members worked together before? <span class="required-asterisk">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input
@@ -309,7 +327,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Previous Founders -->
               <div class="form-group">
-                <label class="form-label">Previous Founders: Have you had any co-founders who are no longer with the company?</label>
+                <label class="form-label required">Previous Founders: Have you had any co-founders who are no longer with the company? <span class="required-asterisk">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input
@@ -347,8 +365,8 @@ import { combineLatest } from 'rxjs';
 
               <!-- Equity Split & Roles -->
               <div class="form-group">
-                <label for="equitySplitRoles" class="form-label">
-                  Equity Split + Roles: Please briefly describe how you decided on the equity split between the founders and on the role each one would have.
+                <label for="equitySplitRoles" class="form-label required">
+                  Equity Split + Roles: Please briefly describe how you decided on the equity split between the founders and on the role each one would have. <span class="required-asterisk">*</span>
                 </label>
                 <textarea
                   id="equitySplitRoles"
@@ -364,8 +382,8 @@ import { combineLatest } from 'rxjs';
 
               <!-- Additional Team Members -->
               <div class="form-group">
-                <label for="additionalTeamMembers" class="form-label">
-                  Additional team members who are not founders: List the roles
+                <label for="additionalTeamMembers" class="form-label optional">
+                  Additional team members who are not founders: List the roles <span class="optional-label">(Optional)</span>
                 </label>
                 <textarea
                   id="additionalTeamMembers"
@@ -386,7 +404,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Has Raised Capital -->
               <div class="form-group">
-                <label class="form-label">Funding History: Have you raised any capital to date?</label>
+                <label class="form-label required">Funding History: Have you raised any capital to date? <span class="required-asterisk">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input
@@ -427,7 +445,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Equity Breakdown Table -->
               <div class="form-group">
-                <label class="form-label">Equity Breakdown: Please provide a simple CAP table or equity breakdown</label>
+                <label class="form-label required">Equity Breakdown: Please provide a simple CAP table or equity breakdown <span class="required-asterisk">*</span></label>
                 <app-equity-table
                   [equityRows]="equityRows"
                   (rowsChanged)="onEquityRowsChanged($event)">
@@ -444,7 +462,7 @@ import { combineLatest } from 'rxjs';
 
               <!-- Question 1: Is Incorporated -->
               <div class="form-group">
-                <label class="form-label">Is your company incorporated?</label>
+                <label class="form-label required">Is your company incorporated? <span class="required-asterisk">*</span></label>
                 <div class="radio-group">
                   <label class="radio-option">
                     <input
@@ -856,6 +874,31 @@ import { combineLatest } from 'rxjs';
       padding: 2rem;
     }
 
+    /* Field Legend */
+    .field-legend {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 2rem;
+      font-size: 0.9rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .legend-required,
+    .legend-optional {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-weight: 500;
+    }
+
     .loading-state {
       text-align: center;
       padding: 3rem 1rem;
@@ -948,6 +991,28 @@ import { combineLatest } from 'rxjs';
       font-size: 0.95rem;
     }
 
+    .form-label.required {
+      position: relative;
+    }
+
+    .form-label.optional {
+      color: #6b7280;
+    }
+
+    .required-asterisk {
+      color: #ef4444;
+      font-weight: 700;
+      margin-left: 0.25rem;
+      font-size: 1rem;
+    }
+
+    .optional-label {
+      color: #6b7280;
+      font-weight: 400;
+      font-size: 0.85em;
+      font-style: italic;
+    }
+
     .form-input, .form-textarea {
       width: 100%;
       padding: 0.75rem 1rem;
@@ -962,6 +1027,38 @@ import { combineLatest } from 'rxjs';
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Validation States */
+    .form-input.ng-invalid.ng-touched,
+    .form-textarea.ng-invalid.ng-touched {
+      border-color: #ef4444;
+      background-color: #fef2f2;
+    }
+
+    .form-input.ng-invalid.ng-touched:focus,
+    .form-textarea.ng-invalid.ng-touched:focus {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .form-input.ng-valid.ng-touched,
+    .form-textarea.ng-valid.ng-touched {
+      border-color: #10b981;
+    }
+
+    /* Required field indicator for empty required fields */
+    .form-group.has-error .form-input,
+    .form-group.has-error .form-textarea {
+      border-color: #fbbf24;
+      background-color: #fffbeb;
+    }
+
+    .form-group.has-error .form-label.required::after {
+      content: ' (Required)';
+      color: #f59e0b;
+      font-weight: 400;
+      font-size: 0.85em;
     }
 
     .form-textarea {
@@ -997,8 +1094,27 @@ import { combineLatest } from 'rxjs';
       background: #f9fafb;
     }
 
+    .radio-option input[type="radio"]:checked + .checkmark,
+    .radio-option:has(input[type="radio"]:checked) {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
     .radio-option input[type="radio"], .checkbox-option input[type="checkbox"] {
       margin: 0;
+      accent-color: #667eea;
+    }
+
+    /* Required radio group styling */
+    .form-group.required-radio .radio-group {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.5rem;
+    }
+
+    .form-group.required-radio.has-error .radio-group {
+      border-color: #fbbf24;
+      background: #fffbeb;
     }
 
     .conditional-section {
@@ -1342,6 +1458,16 @@ import { combineLatest } from 'rxjs';
         gap: 1rem;
         text-align: center;
       }
+
+      .field-legend {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+      }
+
+      .legend-item {
+        justify-content: center;
+      }
     }
   `]
 })
@@ -1595,7 +1721,8 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     const formValue = this.applicationForm.value;
     switch (this.currentTab) {
       case 0: // Product & Traction
-        return !!(formValue.productStage && formValue.tractionDetails && formValue.problemCustomer && formValue.videoPitch);
+        const hasRequiredDeck = !this.isDeckRequired() || this.getUploadedDeckUrl() || this.getSelectedDeckFile();
+        return !!(formValue.productStage && formValue.tractionDetails && formValue.problemCustomer && formValue.videoPitch && hasRequiredDeck);
       case 1: // Team
         const hasCapacity = formValue.capacity !== null;
         const hasCapacityExplanation = formValue.capacity !== 'OTHER' || formValue.capacityOther;
@@ -1667,6 +1794,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     if (!formValue.tractionDetails || formValue.tractionDetails.trim() === '') errors.push('• Describe your traction details');
     if (!formValue.problemCustomer || formValue.problemCustomer.trim() === '') errors.push('• Describe your problem & customer');
     if (!formValue.videoPitch || formValue.videoPitch.trim() === '') errors.push('• Provide a video pitch URL');
+    if (this.isDeckRequired() && !this.getUploadedDeckUrl() && !this.getSelectedDeckFile()) errors.push('• Upload your company deck');
 
     // Check Tab 2: Team
     if (!formValue.coFounders || formValue.coFounders.trim() === '') errors.push('• List your co-founders');
@@ -2163,6 +2291,10 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
   private checkIfUserHasP1Deck(): boolean {
     return this.hasP1Deck;
+  }
+
+  isDeckRequired(): boolean {
+    return !this.hasP1Deck;
   }
 
   private wordCountValidator(maxWords: number) {

@@ -110,9 +110,8 @@ import { UserRole } from '../../../models';
               <h4>Program Requirements:</h4>
               <ul>
                 <li><i class="fas fa-check"></i> Must be a founder of your company</li>
-                <li><i class="fas fa-check"></i> Military service background required</li>
-                <li><i class="fas fa-check"></i> Commitment to full program participation</li>
-                <li><i class="fas fa-check"></i> Early-stage startup (pre-Series A)</li>
+                <li><i class="fas fa-check"></i> Proof of combat service required</li>
+                <li><i class="fas fa-check"></i> 100% Participation in Program</li>
               </ul>
             </div>
 

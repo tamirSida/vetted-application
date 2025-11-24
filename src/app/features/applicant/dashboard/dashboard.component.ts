@@ -62,7 +62,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
             <div class="status-content">
               <h2>Initial Application Approved!</h2>
               <p class="status-message">Congratulations! Your initial application has been approved. Please join one of our webinars to continue to the next phase.</p>
-              
+
               @if (availableWebinars().length > 0) {
                 <div class="webinars-section">
                   <h4>Available Webinars:</h4>
@@ -93,8 +93,8 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
                   <div class="form-group">
                     <div class="input-group">
                       <i class="fas fa-key"></i>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         formControlName="webinarCode"
                         placeholder="Enter 6-character code"
                         maxlength="6"
@@ -150,7 +150,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
               <div class="status-content">
                 <h2>Application Under Review</h2>
                 <p class="status-message">Thank you for submitting your application for the Vetted Accelerator.</p>
-                <p class="status-message">We have received your submission and our team will now begin the review process. We review applications on a rolling basis. Expect to hear from us in the coming days / weeks but no later than {{ applicationEndDate() }}</p>
+                <p class="status-message">We have received your submission and our team will now begin the review process. We review applications on a rolling basis. Expect to hear from us in the coming days / weeks but no later than {{ applicationEndDate() }}.</p>
               </div>
             </div>
           } @else if (applicationStatus() === ApplicationStatus.PHASE_3) {
@@ -190,7 +190,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
             <div class="status-content">
               <h2>Phase 4: Interview</h2>
               <p class="status-message">We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members:</p>
-              
+
               @if (interviewer()) {
                 <div class="interviewer-info">
                   <h4>[interviewer Schedule]</h4>
@@ -201,9 +201,9 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
                   </a>
                 </div>
               }
-              
+
               <p>Please click the link to schedule a time that works best for you.</p>
-              
+
               <p>Feel free to reach out to Eden at eden@thevetted.vc, if you have any questions before the meeting.</p>
             </div>
           </div>
@@ -294,7 +294,7 @@ export class DashboardComponent implements OnInit {
   interviewer = signal<Interviewer | null>(null);
   availableWebinars = signal<Webinar[]>([]);
   applicationEndDate = signal<string>('[Application End Date]');
-  
+
   error = signal<string>('');
   success = signal<string>('');
   isLoading = signal<boolean>(false);
@@ -309,19 +309,19 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     console.log('🔍 Dashboard: ngOnInit called');
-    
+
     // Wait for auth initialization AND user data before making routing decisions
     combineLatest([
       this.authService.authInitialized$,
       this.authService.currentUser$
     ]).subscribe(([authInitialized, user]) => {
       console.log('🔍 Dashboard: Auth state update - initialized:', authInitialized, 'user:', user);
-      
+
       if (!authInitialized) {
         console.log('⏳ Dashboard: Auth not initialized yet');
         return;
       }
-      
+
       if (user && user.role === 'APPLICANT') {
         console.log('✅ Dashboard: User is an applicant, loading data');
         this.loadUserData(user as ApplicantUser);
@@ -343,13 +343,13 @@ export class DashboardComponent implements OnInit {
       console.log('🔍 Dashboard: Loading user data:', user);
       console.log('📊 User phase:', user.phase);
       console.log('📊 User status:', user.status);
-      
+
       this.applicant.set(user);
       this.currentPhase.set(user.phase);
-      
+
       // Use the actual user status from the database
       this.applicationStatus.set(user.status || ApplicationStatus.PHASE_1);
-      
+
       console.log('✅ Dashboard: Set currentPhase to:', user.phase);
       console.log('✅ Dashboard: Set applicationStatus to:', user.status || ApplicationStatus.PHASE_1);
 
@@ -369,7 +369,7 @@ export class DashboardComponent implements OnInit {
       // Load all interviewers and find the assigned one
       const allInterviewers = await this.interviewerService.getAllInterviewers();
       const assignedInterviewer = allInterviewers.find(i => i.id === interviewerId);
-      
+
       if (assignedInterviewer) {
         this.interviewer.set(assignedInterviewer);
         console.log('✅ Loaded interviewer data:', assignedInterviewer.name);
@@ -426,11 +426,11 @@ export class DashboardComponent implements OnInit {
 
       const codeValue = this.webinarForm.get('webinarCode')?.value;
       const applicant = this.applicant();
-      
+
       if (!codeValue || !codeValue.trim()) {
         throw new Error('Please enter a webinar code');
       }
-      
+
       if (!applicant) {
         throw new Error('Applicant information not found');
       }
@@ -439,13 +439,13 @@ export class DashboardComponent implements OnInit {
         code: codeValue.toUpperCase().trim(),
         applicantId: applicant.userId
       });
-      
+
       if (result.isValid) {
         this.success.set('Webinar attendance verified! You have been promoted to Phase 3!');
-        
+
         // Clear the form
         this.webinarForm.reset();
-        
+
         // Refresh user data to get updated phase from database
         setTimeout(async () => {
           try {
@@ -512,7 +512,7 @@ export class DashboardComponent implements OnInit {
       await this.applicationService.deletePhase3Application(applicant.userId, applicant.cohortId);
 
       this.success.set('Application cleared successfully. Starting fresh...');
-      
+
       // Navigate to a fresh Phase 3 application
       setTimeout(() => {
         this.router.navigate(['/application/phase3']);

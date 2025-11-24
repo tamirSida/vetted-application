@@ -555,9 +555,14 @@ export class ApplicationService {
    */
   private async savePhase3FlaggingResults(applicationId: string, flaggingResult: FlaggingResult): Promise<void> {
     try {
+      // Get the application to extract the applicantId for permissions
+      const application = await this.getPhase3ApplicationById(applicationId);
+      const applicantId = application?.applicantId;
+      
       // Save to flagging collection
       await addDoc(collection(this.firestore, 'phase3_application_flags'), {
         applicationId,
+        applicantId, // Add applicantId for permissions checking
         flags: flaggingResult.flags,
         autoAdvance: flaggingResult.autoAdvance,
         needsReview: flaggingResult.needsReview,
@@ -631,23 +636,37 @@ export class ApplicationService {
       }
 
       const applicationId = existingApp.id;
+      console.log(`Attempting to delete Phase 3 application ${applicationId}`);
 
-      // Delete the application document
+      // Delete the application document first
       const appRef = doc(this.firestore, 'phase3_applications', applicationId);
       await deleteDoc(appRef);
+      console.log(`Successfully deleted main application document ${applicationId}`);
 
       // Delete associated flagging results
+      console.log(`Querying flagging documents for applicationId: ${applicationId}`);
       const flagsQuery = query(
         collection(this.firestore, 'phase3_application_flags'),
         where('applicationId', '==', applicationId)
       );
       
+      console.log(`Executing flagging query...`);
       const flagsSnapshot = await getDocs(flagsQuery);
-      const deletePromises = flagsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      console.log(`Found ${flagsSnapshot.docs.length} flagging documents to delete`);
       
-      await Promise.all(deletePromises);
+      if (flagsSnapshot.docs.length > 0) {
+        console.log(`Attempting to delete ${flagsSnapshot.docs.length} flagging documents...`);
+        const deletePromises = flagsSnapshot.docs.map(doc => {
+          console.log(`Deleting flagging document: ${doc.id}`);
+          return deleteDoc(doc.ref);
+        });
+        await Promise.all(deletePromises);
+        console.log(`Successfully deleted ${flagsSnapshot.docs.length} flagging documents`);
+      } else {
+        console.log(`No flagging documents found for application ${applicationId}`);
+      }
 
-      console.log(`Successfully deleted Phase 3 application ${applicationId} and associated data`);
+      console.log(`Successfully deleted Phase 3 application ${applicationId}`);
     } catch (error) {
       console.error('Error deleting Phase 3 application:', error);
       throw new Error('Failed to delete application. Please try again.');

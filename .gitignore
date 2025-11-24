@@ -72,6 +72,8 @@ firebase-debug.log*
 firebase-debug.*.log*
 
 # Firebase rules (contain sensitive security configuration)
+firestore.rules
+storage.rules
 firestore.rules.txt
 storage.rules.txt
 

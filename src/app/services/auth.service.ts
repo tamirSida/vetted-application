@@ -130,7 +130,7 @@ export class AuthService {
           role: UserRole.VIEWER,
           canView: true
         } as ViewerUser;
-        collectionName = APP_CONSTANTS.COLLECTIONS.VIEWER_USERS;
+        collectionName = APP_CONSTANTS.COLLECTIONS.ADMIN_USERS; // Viewers stored in admin_users collection
         break;
 
       case UserRole.APPLICANT:
@@ -145,7 +145,7 @@ export class AuthService {
           webinarAttended: null,
           cohortId: userRequest.cohortId
         } as ApplicantUser;
-        collectionName = APP_CONSTANTS.COLLECTIONS.APPLICANT_USERS;
+        collectionName = 'users'; // Applicants stored in users collection
         break;
 
       default:
@@ -158,10 +158,8 @@ export class AuthService {
 
   private async getUserData(userId: string): Promise<User> {
     const collections = [
-      APP_CONSTANTS.COLLECTIONS.ADMIN_USERS,
-      APP_CONSTANTS.COLLECTIONS.VIEWER_USERS,
-      APP_CONSTANTS.COLLECTIONS.APPLICANT_USERS,
-      'users' // Also check the main users collection from ApplicationService
+      APP_CONSTANTS.COLLECTIONS.ADMIN_USERS, // Contains both admins and viewers
+      'users' // Contains applicants
     ];
 
     for (const collectionName of collections) {
@@ -277,9 +275,9 @@ export class AuthService {
       case UserRole.ADMIN:
         return APP_CONSTANTS.COLLECTIONS.ADMIN_USERS;
       case UserRole.VIEWER:
-        return APP_CONSTANTS.COLLECTIONS.VIEWER_USERS;
+        return APP_CONSTANTS.COLLECTIONS.ADMIN_USERS; // Viewers stored in admin_users collection
       case UserRole.APPLICANT:
-        return APP_CONSTANTS.COLLECTIONS.APPLICANT_USERS;
+        return 'users'; // Applicants stored in users collection
       default:
         throw new Error('Invalid user role');
     }

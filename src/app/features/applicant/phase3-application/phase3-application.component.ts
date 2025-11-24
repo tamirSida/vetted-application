@@ -1760,9 +1760,28 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0 && hasFounders && hasFoundersWithShares);
       case 3: // Legal
         const hasIncorporationAnswer = formValue.isIncorporated !== null;
-        const hasIncorporationLocation = formValue.isIncorporated !== 'true' || formValue.incorporationLocation;
-        const hasAgreesToIncorporate = formValue.isIncorporated !== 'false' || formValue.agreesToIncorporate !== null;
-        return !!(hasIncorporationAnswer && hasIncorporationLocation && hasAgreesToIncorporate);
+        
+        if (formValue.isIncorporated === 'true') {
+          // Company is incorporated - check incorporation location and corporate structure
+          const hasIncorporationLocation = formValue.incorporationLocation;
+          const hasIpAssignment = formValue.hasIpAssignment !== null;
+          const hasFounderVesting = formValue.hasFounderVesting !== null;
+          const hasBoardStructure = formValue.hasBoardStructure !== null;
+          
+          // Check if amendment question is required
+          const needsAmendmentAnswer = this.showAmendmentQuestion();
+          const hasAmendmentAnswer = !needsAmendmentAnswer || formValue.willAmendDocuments !== null;
+          const hasAmendmentExplanation = formValue.willAmendDocuments !== 'false' || formValue.amendDocumentsExplanation;
+          
+          return !!(hasIncorporationLocation && hasIpAssignment && hasFounderVesting && hasBoardStructure && hasAmendmentAnswer && hasAmendmentExplanation);
+        } else if (formValue.isIncorporated === 'false') {
+          // Company is not incorporated - only check agreement to incorporate
+          const hasAgreesToIncorporate = formValue.agreesToIncorporate !== null;
+          return hasAgreesToIncorporate;
+        } else {
+          // No answer to incorporation question yet
+          return false;
+        }
       default:
         return false;
     }
@@ -1879,9 +1898,28 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0 && hasFounders && hasFoundersWithShares);
       case 3: // Legal
         const hasIncorporationAnswer = formValue.isIncorporated !== null;
-        const hasIncorporationLocation = formValue.isIncorporated !== 'true' || formValue.incorporationLocation;
-        const hasAgreesToIncorporate = formValue.isIncorporated !== 'false' || formValue.agreesToIncorporate !== null;
-        return !!(hasIncorporationAnswer && hasIncorporationLocation && hasAgreesToIncorporate);
+        
+        if (formValue.isIncorporated === 'true') {
+          // Company is incorporated - check incorporation location and corporate structure
+          const hasIncorporationLocation = formValue.incorporationLocation;
+          const hasIpAssignment = formValue.hasIpAssignment !== null;
+          const hasFounderVesting = formValue.hasFounderVesting !== null;
+          const hasBoardStructure = formValue.hasBoardStructure !== null;
+          
+          // Check if amendment question is required
+          const needsAmendmentAnswer = this.showAmendmentQuestion();
+          const hasAmendmentAnswer = !needsAmendmentAnswer || formValue.willAmendDocuments !== null;
+          const hasAmendmentExplanation = formValue.willAmendDocuments !== 'false' || formValue.amendDocumentsExplanation;
+          
+          return !!(hasIncorporationLocation && hasIpAssignment && hasFounderVesting && hasBoardStructure && hasAmendmentAnswer && hasAmendmentExplanation);
+        } else if (formValue.isIncorporated === 'false') {
+          // Company is not incorporated - only check agreement to incorporate
+          const hasAgreesToIncorporate = formValue.agreesToIncorporate !== null;
+          return hasAgreesToIncorporate;
+        } else {
+          // No answer to incorporation question yet
+          return false;
+        }
       default:
         return false;
     }

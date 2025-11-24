@@ -794,7 +794,16 @@ type AdminSubView = 'users' | 'interviewers';
                 </select>
               </div>
 
-              <!-- Password is auto-generated for admin/viewer users -->
+              <div class="form-group">
+                <label for="admin-password">Password</label>
+                <input
+                  type="password"
+                  id="admin-password"
+                  formControlName="password"
+                  placeholder="Minimum 6 characters"
+                  class="form-input"
+                />
+              </div>
 
               <div class="form-actions">
                 <button type="button" class="secondary-button" (click)="toggleAdminForm()">
@@ -2990,6 +2999,7 @@ export class AdminDashboardComponent implements OnInit {
     this.adminForm = this.fb.group({
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
       role: ['ADMIN', Validators.required]
     });
 
@@ -3647,6 +3657,7 @@ export class AdminDashboardComponent implements OnInit {
       const userId = await this.userService.createUser({
         name: formValue.name,
         email: formValue.email,
+        password: formValue.password,
         role: formValue.role
       });
       

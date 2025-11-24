@@ -22,7 +22,7 @@ import { EquityBreakdownRow } from '../../../models';
           <tbody>
             <!-- Founders Section -->
             <tr class="section-header">
-              <td colspan="4" class="section-title">Initial Shareholders</td>
+              <td colspan="4" class="section-title">Initial Shareholders <span class="required-asterisk">*</span></td>
             </tr>
             <tr *ngFor="let row of getRowsByCategory('founder'); let i = index" [formGroup]="getFormGroup(row.id)">
               <td>
@@ -77,7 +77,7 @@ import { EquityBreakdownRow } from '../../../models';
 
             <!-- Employee Options Pool -->
             <tr class="section-header">
-              <td colspan="4" class="section-title">Employee Options Pool</td>
+              <td colspan="4" class="section-title">Employee Options Pool <span class="optional-label">(Optional)</span></td>
             </tr>
             <tr *ngFor="let row of getRowsByCategory('employee')" [formGroup]="getFormGroup(row.id)">
               <td>
@@ -107,7 +107,6 @@ import { EquityBreakdownRow } from '../../../models';
                   type="button" 
                   class="btn-remove"
                   (click)="removeRow(row.id)"
-                  [disabled]="getRowsByCategory('employee').length <= 1"
                   title="Remove employee pool"
                 >
                   ×
@@ -130,7 +129,7 @@ import { EquityBreakdownRow } from '../../../models';
 
             <!-- Investors Section -->
             <tr class="section-header">
-              <td colspan="4" class="section-title">Investors</td>
+              <td colspan="4" class="section-title">Investors <span class="optional-label">(Optional)</span></td>
             </tr>
             <tr *ngFor="let row of getRowsByCategory('investor'); let i = index" [formGroup]="getFormGroup(row.id)">
               <td>
@@ -198,6 +197,17 @@ import { EquityBreakdownRow } from '../../../models';
         <i class="warning-icon">⚠️</i>
         Total ownership percentage is {{ getTotalPercentage().toFixed(2) }}%. It should equal 100%.
       </div>
+
+      <div *ngIf="getFoundersWithShares() === 0" class="validation-warning">
+        <i class="warning-icon">⚠️</i>
+        You must have at least one initial shareholder with shares greater than 0.
+      </div>
+
+      <!-- SAFE/Convertible Note Warning -->
+      <div class="safe-note-warning">
+        <i class="info-icon">ℹ️</i>
+        <strong>Important:</strong> If you raised money via a SAFE or other convertible note, make sure it is noted in the funding history question above and DO NOT add it to this CAP table.
+      </div>
     </div>
   `,
   styles: [`
@@ -242,6 +252,19 @@ import { EquityBreakdownRow } from '../../../models';
       color: #4b5563;
       padding: 0.75rem !important;
       background: #f8fafc;
+    }
+
+    .required-asterisk {
+      color: #ef4444;
+      font-weight: 700;
+      margin-left: 0.25rem;
+    }
+
+    .optional-label {
+      color: #6b7280;
+      font-weight: 400;
+      font-size: 0.85em;
+      margin-left: 0.5rem;
     }
 
     .table-input {
@@ -362,6 +385,23 @@ import { EquityBreakdownRow } from '../../../models';
       font-size: 1rem;
     }
 
+    .safe-note-warning {
+      padding: 1rem;
+      background: #eff6ff;
+      border-top: 1px solid #3b82f6;
+      color: #1e40af;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      line-height: 1.5;
+    }
+
+    .info-icon {
+      font-size: 1rem;
+      margin-top: 0.1rem;
+    }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       .equity-table {
@@ -408,31 +448,18 @@ export class EquityTableComponent implements OnInit {
         {
           id: 'founder-1',
           name: 'Shareholder 1',
-          shares: 250000,
+          shares: 500000,
           percentage: 0,
           category: 'founder'
         },
         {
           id: 'founder-2',
           name: 'Shareholder 2',
-          shares: 250000,
+          shares: 500000,
           percentage: 0,
           category: 'founder'
-        },
-        {
-          id: 'founder-3',
-          name: 'Shareholder 3',
-          shares: 250000,
-          percentage: 0,
-          category: 'founder'
-        },
-        {
-          id: 'employee-1',
-          name: 'Employee Options Pool',
-          shares: 250000,
-          percentage: 0,
-          category: 'employee'
         }
+        // Note: Employee Options Pool is now optional and not initialized by default
       ];
     }
   }
@@ -479,6 +506,10 @@ export class EquityTableComponent implements OnInit {
 
   getTotalPercentage(): number {
     return this.equityRows.reduce((sum, row) => sum + (row.percentage || 0), 0);
+  }
+
+  getFoundersWithShares(): number {
+    return this.getRowsByCategory('founder').filter(row => (row.shares || 0) > 0).length;
   }
 
   recalculatePercentages() {

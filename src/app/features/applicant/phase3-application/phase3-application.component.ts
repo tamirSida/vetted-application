@@ -1607,7 +1607,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       case 2: // Funding
         const hasFundingAnswer = formValue.hasRaisedCapital !== null;
         const hasFundingDetails = formValue.hasRaisedCapital !== 'true' || formValue.fundingDetails;
-        return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0);
+        const hasFounders = this.equityRows.filter(row => row.category === 'founder').length > 0;
+        const hasFoundersWithShares = this.equityRows.filter(row => row.category === 'founder' && (row.shares || 0) > 0).length > 0;
+        return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0 && hasFounders && hasFoundersWithShares);
       case 3: // Legal
         const hasIncorporationAnswer = formValue.isIncorporated !== null;
         const hasIncorporationLocation = formValue.isIncorporated !== 'true' || formValue.incorporationLocation;
@@ -1680,6 +1682,8 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     if (formValue.hasRaisedCapital === null || formValue.hasRaisedCapital === undefined) errors.push('• Answer funding history question');
     if (formValue.hasRaisedCapital === 'true' && (!formValue.fundingDetails || formValue.fundingDetails.trim() === '')) errors.push('• Provide funding details');
     if (this.equityRows.length === 0) errors.push('• Add equity breakdown entries');
+    if (this.equityRows.filter(row => row.category === 'founder').length === 0) errors.push('• Add at least one initial shareholder/founder');
+    if (this.equityRows.filter(row => row.category === 'founder' && (row.shares || 0) > 0).length === 0) errors.push('• At least one initial shareholder must have shares greater than 0');
 
     // Check Tab 4: Legal
     if (formValue.isIncorporated === null || formValue.isIncorporated === undefined) errors.push('• Answer incorporation question');
@@ -1721,7 +1725,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       case 2: // Funding
         const hasFundingAnswer = formValue.hasRaisedCapital !== null;
         const hasFundingDetails = formValue.hasRaisedCapital !== 'true' || formValue.fundingDetails;
-        return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0);
+        const hasFounders = this.equityRows.filter(row => row.category === 'founder').length > 0;
+        const hasFoundersWithShares = this.equityRows.filter(row => row.category === 'founder' && (row.shares || 0) > 0).length > 0;
+        return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0 && hasFounders && hasFoundersWithShares);
       case 3: // Legal
         const hasIncorporationAnswer = formValue.isIncorporated !== null;
         const hasIncorporationLocation = formValue.isIncorporated !== 'true' || formValue.incorporationLocation;

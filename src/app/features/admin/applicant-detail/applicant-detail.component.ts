@@ -400,6 +400,10 @@ import { deleteField } from '@angular/fire/firestore';
                 <i [class]="isReevaluatingPhase3() ? 'fas fa-spinner fa-spin' : 'fas fa-sync'"></i>
                 {{ isReevaluatingPhase3() ? 'Reevaluating...' : 'Reevaluate Flags' }}
               </button>
+              <button *ngIf="canRejectPhase3Application()" class="reject-button" (click)="rejectPhase3Application()" [disabled]="isRejectingPhase3()">
+                <i [class]="isRejectingPhase3() ? 'fas fa-spinner fa-spin' : 'fas fa-times'"></i>
+                {{ isRejectingPhase3() ? 'Rejecting...' : 'Reject' }}
+              </button>
             </div>
           </div>
           
@@ -1468,6 +1472,30 @@ import { deleteField } from '@angular/fire/firestore';
       background: #d97706;
     }
 
+    .reject-button {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.3s;
+    }
+
+    .reject-button:hover {
+      background: #dc2626;
+    }
+
+    .reject-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     /* Phase-specific styles */
     .webinar-status {
       padding: 1.5rem;
@@ -2317,6 +2345,7 @@ export class ApplicantDetailComponent implements OnInit {
   error = signal('');
   activeTab = signal<string>('profile');
   isReevaluatingPhase3 = signal(false);
+  rejectingPhase3 = signal(false);
 
   // Form
   notesForm: FormGroup;
@@ -2523,6 +2552,15 @@ export class ApplicantDetailComponent implements OnInit {
   canReopenPhase3Application(): boolean {
     const status = this.applicant()?.status;
     return status === ApplicationStatus.PHASE_3_SUBMITTED;
+  }
+
+  canRejectPhase3Application(): boolean {
+    const status = this.applicant()?.status;
+    return status === ApplicationStatus.PHASE_3_SUBMITTED;
+  }
+
+  isRejectingPhase3(): boolean {
+    return this.rejectingPhase3();
   }
 
   canAdvanceFromPhase4(): boolean {
@@ -3168,6 +3206,50 @@ export class ApplicantDetailComponent implements OnInit {
       this.error.set('Failed to reevaluate Phase 3 flags and analysis');
     } finally {
       this.isReevaluatingPhase3.set(false);
+    }
+  }
+
+  async rejectPhase3Application() {
+    const applicant = this.applicant();
+    
+    if (!applicant) {
+      console.error('Applicant not found');
+      return;
+    }
+
+    // Confirm rejection
+    const confirmed = confirm(
+      `Are you sure you want to reject ${applicant.name}'s Phase 3 application? This will:\n\n` +
+      `• Set their status to "rejected"\n` +
+      `• Send them a rejection email\n` +
+      `• This action cannot be undone\n\n` +
+      `Click OK to proceed or Cancel to abort.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.rejectingPhase3.set(true);
+
+    try {
+      console.log(`❌ Rejecting Phase 3 application for applicant: ${applicant.userId}`);
+
+      await this.userService.rejectPhase3Application(applicant.userId);
+
+      // Update the local applicant data
+      this.applicant.set({
+        ...applicant,
+        status: 'rejected' as any
+      });
+
+      console.log('✅ Phase 3 application rejected successfully');
+      
+    } catch (error) {
+      console.error('❌ Error rejecting Phase 3 application:', error);
+      this.error.set('Failed to reject Phase 3 application');
+    } finally {
+      this.rejectingPhase3.set(false);
     }
   }
 

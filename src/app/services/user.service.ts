@@ -541,4 +541,45 @@ export class UserService {
       throw new Error('Failed to load viewers');
     }
   }
+
+  /**
+   * Reject Phase 3 application and send rejection email
+   */
+  async rejectPhase3Application(applicantId: string): Promise<void> {
+    try {
+      console.log(`❌ Rejecting Phase 3 application for applicant: ${applicantId}`);
+
+      // Get the applicant data first
+      const applicant = await this.getUserById(applicantId);
+      
+      if (!applicant || applicant.role !== UserRole.APPLICANT) {
+        throw new Error('Applicant not found or invalid role');
+      }
+
+      // Update user status to rejected
+      await this.updateUser(applicantId, {
+        status: 'rejected' as any
+      });
+
+      // Send rejection email
+      try {
+        console.log(`📧 Sending Phase 3 rejection email to: ${applicant.email}`);
+        const emailResult = await this.emailService.sendPhase3RejectedEmail(applicant as ApplicantUser);
+
+        if (emailResult.success) {
+          console.log(`✅ Phase 3 rejection email sent successfully to: ${applicant.email}`);
+        } else {
+          console.error(`❌ Failed to send Phase 3 rejection email:`, emailResult.error);
+        }
+      } catch (emailError) {
+        console.error(`❌ Error sending Phase 3 rejection email:`, emailError);
+        // Don't fail the entire operation if email fails
+      }
+
+      console.log(`✅ Successfully rejected Phase 3 application for applicant: ${applicantId}`);
+    } catch (error) {
+      console.error(`❌ Error rejecting Phase 3 application for ${applicantId}:`, error);
+      throw new Error('Failed to reject Phase 3 application');
+    }
+  }
 }

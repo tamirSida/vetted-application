@@ -11,7 +11,9 @@ import {
   Phase3SubmittedEmailTemplate,
   Phase3SubmittedEmailData,
   Phase3ApprovedEmailTemplate,
-  Phase3ApprovedEmailData
+  Phase3ApprovedEmailData,
+  Phase3RejectedEmailTemplate,
+  Phase3RejectedEmailData
 } from '../templates/email/phase3';
 import { EMAIL_CONSTANTS } from '../constants';
 
@@ -231,6 +233,33 @@ export class EmailService {
     return this.sendEmail({
       to: applicant.email,
       subject: Phase3ApprovedEmailTemplate.generateSubject(),
+      html,
+      text
+    });
+  }
+
+  /**
+   * Send Phase 3 rejected email
+   */
+  async sendPhase3RejectedEmail(applicant: ApplicantUser): Promise<EmailResponse> {
+    const nameData = this.getApplicantNameData(applicant);
+    const fullName = `${nameData.firstName}${nameData.lastName ? ' ' + nameData.lastName : ''}`;
+    
+    const emailData: Phase3RejectedEmailData = {
+      applicantName: fullName
+    };
+
+    console.log('📧 Sending Phase 3 rejected email to:', {
+      email: applicant.email,
+      applicantName: fullName
+    });
+
+    const html = Phase3RejectedEmailTemplate.generateHtml(emailData);
+    const text = Phase3RejectedEmailTemplate.generateBody(emailData);
+
+    return this.sendEmail({
+      to: applicant.email,
+      subject: Phase3RejectedEmailTemplate.generateSubject(),
       html,
       text
     });

@@ -135,8 +135,22 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
           </div>
         }
 
+        <!-- Phase 3: Application Rejected -->
+        @if (isApplicationRejected()) {
+          <div class="status-card status-error">
+            <div class="status-icon">
+              <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="status-content">
+              <h2>Application Decision</h2>
+              <p class="status-message">Thank you for your application to the Vetted Accelerator Program and for your patience during our review process. We received an exceptionally high volume of applications this cycle. Following a thorough and careful evaluation, we regret to inform you that we will not be able to offer you a place in this year's cohort.</p>
+              <p class="status-message">We truly appreciate the time and comprehensive effort you dedicated to your submission. We wish you continued success in your future ventures and hope to hear from you in the future.</p>
+            </div>
+          </div>
+        }
+
         <!-- Phase 3: In-Depth Application -->
-        @if (currentPhase() === 'IN_DEPTH_APPLICATION' && (!applicationsStopped() || applicationStatus() === ApplicationStatus.PHASE_3_SUBMITTED)) {
+        @if (currentPhase() === 'IN_DEPTH_APPLICATION' && (!applicationsStopped() || applicationStatus() === ApplicationStatus.PHASE_3_SUBMITTED) && !isApplicationRejected()) {
           @if (applicationStatus() === ApplicationStatus.PHASE_3_IN_PROGRESS) {
             <div class="status-card status-action">
               <div class="status-icon">
@@ -586,5 +600,9 @@ export class DashboardComponent implements OnInit {
     return applicant.phase === Phase.SIGNUP || 
            applicant.phase === Phase.WEBINAR || 
            applicant.phase === Phase.IN_DEPTH_APPLICATION;
+  }
+
+  isApplicationRejected(): boolean {
+    return (this.applicationStatus() as string) === 'rejected';
   }
 }

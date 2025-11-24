@@ -113,6 +113,9 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
           <!-- Phase 3 Submitted - Under Review -->
           <div *ngIf="applicant?.phase === Phase.IN_DEPTH_APPLICATION && isPhase3Submitted()" [innerHTML]="getPhase3SubmittedTemplate()"></div>
 
+          <!-- Phase 3 Rejected -->
+          <div *ngIf="isPhase3Rejected()" [innerHTML]="getPhase3RejectedTemplate()"></div>
+
           <!-- Phase 4: Interview -->
           <div *ngIf="applicant?.phase === Phase.INTERVIEW && applicant">
             <div [innerHTML]="getPhase4InterviewTemplate()"></div>
@@ -381,8 +384,12 @@ export class ApplicantDashboardComponent implements OnInit {
 
   isPhase3Submitted(): boolean {
     // Check if Phase 3 application is submitted based on status
-    return this.applicant?.status === ApplicationStatus.PHASE_3_SUBMITTED ||
-           this.applicant?.status === ApplicationStatus.PHASE_3_REJECTED;
+    return this.applicant?.status === ApplicationStatus.PHASE_3_SUBMITTED;
+  }
+
+  isPhase3Rejected(): boolean {
+    // Check if Phase 3 application is rejected
+    return (this.applicant?.status as string) === 'rejected';
   }
 
   getSubmissionDate(): Date {
@@ -433,6 +440,27 @@ export class ApplicantDashboardComponent implements OnInit {
   getPhase3SubmittedTemplate(): string {
     if (!this.applicant) return '';
     return '<div class="dashboard-note"><p>Phase 3 submitted content is displayed in the main dashboard component</p></div>';
+  }
+
+  getPhase3RejectedTemplate(): string {
+    if (!this.applicant) return '';
+    return `
+      <div class="status-message rejected">
+        <div class="status-icon" style="color: #ef4444;">
+          <i class="fas fa-times-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        </div>
+        <h3 style="color: #374151; font-size: 1.5rem; margin: 0 0 1rem 0;">Application Decision</h3>
+        <p style="color: #6b7280; font-size: 1.1rem; line-height: 1.6; margin: 0 0 1rem 0;">
+          Thank you for your application to the Vetted Accelerator Program and for your patience during our review process. 
+          We received an exceptionally high volume of applications this cycle. Following a thorough and careful evaluation, 
+          we regret to inform you that we will not be able to offer you a place in this year's cohort.
+        </p>
+        <p style="color: #6b7280; font-size: 1.1rem; line-height: 1.6; margin: 0;">
+          We truly appreciate the time and comprehensive effort you dedicated to your submission. We wish you continued 
+          success in your future ventures and hope to hear from you in the future.
+        </p>
+      </div>
+    `;
   }
 
   getPhase4InterviewTemplate(): string {

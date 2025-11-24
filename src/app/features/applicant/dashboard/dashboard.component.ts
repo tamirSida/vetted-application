@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService, WebinarService, ApplicationService, UserService, InterviewerService, CohortService } from '../../../services';
+import { AuthService, WebinarService, ApplicationService, UserService, InterviewerService, CohortService, ApplicationSettingsService } from '../../../services';
 import { combineLatest } from 'rxjs';
 import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '../../../models';
 
@@ -40,6 +40,21 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
           </div>
         }
 
+        <!-- Applications Stopped Message -->
+        @if (applicationsStopped()) {
+          <div class="status-card status-warning">
+            <div class="status-icon">
+              <i class="fas fa-stop"></i>
+            </div>
+            <div class="status-content">
+              <h2>We aren't accepting applications any more!</h2>
+              <p class="contact-info">
+                If you have questions, please contact us at <strong>info@thevetted.vc</strong>
+              </p>
+            </div>
+          </div>
+        }
+
         <!-- Phase 1: Application Rejected (Red Flags) -->
         @if (currentPhase() === 'SIGNUP' && applicationStatus() === ApplicationStatus.PHASE_1) {
           <div class="status-card status-error">
@@ -54,7 +69,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
         }
 
         <!-- Phase 2: Webinar Required -->
-        @if (currentPhase() === 'WEBINAR') {
+        @if (currentPhase() === 'WEBINAR' && !applicationsStopped()) {
           <div class="status-card status-action">
             <div class="status-icon">
               <i class="fas fa-video"></i>
@@ -121,7 +136,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
         }
 
         <!-- Phase 3: In-Depth Application -->
-        @if (currentPhase() === 'IN_DEPTH_APPLICATION') {
+        @if (currentPhase() === 'IN_DEPTH_APPLICATION' && !applicationsStopped()) {
           @if (applicationStatus() === ApplicationStatus.PHASE_3_IN_PROGRESS) {
             <div class="status-card status-action">
               <div class="status-icon">
@@ -281,6 +296,7 @@ export class DashboardComponent implements OnInit {
   private userService = inject(UserService);
   private interviewerService = inject(InterviewerService);
   private cohortService = inject(CohortService);
+  private applicationSettingsService = inject(ApplicationSettingsService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
@@ -298,6 +314,7 @@ export class DashboardComponent implements OnInit {
   error = signal<string>('');
   success = signal<string>('');
   isLoading = signal<boolean>(false);
+  applicationsStopped = signal<boolean>(false);
 
   webinarForm: FormGroup;
 
@@ -313,8 +330,9 @@ export class DashboardComponent implements OnInit {
     // Wait for auth initialization AND user data before making routing decisions
     combineLatest([
       this.authService.authInitialized$,
-      this.authService.currentUser$
-    ]).subscribe(([authInitialized, user]) => {
+      this.authService.currentUser$,
+      this.applicationSettingsService.applicationSettings$
+    ]).subscribe(([authInitialized, user, appSettings]) => {
       console.log('🔍 Dashboard: Auth state update - initialized:', authInitialized, 'user:', user);
 
       if (!authInitialized) {
@@ -324,9 +342,15 @@ export class DashboardComponent implements OnInit {
 
       if (user && user.role === 'APPLICANT') {
         console.log('✅ Dashboard: User is an applicant, loading data');
-        this.loadUserData(user as ApplicantUser);
+        
+        // Check if applications are stopped and if user should be blocked
+        const applicant = user as ApplicantUser;
+        const isBlocked = this.checkIfUserBlocked(applicant, appSettings);
+        this.applicationsStopped.set(isBlocked);
+        
+        this.loadUserData(applicant);
         this.loadWebinars();
-        this.loadCohortData(user as ApplicantUser);
+        this.loadCohortData(applicant);
       } else if (user === null) {
         console.log('❌ Dashboard: No user found, redirecting to login');
         // Auth is initialized and user is null - redirect to login
@@ -534,5 +558,25 @@ export class DashboardComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  private checkIfUserBlocked(applicant: ApplicantUser, appSettings: any): boolean {
+    // If applications are accepting, user is never blocked
+    if (appSettings.acceptingApplications) {
+      return false;
+    }
+
+    // If applications are stopped, check user's progress
+    // Allow if user is in Phase 4 (INTERVIEW) or Phase 5 (ACCEPTED) 
+    if (applicant.phase === Phase.INTERVIEW || applicant.phase === Phase.ACCEPTED) {
+      return false;
+    }
+
+    // For Phase 3 users, we need to check if they submitted (this would require async check)
+    // For now, we'll show the blocked message and let the route guard handle the actual blocking
+    // Block users in Phase 1, Phase 2, and Phase 3 (the guard will do the detailed check)
+    return applicant.phase === Phase.SIGNUP || 
+           applicant.phase === Phase.WEBINAR || 
+           applicant.phase === Phase.IN_DEPTH_APPLICATION;
   }
 }

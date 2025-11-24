@@ -9,3 +9,4 @@ export * from './user.service';
 export * from './openai.service';
 export * from './settings.service';
 export * from './interviewer.service';
+export * from './application-settings.service';

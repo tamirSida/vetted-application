@@ -515,3 +515,25 @@ $font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-ser
     justify-content: center;
   }
 }
+
+// Status warning styles for blocked applications
+.status-warning {
+  background: white;
+  border: 1px solid #dc3545;
+  color: #333;
+
+  .status-icon i {
+    color: #dc3545;
+  }
+
+  .contact-info {
+    margin: 1.5rem 0 0 0;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #333;
+    
+    strong {
+      color: #dc3545;
+    }
+  }
+}

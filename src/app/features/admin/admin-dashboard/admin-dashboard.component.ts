@@ -8,8 +8,9 @@ import { CohortService } from '../../../services/cohort.service';
 import { UserService } from '../../../services/user.service';
 import { ApplicationService } from '../../../services/application.service';
 import { SettingsService, SystemSettings } from '../../../services/settings.service';
+import { ApplicationSettingsService } from '../../../services/application-settings.service';
 import { InterviewerService } from '../../../services/interviewer.service';
-import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus, Interviewer, InterviewerCreateRequest } from '../../../models';
+import { ApplicantUser, AdminUser, ViewerUser, Cohort, UserRole, Phase, Webinar, ApplicationStatus, Interviewer, InterviewerCreateRequest, ApplicationSettings } from '../../../models';
 import {
   Phase1ApprovedEmailTemplate,
   Phase1RejectedEmailTemplate,
@@ -1067,6 +1068,26 @@ type AdminSubView = 'users' | 'interviewers';
                   </label>
                   <span class="toggle-label">
                     {{ systemSettings().skipPhase2 ? 'Enabled' : 'Disabled' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-info">
+                  <h3>Stop Applications</h3>
+                  <p>When enabled, blocks access to all application forms (Phase 1, Phase 2 webinar, and Phase 3 drafts) for users who haven't submitted their Phase 3 application. Users who already submitted Phase 3 or are in interviews/accepted can still access their applications.</p>
+                </div>
+                <div class="setting-control">
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      [checked]="!applicationSettings().acceptingApplications"
+                      (change)="toggleApplicationAcceptance()"
+                      [disabled]="isSubmitting()">
+                    <span class="slider"></span>
+                  </label>
+                  <span class="toggle-label">
+                    {{ !applicationSettings().acceptingApplications ? 'Stopped' : 'Accepting' }}
                   </span>
                 </div>
               </div>
@@ -2667,6 +2688,7 @@ export class AdminDashboardComponent implements OnInit {
   private userService = inject(UserService);
   private applicationService = inject(ApplicationService);
   private settingsService = inject(SettingsService);
+  private applicationSettingsService = inject(ApplicationSettingsService);
   private interviewerService = inject(InterviewerService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
@@ -2687,6 +2709,13 @@ export class AdminDashboardComponent implements OnInit {
   interviewers = signal<Interviewer[]>([]);
   eligibleInterviewers = signal<{userId: string, name: string, email: string, role: UserRole}[]>([]);
   systemSettings = signal<SystemSettings>({ skipPhase2: true });
+  applicationSettings = signal<ApplicationSettings>({ 
+    acceptingApplications: true, 
+    lastUpdatedBy: 'system',
+    lastUpdatedAt: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
   // Preview functionality
   previewType = signal<'email' | 'dashboard'>('email');
   selectedEmailPreview = signal<string>('phase1-approved');
@@ -4046,6 +4075,11 @@ export class AdminDashboardComponent implements OnInit {
       this.isLoading.set(true);
       const settings = await this.settingsService.getSettings();
       this.systemSettings.set(settings);
+      
+      const appSettings = await this.applicationSettingsService.getApplicationSettings();
+      if (appSettings) {
+        this.applicationSettings.set(appSettings);
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
       this.error.set('Failed to load system settings');
@@ -4072,6 +4106,34 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error: any) {
       console.error('Error toggling Phase 2 skip:', error);
       this.error.set(error.message || 'Failed to update setting');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async toggleApplicationAcceptance() {
+    try {
+      this.isSubmitting.set(true);
+      this.error.set('');
+
+      const currentUser = this.currentUser();
+      if (!currentUser) {
+        throw new Error('User not found');
+      }
+
+      await this.applicationSettingsService.toggleApplicationAcceptance(currentUser.userId);
+      
+      // Refresh the settings to get the updated state
+      const appSettings = await this.applicationSettingsService.getApplicationSettings();
+      if (appSettings) {
+        this.applicationSettings.set(appSettings);
+      }
+
+      const isAccepting = appSettings?.acceptingApplications ?? true;
+      this.success.set(`Applications ${isAccepting ? 'reactivated' : 'stopped'} successfully`);
+    } catch (error: any) {
+      console.error('Error toggling application acceptance:', error);
+      this.error.set(error.message || 'Failed to update application settings');
     } finally {
       this.isSubmitting.set(false);
     }

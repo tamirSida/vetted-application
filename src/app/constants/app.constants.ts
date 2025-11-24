@@ -46,7 +46,8 @@ export const APP_CONSTANTS = {
     APPLICATIONS: 'applications',
     PHASE1_APPLICATIONS: 'phase1_applications',
     PHASE2_APPLICATIONS: 'phase2_applications',
-    WEBINARS: 'webinars'
+    WEBINARS: 'webinars',
+    SETTINGS: 'settings'
   },
 
   // UI Constants

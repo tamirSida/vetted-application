@@ -221,15 +221,14 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
               <p class="status-message">We were impressed with your application for the Vetted Accelerator and would like to invite you to the final phase of our process which is a Zoom meeting with one of our team members:</p>
 
               @if (interviewer()) {
-                <div class="interviewer-info">
-                  <p><strong>{{ interviewer()?.name }}, {{ interviewer()?.title }}</strong></p>
-                  <a [href]="interviewer()?.calendarUrl" target="_blank" class="calendar-link">
+                <div>
+                  <a [href]="interviewer()?.calendarUrl" target="_blank" class="schedule-button">
                     <i class="fas fa-calendar-alt"></i>
                     Schedule with {{ interviewer()?.name }}, {{ interviewer()?.title }}
                   </a>
                 </div>
               }
-
+                <br>
               <p>Please click the link to schedule a time that works best for you.</p>
 
               <p>Feel free to reach out to Eden at eden@thevetted.vc, if you have any questions before the meeting.</p>

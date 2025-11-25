@@ -6,6 +6,7 @@ import { UserService } from '../../../services/user.service';
 import { ApplicationService } from '../../../services/application.service';
 import { StatusMessageService } from '../../../services/status-message.service';
 import { InterviewerService } from '../../../services/interviewer.service';
+import { PhaseProgressionService } from '../../../services/phase-progression.service';
 import { ApplicantUser, AdminUser, Phase1Application, Phase3Application, ApplicationStatus, Phase, Interviewer, InterviewerCreateRequest, Interview, InterviewStatus } from '../../../models';
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 import { OpenAIService } from '../../../services/openai.service';
@@ -834,20 +835,19 @@ import { deleteField } from '@angular/fire/firestore';
           <div class="section-header">
             <h2><i class="fas fa-handshake"></i> Phase 4 - Interview</h2>
             <div class="phase-actions">
-              <button *ngIf="canAcceptFromPhase4()" 
-                      class="accept-button" 
-                      (click)="acceptApplicant()" 
-                      [disabled]="isAcceptingApplicant()">
-                <i [class]="isAcceptingApplicant() ? 'fas fa-spinner fa-spin' : 'fas fa-check'"></i>
-                {{ isAcceptingApplicant() ? 'Accepting...' : 'Accept' }}
-              </button>
-              <button *ngIf="canRejectFromPhase4()" 
-                      class="reject-button" 
-                      (click)="rejectApplicant()" 
-                      [disabled]="isRejectingApplicant()">
-                <i [class]="isRejectingApplicant() ? 'fas fa-spinner fa-spin' : 'fas fa-times'"></i>
-                {{ isRejectingApplicant() ? 'Rejecting...' : 'Reject' }}
-              </button>
+              <div *ngIf="shouldShowPhase4Toggle()" class="phase4-status-toggle">
+                <label for="phase4-status">Interview Status:</label>
+                <select id="phase4-status" 
+                        class="status-select" 
+                        [value]="getPhase4Status()" 
+                        (change)="updatePhase4Status($event)"
+                        [disabled]="isUpdatingPhase4Status()">
+                  <option value="pending">Pending Decision</option>
+                  <option value="accepted">Accept</option>
+                  <option value="rejected">Reject</option>
+                </select>
+                <i *ngIf="isUpdatingPhase4Status()" class="fas fa-spinner fa-spin loading-icon"></i>
+              </div>
             </div>
           </div>
           
@@ -2547,6 +2547,58 @@ import { deleteField } from '@angular/fire/firestore';
       color: #b91c1c;
       border-color: #fecaca;
     }
+
+    /* Phase 4 Status Toggle */
+    .phase4-status-toggle {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .phase4-status-toggle label {
+      font-weight: 600;
+      color: #374151;
+      min-width: 120px;
+    }
+
+    .status-select {
+      padding: 0.75rem 1rem;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      color: #374151;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      min-width: 160px;
+    }
+
+    .status-select:hover {
+      border-color: #9ca3af;
+    }
+
+    .status-select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .status-select:disabled {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .loading-icon {
+      color: #3b82f6;
+      margin-left: 0.5rem;
+    }
+
+    .status-select option {
+      padding: 0.5rem;
+    }
   `]
 })
 export class ApplicantDetailComponent implements OnInit {
@@ -2559,6 +2611,7 @@ export class ApplicantDetailComponent implements OnInit {
   private openaiService = inject(OpenAIService);
   private emailService = inject(EmailService);
   private interviewerService = inject(InterviewerService);
+  private phaseProgressionService = inject(PhaseProgressionService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -2575,6 +2628,7 @@ export class ApplicantDetailComponent implements OnInit {
   showDocumentModal = signal(false);
   isLoading = signal(true);
   error = signal('');
+  success = signal('');
   activeTab = signal<string>('profile');
   isReevaluatingPhase3 = signal(false);
   rejectingPhase3 = signal(false);
@@ -2583,6 +2637,7 @@ export class ApplicantDetailComponent implements OnInit {
   adminUsers = signal<AdminUser[]>([]);
   isAcceptingApplicant = signal(false);
   isRejectingApplicant = signal(false);
+  isUpdatingPhase4Status = signal(false);
 
   // Form
   notesForm: FormGroup;
@@ -2834,6 +2889,94 @@ export class ApplicantDetailComponent implements OnInit {
       ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED,
       ApplicationStatus.PHASE_4_POST_INTERVIEW
     ].includes(status);
+  }
+
+  shouldShowPhase4Toggle(): boolean {
+    const applicant = this.applicant();
+    if (!applicant) return false;
+    
+    const status = applicant.status;
+    // Show toggle for any Phase 4 related status, regardless of current phase
+    // Also show for ACCEPTED phase users who might have been rejected at Phase 4
+    return status !== undefined && (
+      [
+        ApplicationStatus.PHASE_4,
+        ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED,
+        ApplicationStatus.PHASE_4_POST_INTERVIEW,
+        'PHASE_4_REJECTED' as any
+      ].includes(status) ||
+      // Show for ACCEPTED phase users (they might have been accepted from Phase 4)
+      (applicant.phase === Phase.ACCEPTED) ||
+      // Show for users with ACCEPTED status (legitimate acceptance)
+      (status === ApplicationStatus.ACCEPTED)
+    );
+  }
+
+  getPhase4Status(): string {
+    const applicant = this.applicant();
+    if (!applicant) return 'pending';
+    
+    const status = applicant.status;
+    if (status === 'PHASE_4_REJECTED') return 'rejected';
+    if (status === ApplicationStatus.ACCEPTED) return 'accepted';
+    return 'pending';
+  }
+
+  async updatePhase4Status(event: Event): Promise<void> {
+    const target = event.target as HTMLSelectElement;
+    const newStatus = target.value;
+    const applicant = this.applicant();
+    
+    if (!applicant) {
+      console.error('Applicant not found');
+      return;
+    }
+
+    this.isUpdatingPhase4Status.set(true);
+    this.error.set('');
+
+    try {
+      switch (newStatus) {
+        case 'accepted':
+          await this.acceptApplicant();
+          break;
+        case 'rejected':
+          await this.rejectApplicant();
+          break;
+        case 'pending':
+          await this.resetPhase4ToPending();
+          break;
+      }
+    } catch (error) {
+      console.error('Error updating Phase 4 status:', error);
+      this.error.set('Failed to update interview status');
+    } finally {
+      this.isUpdatingPhase4Status.set(false);
+    }
+  }
+
+  private async resetPhase4ToPending(): Promise<void> {
+    const applicant = this.applicant();
+    if (!applicant) return;
+
+    try {
+      await this.userService.updateUser(applicant.userId, {
+        status: ApplicationStatus.PHASE_4_POST_INTERVIEW
+      });
+      
+      // Update local state
+      this.applicant.update(current => ({
+        ...current!,
+        status: ApplicationStatus.PHASE_4_POST_INTERVIEW,
+        phase: Phase.INTERVIEW
+      }));
+
+      this.success.set('Interview status reset to pending');
+      console.log('✅ Phase 4 status reset to pending');
+    } catch (error) {
+      console.error('❌ Error resetting Phase 4 status:', error);
+      throw error;
+    }
   }
 
   // Phase advancement actions

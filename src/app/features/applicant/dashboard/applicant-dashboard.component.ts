@@ -117,15 +117,18 @@ import { Phase5AcceptedComponent } from '../phase5-accepted/phase5-accepted.comp
           <div *ngIf="isPhase3Rejected()" [innerHTML]="getPhase3RejectedTemplate()"></div>
 
           <!-- Phase 4: Interview -->
-          <div *ngIf="applicant?.phase === Phase.INTERVIEW && applicant">
+          <div *ngIf="applicant?.phase === Phase.INTERVIEW && applicant && !isPhase4Rejected()">
             <div [innerHTML]="getPhase4InterviewTemplate()"></div>
             <app-phase4-interview 
               [applicant]="applicant"
             ></app-phase4-interview>
           </div>
 
+          <!-- Phase 4 Rejected -->
+          <div *ngIf="isPhase4Rejected()" [innerHTML]="getPhase4RejectedTemplate()"></div>
+
           <!-- Phase 5: Accepted -->
-          <div *ngIf="applicant?.phase === Phase.ACCEPTED && applicant">
+          <div *ngIf="applicant?.phase === Phase.ACCEPTED && applicant && !isPhase4Rejected()">
             <div [innerHTML]="getPhase5AcceptedTemplate()"></div>
             <app-phase5-accepted 
               [applicant]="applicant"
@@ -392,6 +395,11 @@ export class ApplicantDashboardComponent implements OnInit {
     return (this.applicant?.status as string) === 'rejected';
   }
 
+  isPhase4Rejected(): boolean {
+    // Check if Phase 4 interview is rejected - can be in any phase with PHASE_4_REJECTED status
+    return (this.applicant?.status as string) === 'PHASE_4_REJECTED';
+  }
+
   getSubmissionDate(): Date {
     // TODO: Get actual submission date from application
     return new Date();
@@ -466,6 +474,21 @@ export class ApplicantDashboardComponent implements OnInit {
   getPhase4InterviewTemplate(): string {
     if (!this.applicant) return '';
     return '<div class="dashboard-note"><p>Phase 4 interview content is displayed in the main dashboard component</p></div>';
+  }
+
+  getPhase4RejectedTemplate(): string {
+    if (!this.applicant) return '';
+    return `
+      <div class="status-message rejected">
+        <div class="status-icon" style="color: #3b82f6;">
+          <i class="fas fa-clock" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        </div>
+        <h3 style="color: #374151; font-size: 1.5rem; margin: 0 0 1rem 0;">Thank You for Your Interview</h3>
+        <p style="color: #6b7280; font-size: 1.1rem; line-height: 1.6; margin: 0;">
+          We appreciate the time you took to interview with us. We will be in touch soon regarding the next steps.
+        </p>
+      </div>
+    `;
   }
 
   getPhase5AcceptedTemplate(): string {

@@ -261,8 +261,21 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
           </div>
         }
 
+        <!-- Phase 4: Interview Rejected -->
+        @if (isPhase4Rejected()) {
+          <div class="status-card status-pending">
+            <div class="status-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="status-content">
+              <h2>Thank You for Your Interview</h2>
+              <p class="status-message">We appreciate the time you took to interview with us. We will be in touch soon regarding the next steps.</p>
+            </div>
+          </div>
+        }
+
         <!-- Phase 5: Accepted -->
-        @if (currentPhase() === 'ACCEPTED') {
+        @if (currentPhase() === 'ACCEPTED' && !isPhase4Rejected()) {
           <div class="status-card status-celebration">
             <div class="status-icon">
               <i class="fas fa-trophy"></i>
@@ -602,5 +615,9 @@ export class DashboardComponent implements OnInit {
 
   isApplicationRejected(): boolean {
     return (this.applicationStatus() as string) === 'rejected';
+  }
+
+  isPhase4Rejected(): boolean {
+    return (this.applicationStatus() as string) === 'PHASE_4_REJECTED';
   }
 }

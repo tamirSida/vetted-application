@@ -501,6 +501,21 @@ import { deleteField } from '@angular/fire/firestore';
                   </span>
                 </div>
                 <div class="info-item full-width">
+                  <label>Company Deck</label>
+                  <span class="value-with-flag">
+                    <a *ngIf="phase3Application()?.productInfo?.companyDeck?.fileUrl" 
+                       [href]="phase3Application()?.productInfo?.companyDeck?.fileUrl" 
+                       target="_blank">
+                      View Company Deck
+                      <i class="fas fa-external-link-alt"></i>
+                    </a>
+                    <span *ngIf="!phase3Application()?.productInfo?.companyDeck?.fileUrl">Not provided</span>
+                    <i *ngIf="hasFlag('companyDeck')" 
+                       [class]="'flag-icon fas fa-flag ' + getFlagColor('companyDeck')" 
+                       [title]="getFlagMessage('companyDeck')"></i>
+                  </span>
+                </div>
+                <div class="info-item full-width">
                   <label>Traction Details</label>
                   <span class="value-with-flag long-text">
                     {{ phase3Application()?.productInfo?.tractionDetails }}
@@ -3313,6 +3328,7 @@ export class ApplicantDetailComponent implements OnInit {
       'pitchDeck': 'Pitch Deck',
       'grandmaTest': 'Company Description',
       // Phase 3 fields
+      'companyDeck': 'Company Deck',
       'problemCustomer': 'Problem & Customer Description',
       'capacity': 'Team Capacity',
       'previousFounders': 'Previous Co-Founders Left',

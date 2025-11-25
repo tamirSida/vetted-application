@@ -65,7 +65,12 @@ export class ApplicationAccessGuard implements CanActivate {
           return true;
         }
 
-        // No user or invalid role - redirect to login
+        // No user - allow access to Phase 1 (signup) but block other phases
+        if (state.url === '/application/phase1') {
+          return true; // Allow unauthenticated users to access signup
+        }
+        
+        // For other application phases, redirect to login
         this.router.navigate(['/auth/login']);
         return false;
       })

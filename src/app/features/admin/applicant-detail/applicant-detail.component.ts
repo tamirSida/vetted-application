@@ -6,7 +6,7 @@ import { UserService } from '../../../services/user.service';
 import { ApplicationService } from '../../../services/application.service';
 import { StatusMessageService } from '../../../services/status-message.service';
 import { InterviewerService } from '../../../services/interviewer.service';
-import { ApplicantUser, Phase1Application, Phase3Application, ApplicationStatus, Phase, Interviewer, InterviewerCreateRequest, Interview, InterviewStatus } from '../../../models';
+import { ApplicantUser, AdminUser, Phase1Application, Phase3Application, ApplicationStatus, Phase, Interviewer, InterviewerCreateRequest, Interview, InterviewStatus } from '../../../models';
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 import { OpenAIService } from '../../../services/openai.service';
 import { EmailService } from '../../../services/email.service';
@@ -154,6 +154,69 @@ import { deleteField } from '@angular/fire/firestore';
                 </a>
                 <span *ngIf="!applicant()?.profileData?.linkedIn">Not specified</span>
               </span>
+            </div>
+            
+            <!-- Rating Assignment -->
+            <div class="profile-item">
+              <label>Rating</label>
+              <div class="rating-dropdown-container">
+                <span [class]="'rating-badge rating-' + (applicant()?.rating || 'none')" 
+                      (click)="toggleRatingDropdown(applicant()?.userId)">
+                  {{ getRatingDisplay(applicant()?.rating) }}
+                  <i class="fas fa-chevron-down rating-arrow"></i>
+                </span>
+                <div *ngIf="activeRatingDropdown() === applicant()?.userId" 
+                     class="rating-dropdown"
+                     (click)="$event.stopPropagation()">
+                  <div class="rating-option rating-option-none"
+                       (click)="setApplicantRating(applicant()!, null)">
+                    <span class="rating-preview rating-none">—</span>
+                    <span class="rating-label">No Rating</span>
+                  </div>
+                  <div class="rating-option rating-option-1"
+                       (click)="setApplicantRating(applicant()!, 1)">
+                    <span class="rating-preview rating-1">1</span>
+                    <span class="rating-label">Best</span>
+                  </div>
+                  <div class="rating-option rating-option-2"
+                       (click)="setApplicantRating(applicant()!, 2)">
+                    <span class="rating-preview rating-2">2</span>
+                    <span class="rating-label">Average</span>
+                  </div>
+                  <div class="rating-option rating-option-3"
+                       (click)="setApplicantRating(applicant()!, 3)">
+                    <span class="rating-preview rating-3">3</span>
+                    <span class="rating-label">Worst</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Assigned To -->
+            <div class="profile-item">
+              <label>Assigned To</label>
+              <div class="assigned-dropdown-container">
+                <span class="assigned-badge" 
+                      (click)="toggleAssignedDropdown(applicant()?.userId)">
+                  {{ getAssignedDisplay(applicant()?.assignedTo) }}
+                  <i class="fas fa-chevron-down assigned-arrow"></i>
+                </span>
+                <div *ngIf="activeAssignedDropdown() === applicant()?.userId" 
+                     class="assigned-dropdown"
+                     (click)="$event.stopPropagation()">
+                  <div class="assigned-option"
+                       (click)="setApplicantAssignment(applicant()!, null)">
+                    <span class="assigned-preview">—</span>
+                    <span class="assigned-label">None</span>
+                  </div>
+                  <div *ngFor="let admin of adminUsers()" 
+                       class="assigned-option"
+                       (click)="setApplicantAssignment(applicant()!, admin.userId)">
+                    <span class="assigned-preview">{{ admin.name.charAt(0) }}</span>
+                    <span class="assigned-label">{{ admin.name }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -2315,6 +2378,135 @@ import { deleteField } from '@angular/fire/firestore';
       display: flex;
       justify-content: flex-end;
     }
+
+    /* Rating and Assignment Dropdowns */
+    .rating-dropdown-container,
+    .assigned-dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .rating-badge,
+    .assigned-badge {
+      background: #f3f4f6;
+      color: #374151;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      border: 1px solid #e5e7eb;
+      transition: all 0.2s;
+      min-width: 100px;
+      justify-content: space-between;
+    }
+
+    .rating-badge:hover,
+    .assigned-badge:hover {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+    }
+
+    .rating-arrow,
+    .assigned-arrow {
+      font-size: 0.75rem;
+      color: #6b7280;
+      transition: transform 0.2s;
+    }
+
+    .rating-dropdown,
+    .assigned-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      z-index: 1000;
+      margin-top: 0.25rem;
+      max-height: 200px;
+      overflow-y: auto;
+      min-width: 150px;
+    }
+
+    .rating-option,
+    .assigned-option {
+      padding: 0.75rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: background-color 0.2s;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .rating-option:last-child,
+    .assigned-option:last-child {
+      border-bottom: none;
+    }
+
+    .rating-option:hover,
+    .assigned-option:hover {
+      background: #f9fafb;
+    }
+
+    .rating-preview,
+    .assigned-preview {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .rating-preview.rating-1 {
+      background: #10b981;
+      color: white;
+    }
+
+    .rating-preview.rating-2 {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .rating-preview.rating-3 {
+      background: #ef4444;
+      color: white;
+    }
+
+    .rating-label,
+    .assigned-label {
+      font-size: 0.875rem;
+      color: #374151;
+    }
+
+    /* Rating badge variants */
+    .rating-badge.rating-1 {
+      background: #d1fae5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+
+    .rating-badge.rating-2 {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+    }
+
+    .rating-badge.rating-3 {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
   `]
 })
 export class ApplicantDetailComponent implements OnInit {
@@ -2346,6 +2538,9 @@ export class ApplicantDetailComponent implements OnInit {
   activeTab = signal<string>('profile');
   isReevaluatingPhase3 = signal(false);
   rejectingPhase3 = signal(false);
+  activeRatingDropdown = signal<string | null>(null);
+  activeAssignedDropdown = signal<string | null>(null);
+  adminUsers = signal<AdminUser[]>([]);
 
   // Form
   notesForm: FormGroup;
@@ -2375,6 +2570,9 @@ export class ApplicantDetailComponent implements OnInit {
       this.error.set('No applicant ID provided');
       this.isLoading.set(false);
     }
+    
+    // Load admin users for assignment dropdown
+    this.loadAdminUsers();
   }
 
   private async loadApplicantDetails(applicantId: string) {
@@ -2439,6 +2637,16 @@ export class ApplicantDetailComponent implements OnInit {
       this.error.set(error.message || 'Failed to load applicant details');
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  private async loadAdminUsers() {
+    try {
+      const admins = await this.userService.getAllAdmins();
+      this.adminUsers.set(admins);
+    } catch (error) {
+      console.error('Error loading admin users:', error);
+      // Don't throw error as this is not critical for the page functionality
     }
   }
 
@@ -3357,5 +3565,74 @@ export class ApplicantDetailComponent implements OnInit {
     if (score >= 7) return 'high';
     if (score >= 4) return 'medium';
     return 'low';
+  }
+
+  // Rating and Assignment methods
+  toggleRatingDropdown(applicantId?: string): void {
+    if (!applicantId) return;
+    if (this.activeRatingDropdown() === applicantId) {
+      this.activeRatingDropdown.set(null); // Close if same dropdown
+    } else {
+      this.activeRatingDropdown.set(applicantId); // Open this dropdown
+    }
+  }
+
+  toggleAssignedDropdown(applicantId?: string): void {
+    if (!applicantId) return;
+    if (this.activeAssignedDropdown() === applicantId) {
+      this.activeAssignedDropdown.set(null); // Close if same dropdown
+    } else {
+      this.activeAssignedDropdown.set(applicantId); // Open this dropdown
+    }
+  }
+
+  async setApplicantRating(applicant: ApplicantUser, rating: number | null): Promise<void> {
+    try {
+      await this.userService.updateUser(applicant.userId, { rating });
+      
+      // Update local state
+      this.applicant.set({ ...applicant, rating });
+      
+      // Close dropdown
+      this.activeRatingDropdown.set(null);
+      
+      console.log(`✅ Updated rating for ${applicant.name} to ${rating || 'no rating'}`);
+    } catch (error) {
+      console.error('❌ Error updating rating:', error);
+      // Keep dropdown open on error so user can try again
+    }
+  }
+
+  async setApplicantAssignment(applicant: ApplicantUser, assignedTo: string | null): Promise<void> {
+    try {
+      await this.userService.updateUser(applicant.userId, { assignedTo });
+      
+      // Update local state
+      this.applicant.set({ ...applicant, assignedTo });
+      
+      // Close dropdown
+      this.activeAssignedDropdown.set(null);
+      
+      console.log(`✅ Updated assignment for ${applicant.name} to ${this.getAssignedDisplay(assignedTo)}`);
+    } catch (error) {
+      console.error('❌ Error updating assignment:', error);
+      // Keep dropdown open on error so user can try again
+    }
+  }
+
+  getRatingDisplay(rating: number | null | undefined): string {
+    if (rating === null || rating === undefined) return '—';
+    switch (rating) {
+      case 1: return '1';
+      case 2: return '2';
+      case 3: return '3';
+      default: return '—';
+    }
+  }
+
+  getAssignedDisplay(assignedTo: string | null | undefined): string {
+    if (!assignedTo) return 'None';
+    const admin = this.adminUsers().find(admin => admin.userId === assignedTo);
+    return admin?.name || 'Unknown';
   }
 }

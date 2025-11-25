@@ -71,8 +71,10 @@ export class UserService {
           status: data['status'] || this.deriveStatusFromPhase(data['phase']),
           webinarAttended: data['webinarAttended'],
           interviewerId: data['interviewerId'],
+          assignedTo: data['assignedTo'],
           cohortId: data['cohortId'],
           interviewDate: data['interviewDate'],
+          rating: data['rating'],
           profileData: data['profileData'],
           createdAt: data['createdAt'],
           updatedAt: data['updatedAt']
@@ -186,8 +188,10 @@ export class UserService {
           status: data['status'] || this.deriveStatusFromPhase(data['phase']),
           webinarAttended: data['webinarAttended'],
           interviewerId: data['interviewerId'],
+          assignedTo: data['assignedTo'],
           cohortId: data['cohortId'],
           interviewDate: data['interviewDate'],
+          rating: data['rating'],
           profileData: data['profileData'],
           createdAt: data['createdAt'],
           updatedAt: data['updatedAt']
@@ -453,8 +457,10 @@ export class UserService {
           status: data['status'] || this.deriveStatusFromPhase(data['phase']),
           webinarAttended: data['webinarAttended'],
           interviewerId: data['interviewerId'],
+          assignedTo: data['assignedTo'],
           cohortId: data['cohortId'],
           interviewDate: data['interviewDate'],
+          rating: data['rating'],
           profileData: data['profileData'],
           createdAt: data['createdAt'],
           updatedAt: data['updatedAt']

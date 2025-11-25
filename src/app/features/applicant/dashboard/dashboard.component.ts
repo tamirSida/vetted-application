@@ -201,7 +201,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
                 <div class="action-buttons">
                   <button class="submit-button" (click)="startInDepthApplication()">
                     <i class="fas fa-arrow-right"></i>
-                    Start In-Depth Application
+                    Start Application
                   </button>
                 </div>
               </div>

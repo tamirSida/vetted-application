@@ -125,7 +125,7 @@ import { UserRole, Cohort } from '../../../models';
               </button>
 
               <p class="application-note">
-                The application process consists of multiple phases including webinar attendance and in-depth evaluation.
+                Applying to the Vetted Accelerator includes both an online application and a Zoom / in-person meeting with one of our team members.
               </p>
             </div>
           }
@@ -224,7 +224,7 @@ export class LoginComponent implements OnInit {
   isLoading = signal(false);
   error = signal<string>('');
   success = signal<string>('');
-  
+
   // Application window status
   applicationsOpen = signal(true);
   applicationStartDate = signal<Date | null>(null);
@@ -251,7 +251,7 @@ export class LoginComponent implements OnInit {
       const allCohorts = await this.cohortService.getAllCohorts();
       const activeCohorts = allCohorts.filter((cohort: Cohort) => cohort.isActive);
       const now = new Date();
-      
+
       if (activeCohorts.length === 0) {
         this.applicationsOpen.set(false);
         this.isManuallyDisabled.set(true);
@@ -368,13 +368,13 @@ export class LoginComponent implements OnInit {
 
   formatStartDate(date: Date | null): string {
     if (!date) return 'TBD';
-    const dateStr = date.toLocaleDateString('en-US', { 
+    const dateStr = date.toLocaleDateString('en-US', {
       weekday: 'long',
-      year: 'numeric', 
-      month: 'long', 
+      year: 'numeric',
+      month: 'long',
       day: 'numeric'
     });
-    const timeStr = date.toLocaleTimeString([], { 
+    const timeStr = date.toLocaleTimeString([], {
       hour: 'numeric',
       minute: '2-digit'
     });

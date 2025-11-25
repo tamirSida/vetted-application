@@ -37,9 +37,13 @@ import { combineLatest } from 'rxjs';
             <i class="fas fa-check"></i> Sending confirmation email
           </div>
           <div class="step" [class.active]="submissionProgress >= 4">
-            <i class="fas fa-check"></i> Starting AI analysis
+            <i class="fas fa-check"></i> Application submitted successfully!
+          </div>
+          <div class="step" [class.active]="submissionProgress >= 5">
+            <i class="fas fa-check"></i> Directing to DashBoard
           </div>
         </div>
+
       </div>
     </div>
 
@@ -198,7 +202,7 @@ import { combineLatest } from 'rxjs';
               <div class="form-group">
                 <div class="deck-upload-section">
                   <label class="form-label" [class.required]="!hasP1Deck" [class.optional]="hasP1Deck">
-                    Upload Company Deck 
+                    Upload Company Deck
                     <span *ngIf="!hasP1Deck" class="required-asterisk">*</span>
                     <span *ngIf="hasP1Deck" class="optional-label">(Optional - You may refine your deck)</span>
                   </label>
@@ -714,7 +718,7 @@ import { combineLatest } from 'rxjs';
                 Check Errors
               </button>
               -->
-              
+
               <button
                 type="button"
                 class="nav-btn success"
@@ -822,17 +826,51 @@ import { combineLatest } from 'rxjs';
       font-size: 0.875rem;
     }
 
+    .redirect-button {
+      background: #1e40af;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1.5rem auto 0;
+      transition: all 0.2s ease;
+      animation: slideIn 0.3s ease-in-out;
+    }
+
+    .redirect-button:hover {
+      background: #1e40af;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
     }
 
     @keyframes slideUp {
-      from { 
+      from {
         opacity: 0;
         transform: translateY(20px);
       }
-      to { 
+      to {
         opacity: 1;
         transform: translateY(0);
       }
@@ -1812,7 +1850,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.applicationForm.get('willAmendDocuments')?.valueChanges.subscribe(value => {
       const explanationControl = this.applicationForm.get('amendDocumentsExplanation');
       const isIncorporated = this.applicationForm.get('isIncorporated')?.value;
-      
+
       // Only add validators if company is incorporated AND willAmendDocuments is false
       if (isIncorporated === 'true' && value === 'false') {
         explanationControl?.setValidators([Validators.required, this.charLimitValidator(2000)]);
@@ -1831,7 +1869,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       const hasBoardStructureControl = this.applicationForm.get('hasBoardStructure');
       const willAmendDocumentsControl = this.applicationForm.get('willAmendDocuments');
       const amendDocumentsExplanationControl = this.applicationForm.get('amendDocumentsExplanation');
-      
+
       if (value === 'false') {
         // Company not incorporated - only require agreesToIncorporate
         agreesToIncorporateControl?.setValidators([Validators.required]);
@@ -1841,7 +1879,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         hasBoardStructureControl?.clearValidators();
         willAmendDocumentsControl?.clearValidators();
         amendDocumentsExplanationControl?.clearValidators(); // Clear validators completely
-        
+
         // Clear values for fields that shouldn't be filled when not incorporated
         incorporationLocationControl?.setValue('');
         hasIpAssignmentControl?.setValue(null);
@@ -1869,7 +1907,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         willAmendDocumentsControl?.clearValidators();
         amendDocumentsExplanationControl?.clearValidators();
       }
-      
+
       // Update validity for all affected controls
       agreesToIncorporateControl?.updateValueAndValidity();
       incorporationLocationControl?.updateValueAndValidity();
@@ -1929,19 +1967,19 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0 && hasFounders && hasFoundersWithShares);
       case 3: // Legal
         const hasIncorporationAnswer = formValue.isIncorporated !== null;
-        
+
         if (formValue.isIncorporated === 'true') {
           // Company is incorporated - check incorporation location and corporate structure
           const hasIncorporationLocation = formValue.incorporationLocation;
           const hasIpAssignment = formValue.hasIpAssignment !== null;
           const hasFounderVesting = formValue.hasFounderVesting !== null;
           const hasBoardStructure = formValue.hasBoardStructure !== null;
-          
+
           // Check if amendment question is required
           const needsAmendmentAnswer = this.showAmendmentQuestion();
           const hasAmendmentAnswer = !needsAmendmentAnswer || formValue.willAmendDocuments !== null;
           const hasAmendmentExplanation = formValue.willAmendDocuments !== 'false' || formValue.amendDocumentsExplanation;
-          
+
           return !!(hasIncorporationLocation && hasIpAssignment && hasFounderVesting && hasBoardStructure && hasAmendmentAnswer && hasAmendmentExplanation);
         } else if (formValue.isIncorporated === 'false') {
           // Company is not incorporated - only check agreement to incorporate
@@ -2026,12 +2064,12 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     if (formValue.isIncorporated === null || formValue.isIncorporated === undefined) errors.push('• Answer incorporation question');
     if (formValue.isIncorporated === 'true') {
       if (!formValue.incorporationLocation || formValue.incorporationLocation.trim() === '') errors.push('• Provide incorporation location');
-      
+
       // Check corporate structure questions when incorporated
       if (formValue.hasIpAssignment === null || formValue.hasIpAssignment === undefined) errors.push('• Answer IP assignment question');
       if (formValue.hasFounderVesting === null || formValue.hasFounderVesting === undefined) errors.push('• Answer founder vesting question');
       if (formValue.hasBoardStructure === null || formValue.hasBoardStructure === undefined) errors.push('• Answer board structure question');
-      
+
       // Check amendment willingness if any corporate structure item is "No"
       if (this.showAmendmentQuestion()) {
         if (formValue.willAmendDocuments === null || formValue.willAmendDocuments === undefined) errors.push('• Answer amendment willingness question');
@@ -2067,19 +2105,19 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         return !!(hasFundingAnswer && hasFundingDetails && this.equityRows.length > 0 && hasFounders && hasFoundersWithShares);
       case 3: // Legal
         const hasIncorporationAnswer = formValue.isIncorporated !== null;
-        
+
         if (formValue.isIncorporated === 'true') {
           // Company is incorporated - check incorporation location and corporate structure
           const hasIncorporationLocation = formValue.incorporationLocation;
           const hasIpAssignment = formValue.hasIpAssignment !== null;
           const hasFounderVesting = formValue.hasFounderVesting !== null;
           const hasBoardStructure = formValue.hasBoardStructure !== null;
-          
+
           // Check if amendment question is required
           const needsAmendmentAnswer = this.showAmendmentQuestion();
           const hasAmendmentAnswer = !needsAmendmentAnswer || formValue.willAmendDocuments !== null;
           const hasAmendmentExplanation = formValue.willAmendDocuments !== 'false' || formValue.amendDocumentsExplanation;
-          
+
           return !!(hasIncorporationLocation && hasIpAssignment && hasFounderVesting && hasBoardStructure && hasAmendmentAnswer && hasAmendmentExplanation);
         } else if (formValue.isIncorporated === 'false') {
           // Company is not incorporated - only check agreement to incorporate
@@ -2129,7 +2167,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           await this.userService.updateUser(currentUser.userId, {
             status: ApplicationStatus.PHASE_3_IN_PROGRESS
           });
-          
+
           // Refresh the auth service's user data to ensure any navigation shows correct state
           await this.authService.refreshCurrentUser();
           console.log('✅ User status updated to PHASE_3_IN_PROGRESS');
@@ -2206,19 +2244,27 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       this.submissionProgress = 4;
       this.triggerOpenAIAnalysis(submittedApplication);
 
-      this.successMessage = 'Application submitted successfully! Redirecting to dashboard...';
+      this.submissionProgress = 5;
+      this.successMessage = 'Application submitted successfully!';
       this.phaseCompleted.emit();
 
-      // Wait a bit longer to ensure user sees the success message before redirecting
+      // Auto-redirect after showing completion for 2 seconds
       setTimeout(() => {
         this.router.navigate(['/dashboard']);
-      }, 3000);
+      }, 2000);
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to submit application';
     } finally {
-      this.submissionProgress = 0;
-      this.isSubmitting = false;
+      // Only reset on error, success will redirect
+      if (this.submissionProgress < 5) {
+        this.submissionProgress = 0;
+        this.isSubmitting = false;
+      }
     }
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/dashboard']);
   }
 
   /**
@@ -2533,7 +2579,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   // Real-time URL validation for video pitch
   private isValidUrl(url: string): boolean {
     if (!url || url.trim() === '') return true; // Don't show error for empty field
-    
+
     try {
       const urlPattern = /^https?:\/\/.+/;
       return urlPattern.test(url.trim());
@@ -2545,7 +2591,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   onVideoPitchPaste(event: ClipboardEvent): void {
     event.preventDefault();
     const pastedText = event.clipboardData?.getData('text') || '';
-    
+
     if (this.isValidUrl(pastedText)) {
       this.applicationForm.get('videoPitch')?.setValue(pastedText);
       this.showUrlError = false;
@@ -2586,12 +2632,12 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   checkValidationErrors() {
     console.log('🐛 VALIDATION DEBUG REPORT');
     console.log('========================');
-    
+
     const formValue = this.applicationForm.value;
     console.log('📋 Current Form Values:', formValue);
     console.log('✅ Form Valid:', this.applicationForm.valid);
     console.log('📊 Form Status:', this.applicationForm.status);
-    
+
     // Check each form control
     console.log('\n🔍 Individual Control Status:');
     Object.keys(this.applicationForm.controls).forEach(key => {
@@ -2606,21 +2652,21 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         });
       }
     });
-    
+
     // Check current tab validation
     console.log('\n📋 Current Tab (3 - Legal) Validation:');
     console.log('  isIncorporated:', formValue.isIncorporated);
-    
+
     if (formValue.isIncorporated === 'true') {
       console.log('  Company IS incorporated - checking corporate structure:');
       console.log('    incorporationLocation:', formValue.incorporationLocation);
       console.log('    hasIpAssignment:', formValue.hasIpAssignment);
       console.log('    hasFounderVesting:', formValue.hasFounderVesting);
       console.log('    hasBoardStructure:', formValue.hasBoardStructure);
-      
+
       const showAmendment = this.showAmendmentQuestion();
       console.log('    showAmendmentQuestion():', showAmendment);
-      
+
       if (showAmendment) {
         console.log('    willAmendDocuments:', formValue.willAmendDocuments);
         console.log('    amendDocumentsExplanation:', formValue.amendDocumentsExplanation);
@@ -2631,32 +2677,32 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     } else {
       console.log('  No incorporation answer yet');
     }
-    
+
     // Check equity breakdown
     console.log('\n💰 Equity Breakdown:');
     console.log('  equityRows.length:', this.equityRows.length);
     console.log('  equityRows:', this.equityRows);
-    
+
     const founderRows = this.equityRows.filter(row => row.category === 'founder');
     const foundersWithShares = founderRows.filter(row => (row.shares || 0) > 0);
     console.log('  founderRows:', founderRows.length);
     console.log('  foundersWithShares:', foundersWithShares.length);
-    
+
     // Check current tab validity
     console.log('\n🎯 Tab Validation Results:');
     for (let i = 0; i < this.totalTabs; i++) {
       const isValid = this.isTabValid(i);
       console.log(`  Tab ${i} (${this.tabTitles[i]}): ${isValid ? '✅ Valid' : '❌ Invalid'}`);
     }
-    
+
     console.log('\n🚀 Overall Form Validation:');
     console.log('  canProceedToNext():', this.canProceedToNext());
     console.log('  isCurrentTabValid():', this.isCurrentTabValid());
     console.log('  applicationForm.valid:', this.applicationForm.valid);
-    
+
     console.log('\n🎯 Submit Button Tooltip:');
     console.log(this.getSubmitButtonTooltip());
-    
+
     console.log('========================');
     console.log('🐛 END VALIDATION DEBUG');
   }

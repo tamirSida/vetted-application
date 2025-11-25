@@ -222,7 +222,6 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
 
               @if (interviewer()) {
                 <div class="interviewer-info">
-                  <h4>[interviewer Schedule]</h4>
                   <p><strong>{{ interviewer()?.name }}, {{ interviewer()?.title }}</strong></p>
                   <a [href]="interviewer()?.calendarUrl" target="_blank" class="calendar-link">
                     <i class="fas fa-calendar-alt"></i>
@@ -356,12 +355,12 @@ export class DashboardComponent implements OnInit {
 
       if (user && user.role === 'APPLICANT') {
         console.log('✅ Dashboard: User is an applicant, loading data');
-        
+
         // Check if applications are stopped and if user should be blocked
         const applicant = user as ApplicantUser;
         const isBlocked = this.checkIfUserBlocked(applicant, appSettings);
         this.applicationsStopped.set(isBlocked);
-        
+
         this.loadUserData(applicant);
         this.loadWebinars();
         this.loadCohortData(applicant);
@@ -581,7 +580,7 @@ export class DashboardComponent implements OnInit {
     }
 
     // If applications are stopped, check user's progress
-    // Allow if user is in Phase 4 (INTERVIEW) or Phase 5 (ACCEPTED) 
+    // Allow if user is in Phase 4 (INTERVIEW) or Phase 5 (ACCEPTED)
     if (applicant.phase === Phase.INTERVIEW || applicant.phase === Phase.ACCEPTED) {
       return false;
     }
@@ -597,8 +596,8 @@ export class DashboardComponent implements OnInit {
     }
 
     // Block users in Phase 1, Phase 2, and Phase 3 (draft only)
-    return applicant.phase === Phase.SIGNUP || 
-           applicant.phase === Phase.WEBINAR || 
+    return applicant.phase === Phase.SIGNUP ||
+           applicant.phase === Phase.WEBINAR ||
            applicant.phase === Phase.IN_DEPTH_APPLICATION;
   }
 

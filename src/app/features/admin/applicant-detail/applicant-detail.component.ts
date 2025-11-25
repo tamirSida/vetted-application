@@ -2961,13 +2961,14 @@ export class ApplicantDetailComponent implements OnInit {
 
     try {
       await this.userService.updateUser(applicant.userId, {
-        status: ApplicationStatus.PHASE_4_POST_INTERVIEW
+        status: ApplicationStatus.PHASE_4,
+        phase: Phase.INTERVIEW
       });
       
       // Update local state
       this.applicant.update(current => ({
         ...current!,
-        status: ApplicationStatus.PHASE_4_POST_INTERVIEW,
+        status: ApplicationStatus.PHASE_4,
         phase: Phase.INTERVIEW
       }));
 

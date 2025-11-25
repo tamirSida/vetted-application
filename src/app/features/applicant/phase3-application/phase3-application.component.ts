@@ -18,6 +18,31 @@ import { combineLatest } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, EquityTableComponent],
   template: `
+    <!-- Loading Overlay Popup -->
+    <div *ngIf="isSubmitting" class="loading-overlay">
+      <div class="loading-popup">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <h3>Submitting Your Application</h3>
+        <p>Please wait while we process your submission...</p>
+        <div class="loading-steps">
+          <div class="step" [class.active]="true">
+            <i class="fas fa-check"></i> Saving application data
+          </div>
+          <div class="step" [class.active]="submissionProgress >= 2">
+            <i class="fas fa-check"></i> Updating your status
+          </div>
+          <div class="step" [class.active]="submissionProgress >= 3">
+            <i class="fas fa-check"></i> Sending confirmation email
+          </div>
+          <div class="step" [class.active]="submissionProgress >= 4">
+            <i class="fas fa-check"></i> Starting AI analysis
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="phase3-container">
       <!-- Blue Header with Logo -->
       <header class="app-header">
@@ -727,6 +752,97 @@ import { combineLatest } from 'rxjs';
     </div>
   `,
   styles: [`
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .loading-popup {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease-in-out;
+    }
+
+    .loading-spinner {
+      margin-bottom: 1rem;
+    }
+
+    .loading-spinner i {
+      font-size: 3rem;
+      color: #1e40af;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-popup h3 {
+      margin: 0 0 0.5rem 0;
+      color: #1e40af;
+      font-size: 1.25rem;
+    }
+
+    .loading-popup p {
+      margin: 0 0 1.5rem 0;
+      color: #6b7280;
+    }
+
+    .loading-steps {
+      text-align: left;
+      margin-top: 1.5rem;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      color: #9ca3af;
+      transition: color 0.3s ease;
+    }
+
+    .step.active {
+      color: #10b981;
+    }
+
+    .step i {
+      width: 16px;
+      font-size: 0.875rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { 
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     .phase3-container {
       min-height: 100vh;
       background: #f8fafc;
@@ -1522,6 +1638,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   isLoading = true;
   isSaving = false;
   isSubmitting = false;
+  submissionProgress = 0;
 
   // Deck upload state
   selectedDeckFile: File | null = null;
@@ -2042,6 +2159,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
     try {
       this.isSubmitting = true;
+      this.submissionProgress = 1;
       this.errorMessage = '';
 
       const applicationData = this.buildApplicationData('SUBMITTED');
@@ -2056,6 +2174,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       }
 
       // Update user status to PHASE_3_SUBMITTED
+      this.submissionProgress = 2;
       const currentUser = this.authService.getCurrentUser();
       if (currentUser?.userId) {
         await this.userService.updateUser(currentUser.userId, {
@@ -2064,6 +2183,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
         // Refresh the auth service's user data to ensure dashboard shows correct state
         await this.authService.refreshCurrentUser();
+        this.submissionProgress = 3;
 
         // Send Phase 3 submitted confirmation email
         if (this.applicant) {
@@ -2083,6 +2203,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       }
 
       // Trigger OpenAI analysis in the background (fire and forget)
+      this.submissionProgress = 4;
       this.triggerOpenAIAnalysis(submittedApplication);
 
       this.successMessage = 'Application submitted successfully! Redirecting to dashboard...';
@@ -2095,6 +2216,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     } catch (error: any) {
       this.errorMessage = error.message || 'Failed to submit application';
     } finally {
+      this.submissionProgress = 0;
       this.isSubmitting = false;
     }
   }

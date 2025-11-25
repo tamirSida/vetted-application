@@ -12,7 +12,7 @@ import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
 import { Router } from '@angular/router';
 import { combineLatest } from 'rxjs';
-import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 
 @Component({
   selector: 'app-phase3-application-tabbed',
@@ -1869,10 +1869,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   successMessage = '';
   errorMessage = '';
 
-  // AI Analysis state
-  aiAnalysisLoading = false;
-  aiAnalysisError: string | null = null;
-  aiAnalysisResult: any = null;
 
   existingApplication?: Phase3Application;
   autoSaveInterval?: any;
@@ -1880,7 +1876,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.initializeForm();
     this.loadApplicantData();
-    this.loadAIAnalysis();
   }
 
   private async loadApplicantData() {
@@ -2420,7 +2415,7 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
       this.submissionProgress = 4;
       try {
         await this.triggerAIAnalysis();
-        this.aiAnalysisLoading = true; // Start showing loading state in AI tab
+        console.log('🤖 AI analysis triggered successfully');
       } catch (error) {
         console.error('Failed to trigger AI analysis:', error);
         // Don't fail submission if AI analysis fails
@@ -2449,44 +2444,6 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
     this.router.navigate(['/dashboard']);
   }
 
-  async loadAIAnalysis(): Promise<void> {
-    if (!this.applicant) return;
-
-    try {
-      // Check if analysis exists in Firestore
-      const db = getFirestore();
-      const analysisDoc = await getDoc(doc(db, 'aiAnalyses', this.applicant.userId));
-      
-      if (analysisDoc.exists()) {
-        const data = analysisDoc.data();
-        if (data['status'] === 'completed') {
-          this.aiAnalysisResult = data['analysis'];
-          this.aiAnalysisLoading = false;
-          this.aiAnalysisError = null;
-        } else if (data['status'] === 'failed') {
-          this.aiAnalysisError = data['error'] || 'Analysis failed';
-          this.aiAnalysisLoading = false;
-        }
-      }
-    } catch (error) {
-      console.error('Error loading AI analysis:', error);
-    }
-  }
-
-  async retryAnalysis(): Promise<void> {
-    if (!this.applicant) return;
-
-    this.aiAnalysisLoading = true;
-    this.aiAnalysisError = null;
-    this.aiAnalysisResult = null;
-
-    try {
-      await this.triggerAIAnalysis();
-    } catch (error: any) {
-      this.aiAnalysisError = error.message || 'Failed to retry analysis';
-      this.aiAnalysisLoading = false;
-    }
-  }
 
   private async triggerAIAnalysis(): Promise<void> {
     if (!this.applicant) return;

@@ -47,26 +47,28 @@ interface AnalysisResult {
 
 export default async (request: Request, context: Context) => {
   console.log('🤖 AI Analysis Background Function Started');
+  let requestData: AnalysisRequest;
   
   try {
     if (request.method !== 'POST') {
       throw new Error('Method not allowed');
     }
 
-    const requestData: AnalysisRequest = await request.json();
+    requestData = await request.json();
     console.log('📊 Processing analysis for applicant:', requestData.applicantId);
 
-    // Initialize Firebase Admin (server-side)
-    const { initializeApp, cert, getApps } = await import('firebase-admin/app');
-    const { getFirestore } = await import('firebase-admin/firestore');
+    // Initialize Firebase (client-side for now)
+    const { initializeApp, getApps } = await import('firebase/app');
+    const { getFirestore, doc, setDoc } = await import('firebase/firestore');
     
     if (getApps().length === 0) {
       initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
+        apiKey: "AIzaSyC8dVIhL8ug7R5dV7S7ZVo_YTgz4ZS4_UA",
+        authDomain: "vetted-application.firebaseapp.com",
+        projectId: "vetted-application",
+        storageBucket: "vetted-application.appspot.com",
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:abcdef123456789012345"
       });
     }
 
@@ -98,7 +100,7 @@ export default async (request: Request, context: Context) => {
       generatedAt: new Date().toISOString(),
     };
 
-    await db.collection('aiAnalyses').doc(requestData.applicantId).set(result);
+    await setDoc(doc(db, 'aiAnalyses', requestData.applicantId), result);
     console.log('✅ Analysis saved successfully');
 
     return new Response(JSON.stringify({ success: true }), {
@@ -111,21 +113,21 @@ export default async (request: Request, context: Context) => {
 
     try {
       // Save error to Firestore
-      const { initializeApp, cert, getApps } = await import('firebase-admin/app');
-      const { getFirestore } = await import('firebase-admin/firestore');
+      const { initializeApp, getApps } = await import('firebase/app');
+      const { getFirestore, doc, setDoc } = await import('firebase/firestore');
       
       if (getApps().length === 0) {
         initializeApp({
-          credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          }),
+          apiKey: "AIzaSyC8dVIhL8ug7R5dV7S7ZVo_YTgz4ZS4_UA",
+          authDomain: "vetted-application.firebaseapp.com",
+          projectId: "vetted-application",
+          storageBucket: "vetted-application.appspot.com",
+          messagingSenderId: "123456789012",
+          appId: "1:123456789012:web:abcdef123456789012345"
         });
       }
 
       const db = getFirestore();
-      const requestData: AnalysisRequest = await request.json();
 
       const errorResult: AnalysisResult = {
         applicantId: requestData.applicantId,
@@ -134,7 +136,7 @@ export default async (request: Request, context: Context) => {
         generatedAt: new Date().toISOString(),
       };
 
-      await db.collection('aiAnalyses').doc(requestData.applicantId).set(errorResult);
+      await setDoc(doc(db, 'aiAnalyses', requestData.applicantId), errorResult);
     } catch (saveError) {
       console.error('Failed to save error:', saveError);
     }
@@ -237,7 +239,10 @@ Return ONLY a valid JSON object with this exact structure:
   }
 
   const result = await openaiResponse.json();
-  const analysisText = result.choices[0].message.content;
+  let analysisText = result.choices[0].message.content;
+  
+  // Remove markdown code blocks if present
+  analysisText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   
   try {
     return JSON.parse(analysisText);

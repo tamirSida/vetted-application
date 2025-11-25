@@ -12,6 +12,7 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
 import { OpenAIService } from '../../../services/openai.service';
 import { EmailService } from '../../../services/email.service';
 import { deleteField } from '@angular/fire/firestore';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 @Component({
   selector: 'app-applicant-detail',
@@ -78,6 +79,13 @@ import { deleteField } from '@angular/fire/firestore';
             (click)="setActiveTab('phase3')">
             <i class="fas fa-file-alt"></i>
             Phase 3
+          </button>
+          <button 
+            *ngIf="shouldShowAIAnalysis()"
+            [class]="'tab-button ' + (activeTab() === 'ai-analysis' ? 'active' : '')"
+            (click)="setActiveTab('ai-analysis')">
+            <i class="fas fa-brain"></i>
+            AI Analysis
           </button>
           <button 
             *ngIf="shouldShowPhase4()"
@@ -844,6 +852,100 @@ import { deleteField } from '@angular/fire/firestore';
             <p><strong>Equity Breakdown Length:</strong> {{ (phase3Application()?.fundingInfo?.equityBreakdown || []).length }}</p>
           </div>
         </section>
+
+          <!-- AI Analysis Section -->
+          <section class="phase-section tab-panel" *ngIf="activeTab() === 'ai-analysis'">
+            <div class="section-header">
+              <h2><i class="fas fa-brain"></i> AI Analysis</h2>
+              <div class="phase-actions">
+                <button *ngIf="!aiAnalysisResult() && phase3Application()" class="generate-button" (click)="generateAIAnalysis()" [disabled]="isGeneratingAnalysis()">
+                  <i [class]="isGeneratingAnalysis() ? 'fas fa-spinner fa-spin' : 'fas fa-magic'"></i>
+                  {{ isGeneratingAnalysis() ? 'Generating...' : 'Generate Analysis' }}
+                </button>
+                <button *ngIf="aiAnalysisResult()" class="regenerate-button" (click)="regenerateAIAnalysis()" [disabled]="isGeneratingAnalysis()">
+                  <i [class]="isGeneratingAnalysis() ? 'fas fa-spinner fa-spin' : 'fas fa-redo'"></i>
+                  {{ isGeneratingAnalysis() ? 'Regenerating...' : 'Regenerate' }}
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="aiAnalysisError()" class="error-message">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>{{ aiAnalysisError() }}</p>
+            </div>
+
+            <div *ngIf="!aiAnalysisResult() && !aiAnalysisError() && !isGeneratingAnalysis()" class="no-analysis">
+              <i class="fas fa-robot"></i>
+              <h3>No AI Analysis Available</h3>
+              <p>Click "Generate Analysis" to create an AI-powered assessment of this applicant's market positioning and competitive landscape.</p>
+            </div>
+
+            <div *ngIf="isGeneratingAnalysis()" class="generating-analysis">
+              <i class="fas fa-spinner fa-spin"></i>
+              <h3>Generating AI Analysis</h3>
+              <p>Our AI is analyzing the applicant's data, market positioning, and competitive landscape. This may take a few minutes.</p>
+            </div>
+
+            <div *ngIf="aiAnalysisResult()" class="analysis-content">
+              <div class="analysis-section">
+                <h3><i class="fas fa-chart-line"></i> Market Sizing & Context</h3>
+                <div class="analysis-grid">
+                  <div class="analysis-item">
+                    <label>Market Category</label>
+                    <span>{{ aiAnalysisResult()?.marketSizing?.category }}</span>
+                  </div>
+                  <div class="analysis-item full-width">
+                    <label>TAM Assessment (Qualitative)</label>
+                    <span>{{ aiAnalysisResult()?.marketSizing?.tam?.qualitative }}</span>
+                  </div>
+                  <div class="analysis-item">
+                    <label>Bottom-Up Estimate</label>
+                    <span>{{ aiAnalysisResult()?.marketSizing?.tam?.bottomUp }}</span>
+                  </div>
+                  <div class="analysis-item">
+                    <label>Top-Down Estimate</label>
+                    <span>{{ aiAnalysisResult()?.marketSizing?.tam?.topDown }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="analysis-section">
+                <h3><i class="fas fa-users"></i> Competitive Landscape</h3>
+                <div class="competitors-section">
+                  <div class="competitors-group">
+                    <h4>Direct Competitors (Startups)</h4>
+                    <div class="competitors-list">
+                      <div *ngFor="let competitor of aiAnalysisResult()?.competitiveLandscape?.directCompetitors" class="competitor-item">
+                        <strong>{{ competitor.name }}</strong>
+                        <p>{{ competitor.description }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="competitors-group">
+                    <h4>Legacy Competitors (Incumbents)</h4>
+                    <div class="competitors-list">
+                      <div *ngFor="let competitor of aiAnalysisResult()?.competitiveLandscape?.legacyCompetitors" class="competitor-item">
+                        <strong>{{ competitor.name }}</strong>
+                        <p>{{ competitor.description }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="differentiator-analysis">
+                    <h4>Differentiator Analysis</h4>
+                    <p>{{ aiAnalysisResult()?.competitiveLandscape?.differentiatorAnalysis }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="analysis-section">
+                <h3><i class="fas fa-lightbulb"></i> Overall Readiness Summary</h3>
+                <div class="investment-thesis">
+                  <label>Investment Thesis</label>
+                  <p>{{ aiAnalysisResult()?.readinessSummary?.investmentThesis }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
 
           <!-- Phase 4 Section -->
           <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase4'">
@@ -2614,6 +2716,181 @@ import { deleteField } from '@angular/fire/firestore';
     .status-select option {
       padding: 0.5rem;
     }
+
+    /* AI Analysis Styles */
+    .no-analysis,
+    .generating-analysis {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+
+    .no-analysis i,
+    .generating-analysis i {
+      font-size: 3rem;
+      color: #1e40af;
+      margin-bottom: 1rem;
+    }
+
+    .generate-button,
+    .regenerate-button {
+      background: #1e40af;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .regenerate-button {
+      background: #059669;
+    }
+
+    .generate-button:hover {
+      background: #1d4ed8;
+    }
+
+    .regenerate-button:hover {
+      background: #047857;
+    }
+
+    .generate-button:disabled,
+    .regenerate-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .analysis-content {
+      max-width: none;
+    }
+
+    .analysis-section {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .analysis-section h3 {
+      color: #1e40af;
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .analysis-section h4 {
+      color: #374151;
+      margin: 1rem 0 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .analysis-item {
+      background: #f8fafc;
+      padding: 0.75rem;
+      border-radius: 6px;
+    }
+
+    .analysis-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .analysis-item label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.25rem;
+      font-size: 0.875rem;
+    }
+
+    .analysis-item span {
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .competitors-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .competitors-group {
+      background: #f8fafc;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+
+    .competitors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .competitor-item {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.75rem;
+    }
+
+    .competitor-item strong {
+      color: #1e40af;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .competitor-item p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .differentiator-analysis {
+      grid-column: 1 / -1;
+      background: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .differentiator-analysis p {
+      margin: 0;
+      color: #0c4a6e;
+      line-height: 1.6;
+    }
+
+    .investment-thesis {
+      background: #f0fdf4;
+      border: 1px solid #22c55e;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .investment-thesis label {
+      display: block;
+      font-weight: 600;
+      color: #166534;
+      margin-bottom: 0.5rem;
+    }
+
+    .investment-thesis p {
+      margin: 0;
+      color: #166534;
+      line-height: 1.6;
+    }
   `]
 })
 export class ApplicantDetailComponent implements OnInit {
@@ -2636,6 +2913,11 @@ export class ApplicantDetailComponent implements OnInit {
   flaggingResult = signal<FlaggingResult | null>(null);
   phase3FlaggingResult = signal<FlaggingResult | null>(null);
   interviewers = signal<Interviewer[]>([]);
+  
+  // AI Analysis
+  aiAnalysisResult = signal<any>(null);
+  aiAnalysisError = signal<string | null>(null);
+  isGeneratingAnalysis = signal(false);
   allInterviewers = signal<Interviewer[]>([]); // For displaying interviewer names
   showInterviewerSelection = signal(false);
   isAdvancingToPhase4 = signal(false);
@@ -2847,6 +3129,106 @@ export class ApplicantDetailComponent implements OnInit {
       ApplicationStatus.PHASE_4_REJECTED,
       ApplicationStatus.ACCEPTED
     ].includes(status);
+  }
+
+  shouldShowAIAnalysis(): boolean {
+    const status = this.applicant()?.status;
+    return status !== undefined && [
+      ApplicationStatus.PHASE_3_SUBMITTED,
+      ApplicationStatus.PHASE_4,
+      ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED,
+      ApplicationStatus.PHASE_4_POST_INTERVIEW,
+      ApplicationStatus.PHASE_4_REJECTED,
+      ApplicationStatus.ACCEPTED
+    ].includes(status);
+  }
+
+  // AI Analysis Methods
+  async generateAIAnalysis(): Promise<void> {
+    if (!this.applicant() || !this.phase3Application()) return;
+
+    try {
+      this.isGeneratingAnalysis.set(true);
+      this.aiAnalysisError.set(null);
+
+      // Trigger the background function
+      const response = await fetch('/.netlify/functions/ai-analysis-background', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicantId: this.applicant()!.userId,
+          cohortId: this.applicant()!.cohortId,
+          phase1Data: this.phase1Application(),
+          phase3Data: this.phase3Application(),
+          deckUrl: this.phase3Application()?.productInfo?.companyDeck?.fileUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to trigger AI analysis');
+      }
+
+      console.log('🚀 AI analysis triggered successfully');
+      
+      // Poll for results
+      this.pollForAnalysisResults();
+
+    } catch (error: any) {
+      this.aiAnalysisError.set(error.message || 'Failed to generate analysis');
+      this.isGeneratingAnalysis.set(false);
+    }
+  }
+
+  async regenerateAIAnalysis(): Promise<void> {
+    // Clear existing results and generate new analysis
+    this.aiAnalysisResult.set(null);
+    await this.generateAIAnalysis();
+  }
+
+  private async pollForAnalysisResults(): Promise<void> {
+    const maxAttempts = 30; // 5 minutes of polling (10 second intervals)
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const db = getFirestore();
+        const analysisDoc = await getDoc(doc(db, 'aiAnalyses', this.applicant()!.userId));
+        
+        if (analysisDoc.exists()) {
+          const data = analysisDoc.data();
+          if (data['status'] === 'completed') {
+            this.aiAnalysisResult.set(data['analysis']);
+            this.isGeneratingAnalysis.set(false);
+            return;
+          } else if (data['status'] === 'failed') {
+            this.aiAnalysisError.set(data['error'] || 'Analysis failed');
+            this.isGeneratingAnalysis.set(false);
+            return;
+          }
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000); // Poll every 10 seconds
+        } else {
+          this.aiAnalysisError.set('Analysis timeout - please try again');
+          this.isGeneratingAnalysis.set(false);
+        }
+      } catch (error) {
+        console.error('Error polling for analysis results:', error);
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 10000);
+        } else {
+          this.aiAnalysisError.set('Failed to check analysis status');
+          this.isGeneratingAnalysis.set(false);
+        }
+      }
+    };
+
+    poll();
   }
 
   // Phase advancement capabilities

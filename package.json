@@ -33,6 +33,8 @@
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@netlify/functions": "^5.1.0",
     "firebase": "^11.10.0",
+    "firebase-admin": "^13.6.0",
+    "pdf-parse": "^2.4.5",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

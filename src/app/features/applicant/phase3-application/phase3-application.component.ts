@@ -12,6 +12,7 @@ import { APP_CONSTANTS } from '../../../constants';
 import { EquityTableComponent } from './equity-table.component';
 import { Router } from '@angular/router';
 import { combineLatest } from 'rxjs';
+import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 @Component({
   selector: 'app-phase3-application-tabbed',
@@ -676,6 +677,7 @@ import { combineLatest } from 'rxjs';
                 </div>
               </div>
             </div>
+
           </form>
 
           <!-- Tab Navigation -->
@@ -879,6 +881,174 @@ import { combineLatest } from 'rxjs';
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+
+    /* AI Analysis Styles */
+    .analysis-loading {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+
+    .analysis-loading .loading-spinner {
+      margin-bottom: 1rem;
+    }
+
+    .analysis-loading .loading-spinner i {
+      font-size: 3rem;
+      color: #1e40af;
+    }
+
+    .analysis-error {
+      text-align: center;
+      padding: 3rem;
+      color: #dc2626;
+    }
+
+    .analysis-error .error-icon i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .retry-button {
+      background: #dc2626;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      margin-top: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .retry-button:hover {
+      background: #b91c1c;
+    }
+
+    .analysis-results {
+      max-width: none;
+    }
+
+    .analysis-section {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .analysis-section h4 {
+      color: #1e40af;
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .analysis-section h5 {
+      color: #374151;
+      margin: 1rem 0 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    .analysis-content {
+      line-height: 1.6;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: #f8fafc;
+      border-radius: 6px;
+    }
+
+    .metric label {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric span {
+      color: #6b7280;
+    }
+
+    .competitors-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .competitor {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .competitor strong {
+      color: #1e40af;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .competitor p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .differentiator {
+      background: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .differentiator p {
+      margin: 0;
+      color: #0c4a6e;
+    }
+
+    .investment-thesis {
+      background: #f0fdf4;
+      border: 1px solid #22c55e;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .investment-thesis label {
+      font-weight: 600;
+      color: #166534;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .investment-thesis p {
+      margin: 0;
+      color: #166534;
+      font-size: 1rem;
+    }
+
+    .analysis-placeholder {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #6b7280;
+    }
+
+    .analysis-placeholder .placeholder-icon i {
+      font-size: 4rem;
+      color: #d1d5db;
+      margin-bottom: 1rem;
+    }
+
+    .analysis-placeholder h4 {
+      margin: 0 0 0.5rem 0;
+      color: #374151;
     }
 
     .phase3-container {
@@ -1699,12 +1869,18 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
   successMessage = '';
   errorMessage = '';
 
+  // AI Analysis state
+  aiAnalysisLoading = false;
+  aiAnalysisError: string | null = null;
+  aiAnalysisResult: any = null;
+
   existingApplication?: Phase3Application;
   autoSaveInterval?: any;
 
   ngOnInit() {
     this.initializeForm();
     this.loadApplicantData();
+    this.loadAIAnalysis();
   }
 
   private async loadApplicantData() {
@@ -2240,9 +2416,15 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Trigger OpenAI analysis in the background (fire and forget)
+      // Trigger AI analysis in the background (fire and forget)
       this.submissionProgress = 4;
-      this.triggerOpenAIAnalysis(submittedApplication);
+      try {
+        await this.triggerAIAnalysis();
+        this.aiAnalysisLoading = true; // Start showing loading state in AI tab
+      } catch (error) {
+        console.error('Failed to trigger AI analysis:', error);
+        // Don't fail submission if AI analysis fails
+      }
 
       this.submissionProgress = 5;
       this.successMessage = 'Application submitted successfully!';
@@ -2265,6 +2447,104 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
 
   goToDashboard(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  async loadAIAnalysis(): Promise<void> {
+    if (!this.applicant) return;
+
+    try {
+      // Check if analysis exists in Firestore
+      const db = getFirestore();
+      const analysisDoc = await getDoc(doc(db, 'aiAnalyses', this.applicant.userId));
+      
+      if (analysisDoc.exists()) {
+        const data = analysisDoc.data();
+        if (data['status'] === 'completed') {
+          this.aiAnalysisResult = data['analysis'];
+          this.aiAnalysisLoading = false;
+          this.aiAnalysisError = null;
+        } else if (data['status'] === 'failed') {
+          this.aiAnalysisError = data['error'] || 'Analysis failed';
+          this.aiAnalysisLoading = false;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading AI analysis:', error);
+    }
+  }
+
+  async retryAnalysis(): Promise<void> {
+    if (!this.applicant) return;
+
+    this.aiAnalysisLoading = true;
+    this.aiAnalysisError = null;
+    this.aiAnalysisResult = null;
+
+    try {
+      await this.triggerAIAnalysis();
+    } catch (error: any) {
+      this.aiAnalysisError = error.message || 'Failed to retry analysis';
+      this.aiAnalysisLoading = false;
+    }
+  }
+
+  private async triggerAIAnalysis(): Promise<void> {
+    if (!this.applicant) return;
+
+    try {
+      // Collect Phase 1 data
+      const phase1Data = await this.getPhase1Data();
+      
+      // Collect Phase 3 data
+      const phase3Data = this.buildApplicationData('SUBMITTED');
+
+      // Trigger background function
+      const response = await fetch('/.netlify/functions/ai-analysis-background', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicantId: this.applicant.userId,
+          cohortId: this.applicant.cohortId,
+          phase1Data,
+          phase3Data,
+          deckUrl: this.uploadedDeckUrl || this.existingApplication?.productInfo?.companyDeck?.fileUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to trigger AI analysis');
+      }
+
+      console.log('🚀 AI analysis triggered successfully');
+    } catch (error) {
+      console.error('❌ Failed to trigger AI analysis:', error);
+      throw error;
+    }
+  }
+
+  private async getPhase1Data(): Promise<any> {
+    if (!this.applicant) return {};
+
+    try {
+      // Fetch Phase 1 application data
+      const db = getFirestore();
+      const phase1Query = query(
+        collection(db, 'applications'),
+        where('applicantId', '==', this.applicant.userId),
+        where('phase', '==', 'SIGNUP')
+      );
+      
+      const querySnapshot = await getDocs(phase1Query);
+      if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].data();
+      }
+    } catch (error) {
+      console.error('Error fetching Phase 1 data:', error);
+    }
+    
+    return {};
   }
 
   /**

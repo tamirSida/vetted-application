@@ -101,8 +101,19 @@ import { UserRole, Cohort } from '../../../models';
             </div>
           </form>
         } @else {
+          <!-- Loading Application Status -->
+          @if (isCheckingApplicationStatus()) {
+            <div class="signup-info">
+              <div class="info-section">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Checking Application Status</h3>
+                <p>Please wait while we check if applications are currently open...</p>
+              </div>
+            </div>
+          }
+          
           <!-- Applications Open -->
-          @if (applicationsOpen() && !applicationsStopped()) {
+          @if (!isCheckingApplicationStatus() && applicationsOpen() && !applicationsStopped()) {
             <div class="signup-info">
               <div class="info-section">
                 <i class="fas fa-rocket"></i>
@@ -131,7 +142,7 @@ import { UserRole, Cohort } from '../../../models';
           }
 
           <!-- Applications Closed - Before Open -->
-          @if (!applicationsOpen() && !isManuallyDisabled() && applicationStartDate()) {
+          @if (!isCheckingApplicationStatus() && !applicationsOpen() && !isManuallyDisabled() && applicationStartDate()) {
             <div class="signup-info closed">
               <div class="info-section">
                 <i class="fas fa-calendar-clock"></i>
@@ -155,7 +166,7 @@ import { UserRole, Cohort } from '../../../models';
           }
 
           <!-- Applications Closed - Manually Disabled -->
-          @if (!applicationsOpen() && isManuallyDisabled()) {
+          @if (!isCheckingApplicationStatus() && !applicationsOpen() && isManuallyDisabled()) {
             <div class="signup-info closed">
               <div class="info-section">
                 <i class="fas fa-pause-circle"></i>
@@ -180,7 +191,7 @@ import { UserRole, Cohort } from '../../../models';
           }
 
           <!-- Applications Stopped -->
-          @if (applicationsStopped()) {
+          @if (!isCheckingApplicationStatus() && applicationsStopped()) {
             <div class="signup-info closed">
               <div class="info-section">
                 <i class="fas fa-stop"></i>
@@ -199,7 +210,7 @@ import { UserRole, Cohort } from '../../../models';
           }
         }
 
-        @if (!applicationsStopped()) {
+        @if (!isCheckingApplicationStatus() && !applicationsStopped()) {
           <div class="auth-toggle">
             <p>
               {{ isLogin() ? "Don't have an account?" : "Already have an account?" }}
@@ -230,6 +241,7 @@ export class LoginComponent implements OnInit {
   applicationStartDate = signal<Date | null>(null);
   isManuallyDisabled = signal(false);
   applicationsStopped = signal(false);
+  isCheckingApplicationStatus = signal(true);
 
   loginForm: FormGroup;
 
@@ -241,8 +253,15 @@ export class LoginComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await this.checkApplicationWindowStatus();
-    await this.checkApplicationSettings();
+    try {
+      this.isCheckingApplicationStatus.set(true);
+      await Promise.all([
+        this.checkApplicationWindowStatus(),
+        this.checkApplicationSettings()
+      ]);
+    } finally {
+      this.isCheckingApplicationStatus.set(false);
+    }
   }
 
   private async checkApplicationWindowStatus(): Promise<void> {

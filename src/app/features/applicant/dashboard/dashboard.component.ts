@@ -188,8 +188,7 @@ import { ApplicantUser, Phase, Webinar, ApplicationStatus, Interviewer } from '.
                 <i class="fas fa-file-alt"></i>
               </div>
               <div class="status-content">
-                <h2>Ready for In-Depth Application</h2>
-                <p class="status-message">Great! You've completed the webinar. Now it's time to fill out our comprehensive application.</p>
+                <h2>It’s Time to Complete your Application</h2>
                 <div class="application-info">
                   <h4>This application includes:</h4>
                   <ul>

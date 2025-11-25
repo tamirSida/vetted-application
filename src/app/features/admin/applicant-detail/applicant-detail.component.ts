@@ -833,10 +833,20 @@ import { deleteField } from '@angular/fire/firestore';
           <section class="phase-section tab-panel" *ngIf="activeTab() === 'phase4'">
           <div class="section-header">
             <h2><i class="fas fa-handshake"></i> Phase 4 - Interview</h2>
-            <div class="phase-actions" *ngIf="canAdvanceFromPhase4()">
-              <button class="advance-button accept-program" (click)="acceptToProgram()">
-                <i class="fas fa-graduation-cap"></i>
-                Accept to Program
+            <div class="phase-actions">
+              <button *ngIf="canAcceptFromPhase4()" 
+                      class="accept-button" 
+                      (click)="acceptApplicant()" 
+                      [disabled]="isAcceptingApplicant()">
+                <i [class]="isAcceptingApplicant() ? 'fas fa-spinner fa-spin' : 'fas fa-check'"></i>
+                {{ isAcceptingApplicant() ? 'Accepting...' : 'Accept' }}
+              </button>
+              <button *ngIf="canRejectFromPhase4()" 
+                      class="reject-button" 
+                      (click)="rejectApplicant()" 
+                      [disabled]="isRejectingApplicant()">
+                <i [class]="isRejectingApplicant() ? 'fas fa-spinner fa-spin' : 'fas fa-times'"></i>
+                {{ isRejectingApplicant() ? 'Rejecting...' : 'Reject' }}
               </button>
             </div>
           </div>
@@ -1205,6 +1215,11 @@ import { deleteField } from '@angular/fire/firestore';
       overflow: hidden;
     }
 
+    /* Allow dropdowns to overflow in profile section */
+    .profile-section {
+      overflow: visible;
+    }
+
     .section-header {
       background: #f8fafc;
       padding: 1.5rem;
@@ -1230,6 +1245,7 @@ import { deleteField } from '@angular/fire/firestore';
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 1.5rem;
+      overflow: visible;
     }
 
     .profile-item {
@@ -1555,6 +1571,29 @@ import { deleteField } from '@angular/fire/firestore';
     }
 
     .reject-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .accept-button {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .accept-button:hover {
+      background: #059669;
+    }
+
+    .accept-button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
@@ -2384,6 +2423,7 @@ import { deleteField } from '@angular/fire/firestore';
     .assigned-dropdown-container {
       position: relative;
       display: inline-block;
+      z-index: 10;
     }
 
     .rating-badge,
@@ -2425,8 +2465,8 @@ import { deleteField } from '@angular/fire/firestore';
       background: white;
       border: 1px solid #e5e7eb;
       border-radius: 6px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      z-index: 1000;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05);
+      z-index: 9999;
       margin-top: 0.25rem;
       max-height: 200px;
       overflow-y: auto;
@@ -2541,6 +2581,8 @@ export class ApplicantDetailComponent implements OnInit {
   activeRatingDropdown = signal<string | null>(null);
   activeAssignedDropdown = signal<string | null>(null);
   adminUsers = signal<AdminUser[]>([]);
+  isAcceptingApplicant = signal(false);
+  isRejectingApplicant = signal(false);
 
   // Form
   notesForm: FormGroup;
@@ -2774,6 +2816,24 @@ export class ApplicantDetailComponent implements OnInit {
   canAdvanceFromPhase4(): boolean {
     const status = this.applicant()?.status;
     return status === ApplicationStatus.PHASE_4_POST_INTERVIEW;
+  }
+
+  canAcceptFromPhase4(): boolean {
+    const status = this.applicant()?.status;
+    return status !== undefined && [
+      ApplicationStatus.PHASE_4,
+      ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED,
+      ApplicationStatus.PHASE_4_POST_INTERVIEW
+    ].includes(status);
+  }
+
+  canRejectFromPhase4(): boolean {
+    const status = this.applicant()?.status;
+    return status !== undefined && [
+      ApplicationStatus.PHASE_4,
+      ApplicationStatus.PHASE_4_INTERVIEW_SCHEDULED,
+      ApplicationStatus.PHASE_4_POST_INTERVIEW
+    ].includes(status);
   }
 
   // Phase advancement actions
@@ -3458,6 +3518,98 @@ export class ApplicantDetailComponent implements OnInit {
       this.error.set('Failed to reject Phase 3 application');
     } finally {
       this.rejectingPhase3.set(false);
+    }
+  }
+
+  async acceptApplicant() {
+    const applicant = this.applicant();
+    
+    if (!applicant) {
+      console.error('Applicant not found');
+      return;
+    }
+
+    // Confirm acceptance
+    const confirmed = confirm(
+      `Are you sure you want to accept ${applicant.name} into the program? This will:\n\n` +
+      `• Set their status to "ACCEPTED"\n` +
+      `• This action can be undone later if needed\n\n` +
+      `Click OK to proceed or Cancel to abort.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.isAcceptingApplicant.set(true);
+    
+    try {
+      console.log(`✅ Accepting applicant: ${applicant.userId}`);
+
+      await this.userService.updateUser(applicant.userId, {
+        status: ApplicationStatus.ACCEPTED,
+        phase: Phase.ACCEPTED
+      });
+
+      // Update the local applicant data
+      this.applicant.set({
+        ...applicant,
+        status: ApplicationStatus.ACCEPTED,
+        phase: Phase.ACCEPTED
+      });
+
+      console.log('✅ Applicant accepted successfully');
+      
+    } catch (error) {
+      console.error('❌ Error accepting applicant:', error);
+      this.error.set('Failed to accept applicant');
+    } finally {
+      this.isAcceptingApplicant.set(false);
+    }
+  }
+
+  async rejectApplicant() {
+    const applicant = this.applicant();
+    
+    if (!applicant) {
+      console.error('Applicant not found');
+      return;
+    }
+
+    // Confirm rejection
+    const confirmed = confirm(
+      `Are you sure you want to reject ${applicant.name} at Phase 4? This will:\n\n` +
+      `• Set their status to "PHASE_4_REJECTED"\n` +
+      `• This action can be undone later if needed\n\n` +
+      `Click OK to proceed or Cancel to abort.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.isRejectingApplicant.set(true);
+    
+    try {
+      console.log(`❌ Rejecting applicant at Phase 4: ${applicant.userId}`);
+
+      await this.userService.updateUser(applicant.userId, {
+        status: ApplicationStatus.PHASE_4_REJECTED
+      });
+
+      // Update the local applicant data
+      this.applicant.set({
+        ...applicant,
+        status: ApplicationStatus.PHASE_4_REJECTED
+      });
+
+      console.log('✅ Applicant rejected at Phase 4 successfully');
+      
+    } catch (error) {
+      console.error('❌ Error rejecting applicant:', error);
+      this.error.set('Failed to reject applicant');
+    } finally {
+      this.isRejectingApplicant.set(false);
     }
   }
 

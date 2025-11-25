@@ -345,7 +345,7 @@ import { combineLatest } from 'rxjs';
                 <!-- Conditional explanation when "Yes" is selected -->
                 <div *ngIf="applicationForm.get('hasPreviousCollaboration')?.value === 'true'" class="conditional-field">
                   <label for="previousCollaboration" class="form-label">
-                    Please briefly explain the circumstances of their departure and any severance or equity agreements that were made.
+                    Briefly tell us about your previous working relationships with your co-founders.
                   </label>
                   <textarea
                     id="previousCollaboration"
@@ -353,7 +353,7 @@ import { combineLatest } from 'rxjs';
                     rows="3"
                     class="form-textarea"
                     maxlength="3000"
-                    placeholder="Describe the previous working relationships and any agreements..."
+                    placeholder="Describe the previous working relationships..."
                     required></textarea>
                   <div class="word-count">
                     {{ getWordCount('previousCollaboration') }}/300 words
@@ -394,7 +394,7 @@ import { combineLatest } from 'rxjs';
                     rows="3"
                     class="form-textarea"
                     maxlength="3000"
-                    placeholder="Explain the circumstances of departure and any agreements..."
+                    placeholder="Explain the circumstances of departure and any severance agreements..."
                     required></textarea>
                 </div>
               </div>

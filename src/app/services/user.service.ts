@@ -209,12 +209,26 @@ export class UserService {
 
       // For ADMIN and VIEWER users, create Firebase Auth user and save to admin_users collection
       if (userRequest.role === UserRole.ADMIN || userRequest.role === UserRole.VIEWER) {
-        // Generate a temporary password for the admin/viewer user
-        const tempPassword = this.generateTempPassword();
+        // Use the provided password for Firebase Auth (password is never saved to database)
+        const password = userRequest.password || this.generateTempPassword();
+        console.log(`🔐 Creating Firebase Auth user for ${userRequest.email} with ${userRequest.password ? 'provided' : 'generated'} password`);
         
-        // Create Firebase Auth user
-        const userCredential = await createUserWithEmailAndPassword(this.auth, userRequest.email, tempPassword);
-        const firebaseUid = userCredential.user.uid;
+        let firebaseUid: string;
+        
+        try {
+          // Create Firebase Auth user with provided password
+          const userCredential = await createUserWithEmailAndPassword(this.auth, userRequest.email, password);
+          firebaseUid = userCredential.user.uid;
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            // If email exists in Firebase Auth but not in our admin_users collection,
+            // we might need to link the existing user
+            console.log(`⚠️ Email ${userRequest.email} already exists in Firebase Auth`);
+            throw new Error(`Email ${userRequest.email} is already in use. Please use a different email or check if this user already exists.`);
+          } else {
+            throw error;
+          }
+        }
         
         // Prepare admin/viewer user data
         let userData: any = {

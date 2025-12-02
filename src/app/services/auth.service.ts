@@ -188,7 +188,11 @@ export class AuthService {
           } as User;
         }
         
-        return userData as User;
+        // For admin_users collection, explicitly include the userId and preserve all fields
+        return {
+          userId: userId,
+          ...userData
+        } as User;
       }
     }
 

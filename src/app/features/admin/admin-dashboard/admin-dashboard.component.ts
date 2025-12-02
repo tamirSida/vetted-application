@@ -3648,6 +3648,12 @@ export class AdminDashboardComponent implements OnInit {
   async createAdmin() {
     if (this.adminForm.invalid || this.isSubmitting()) return;
 
+    // Check permissions before proceeding
+    if (!this.authService.canWrite()) {
+      this.error.set('You do not have permission to create admin users.');
+      return;
+    }
+
     try {
       this.isSubmitting.set(true);
       this.error.set('');

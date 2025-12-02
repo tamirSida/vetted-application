@@ -12,7 +12,7 @@ import { FlaggingResult, FlaggingService } from '../../../services/flagging.serv
 import { OpenAIService } from '../../../services/openai.service';
 import { EmailService } from '../../../services/email.service';
 import { deleteField } from '@angular/fire/firestore';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
 
 @Component({
   selector: 'app-applicant-detail',
@@ -872,6 +872,22 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
             <div *ngIf="aiAnalysisError()" class="error-message">
               <i class="fas fa-exclamation-triangle"></i>
               <p>{{ aiAnalysisError() }}</p>
+            </div>
+
+            <!-- PDF Parsing Status -->
+            <div *ngIf="aiAnalysisResult() && aiAnalysisPdfParsed() === false" class="warning-message">
+              <i class="fas fa-file-pdf"></i>
+              <p>
+                <strong>PDF not parsed - analysis used application data only</strong>
+                @if (aiAnalysisPdfError()) {
+                  <br><small>Reason: {{ aiAnalysisPdfError() }}</small>
+                }
+              </p>
+            </div>
+
+            <div *ngIf="aiAnalysisResult() && aiAnalysisPdfParsed() === true" class="info-message">
+              <i class="fas fa-check-circle"></i>
+              <p><strong>PDF successfully parsed and included in analysis</strong></p>
             </div>
 
             <div *ngIf="!aiAnalysisResult() && !aiAnalysisError() && !isGeneratingAnalysis()" class="no-analysis">
@@ -2918,6 +2934,8 @@ export class ApplicantDetailComponent implements OnInit {
   aiAnalysisResult = signal<any>(null);
   aiAnalysisError = signal<string | null>(null);
   isGeneratingAnalysis = signal(false);
+  aiAnalysisPdfParsed = signal<boolean | null>(null);
+  aiAnalysisPdfError = signal<string | null>(null);
   allInterviewers = signal<Interviewer[]>([]); // For displaying interviewer names
   showInterviewerSelection = signal(false);
   isAdvancingToPhase4 = signal(false);
@@ -3020,6 +3038,9 @@ export class ApplicantDetailComponent implements OnInit {
       if (this.shouldShowPhase4()) {
         await this.loadInterviewData();
       }
+
+      // Load AI Analysis data if exists
+      await this.loadExistingAIAnalysis();
       
       // Always load interviewer data for name lookup (needed for any phase with assigned interviewer)
       await this.loadInterviewerData();
@@ -3182,9 +3203,49 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   async regenerateAIAnalysis(): Promise<void> {
-    // Clear existing results and generate new analysis
-    this.aiAnalysisResult.set(null);
-    await this.generateAIAnalysis();
+    try {
+      // Clear existing results 
+      this.aiAnalysisResult.set(null);
+      this.aiAnalysisError.set(null);
+      this.aiAnalysisPdfParsed.set(null);
+      this.aiAnalysisPdfError.set(null);
+      
+      // Delete existing analysis from database to force fresh generation
+      const db = getFirestore();
+      const analysisDocRef = doc(db, 'aiAnalyses', this.applicant()!.userId);
+      await deleteDoc(analysisDocRef).catch(() => {
+        // Ignore if document doesn't exist
+        console.log('No existing analysis to delete');
+      });
+      
+      // Generate new analysis
+      await this.generateAIAnalysis();
+    } catch (error: any) {
+      this.aiAnalysisError.set('Failed to regenerate analysis: ' + error.message);
+    }
+  }
+
+  private async loadExistingAIAnalysis(): Promise<void> {
+    try {
+      const db = getFirestore();
+      const analysisDoc = await getDoc(doc(db, 'aiAnalyses', this.applicant()!.userId));
+      
+      if (analysisDoc.exists()) {
+        const data = analysisDoc.data();
+        if (data['status'] === 'completed') {
+          this.aiAnalysisResult.set(data['analysis']);
+          this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
+          this.aiAnalysisPdfError.set(data['pdfParseError'] || null);
+        } else if (data['status'] === 'failed') {
+          this.aiAnalysisError.set(data['error'] || 'Analysis failed');
+          this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
+          this.aiAnalysisPdfError.set(data['pdfParseError'] || null);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load existing AI analysis:', error);
+      // Don't set error state for this - it's optional data
+    }
   }
 
   private async pollForAnalysisResults(): Promise<void> {
@@ -3200,10 +3261,14 @@ export class ApplicantDetailComponent implements OnInit {
           const data = analysisDoc.data();
           if (data['status'] === 'completed') {
             this.aiAnalysisResult.set(data['analysis']);
+            this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
+            this.aiAnalysisPdfError.set(data['pdfParseError'] || null);
             this.isGeneratingAnalysis.set(false);
             return;
           } else if (data['status'] === 'failed') {
             this.aiAnalysisError.set(data['error'] || 'Analysis failed');
+            this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
+            this.aiAnalysisPdfError.set(data['pdfParseError'] || null);
             this.isGeneratingAnalysis.set(false);
             return;
           }

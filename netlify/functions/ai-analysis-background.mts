@@ -42,6 +42,8 @@ interface AnalysisResult {
     competitiveLandscape: CompetitiveLandscape;
     readinessSummary: ReadinessSummary;
   };
+  pdfParsed: boolean;
+  pdfParseError?: string;
   generatedAt: string;
 }
 
@@ -76,9 +78,17 @@ export default async (request: Request, context: Context) => {
 
     // Step 1: Parse PDF if available
     let deckText = '';
+    let pdfParsed = false;
+    let pdfParseError = '';
+    
     if (requestData.deckUrl) {
       console.log('📄 Parsing PDF deck...');
-      deckText = await parsePDF(requestData.deckUrl);
+      const pdfResult = await parsePDF(requestData.deckUrl);
+      deckText = pdfResult.text;
+      pdfParsed = pdfResult.success;
+      pdfParseError = pdfResult.error || '';
+    } else {
+      console.log('📄 No deck URL provided');
     }
 
     // Step 2: Collect all data
@@ -97,6 +107,8 @@ export default async (request: Request, context: Context) => {
       applicantId: requestData.applicantId,
       status: 'completed',
       analysis,
+      pdfParsed,
+      pdfParseError: pdfParseError || undefined,
       generatedAt: new Date().toISOString(),
     };
 
@@ -133,6 +145,7 @@ export default async (request: Request, context: Context) => {
         applicantId: requestData.applicantId,
         status: 'failed',
         error: error.message,
+        pdfParsed: false,
         generatedAt: new Date().toISOString(),
       };
 
@@ -151,20 +164,68 @@ export default async (request: Request, context: Context) => {
   }
 };
 
-async function parsePDF(url: string): Promise<string> {
+async function parsePDF(url: string): Promise<{ text: string; success: boolean; error?: string }> {
   try {
     // Fetch the PDF
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+    }
+    
     const arrayBuffer = await response.arrayBuffer();
     
-    // Use pdf-parse library to extract text
-    const pdfParse = await import('pdf-parse');
-    const data = await pdfParse.default(arrayBuffer);
+    // Use pdfjs-dist directly for better serverless compatibility
+    const pdfjsLib = await import('pdfjs-dist');
     
-    return data.text;
-  } catch (error) {
-    console.error('PDF parsing failed:', error);
-    return 'PDF parsing failed - analysis will proceed without deck content';
+    // Use the default export which should contain getDocument
+    const pdfjs = pdfjsLib.default || pdfjsLib;
+    
+    // Configure worker for serverless environment
+    if (pdfjs.GlobalWorkerOptions) {
+      // Try to use the local worker file
+      try {
+        const path = await import('path');
+        const workerPath = path.resolve('node_modules/pdfjs-dist/build/pdf.worker.js');
+        pdfjs.GlobalWorkerOptions.workerSrc = workerPath;
+      } catch (error) {
+        // As last resort, try to disable worker completely
+        pdfjs.GlobalWorkerOptions.workerSrc = false;
+      }
+    }
+    
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(arrayBuffer),
+      useSystemFonts: true,
+      disableFontFace: true
+    });
+    
+    const pdf = await loadingTask.promise;
+    let fullText = '';
+    
+    // Extract text from each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      fullText += pageText + '\n';
+    }
+    
+    console.log('✅ PDF parsed successfully, text length:', fullText.length);
+    return {
+      text: fullText.trim(),
+      success: true
+    };
+  } catch (error: any) {
+    console.error('📄 PDF parsing failed:', error);
+    return {
+      text: 'PDF parsing failed - analysis will proceed without deck content',
+      success: false,
+      error: error.message
+    };
   }
 }
 

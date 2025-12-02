@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/openai-test/openai-test.component').then(c => c.OpenAITestComponent)
   },
   {
+    path: 'admin/pdf-test',
+    loadComponent: () => import('./features/admin/pdf-test/pdf-test.component').then(c => c.PdfTestComponent)
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./features/applicant/dashboard/dashboard.component').then(c => c.DashboardComponent)
   },

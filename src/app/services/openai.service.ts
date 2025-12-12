@@ -121,7 +121,7 @@ Provide analysis in JSON format:
       input: fullPrompt,
       reasoning: { effort: 'low' },
       text: { verbosity: 'medium' },
-      max_output_tokens: 800
+      max_output_tokens: 5000
     };
 
     try {

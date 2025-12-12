@@ -2466,7 +2466,9 @@ export class Phase3ApplicationTabbedComponent implements OnInit, OnDestroy {
           cohortId: this.applicant.cohortId,
           phase1Data,
           phase3Data,
-          deckUrl: this.uploadedDeckUrl || this.existingApplication?.productInfo?.companyDeck?.fileUrl,
+          deckUrl: this.uploadedDeckUrl
+            || this.existingApplication?.productInfo?.companyDeck?.fileUrl
+            || phase1Data?.extendedInfo?.pitchDeck?.fileUrl,
         }),
       });
 

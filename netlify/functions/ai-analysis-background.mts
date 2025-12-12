@@ -49,7 +49,7 @@ interface AnalysisResult {
 
 export default async (request: Request, context: Context) => {
   console.log('🤖 AI Analysis Background Function Started');
-  let requestData: AnalysisRequest;
+  let requestData!: AnalysisRequest;
   
   try {
     if (request.method !== 'POST') {
@@ -108,7 +108,7 @@ export default async (request: Request, context: Context) => {
       status: 'completed',
       analysis,
       pdfParsed,
-      pdfParseError: pdfParseError || undefined,
+      ...(pdfParseError ? { pdfParseError } : {}),
       generatedAt: new Date().toISOString(),
     };
 
@@ -124,32 +124,35 @@ export default async (request: Request, context: Context) => {
     console.error('❌ Analysis failed:', error);
 
     try {
-      // Save error to Firestore
-      const { initializeApp, getApps } = await import('firebase/app');
-      const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-      
-      if (getApps().length === 0) {
-        initializeApp({
-          apiKey: "AIzaSyC8dVIhL8ug7R5dV7S7ZVo_YTgz4ZS4_UA",
-          authDomain: "vetted-application.firebaseapp.com",
-          projectId: "vetted-application",
-          storageBucket: "vetted-application.appspot.com",
-          messagingSenderId: "123456789012",
-          appId: "1:123456789012:web:abcdef123456789012345"
-        });
+      // Only save to Firestore if we have the applicantId
+      if (requestData?.applicantId) {
+        // Save error to Firestore
+        const { initializeApp, getApps } = await import('firebase/app');
+        const { getFirestore, doc, setDoc } = await import('firebase/firestore');
+
+        if (getApps().length === 0) {
+          initializeApp({
+            apiKey: "AIzaSyC8dVIhL8ug7R5dV7S7ZVo_YTgz4ZS4_UA",
+            authDomain: "vetted-application.firebaseapp.com",
+            projectId: "vetted-application",
+            storageBucket: "vetted-application.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789012345"
+          });
+        }
+
+        const db = getFirestore();
+
+        const errorResult: AnalysisResult = {
+          applicantId: requestData.applicantId,
+          status: 'failed',
+          error: error.message,
+          pdfParsed: false,
+          generatedAt: new Date().toISOString(),
+        };
+
+        await setDoc(doc(db, 'aiAnalyses', requestData.applicantId), errorResult);
       }
-
-      const db = getFirestore();
-
-      const errorResult: AnalysisResult = {
-        applicantId: requestData.applicantId,
-        status: 'failed',
-        error: error.message,
-        pdfParsed: false,
-        generatedAt: new Date().toISOString(),
-      };
-
-      await setDoc(doc(db, 'aiAnalyses', requestData.applicantId), errorResult);
     } catch (saveError) {
       console.error('Failed to save error:', saveError);
     }

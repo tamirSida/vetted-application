@@ -3183,7 +3183,8 @@ export class ApplicantDetailComponent implements OnInit {
           cohortId: this.applicant()!.cohortId,
           phase1Data: this.phase1Application(),
           phase3Data: this.phase3Application(),
-          deckUrl: this.phase3Application()?.productInfo?.companyDeck?.fileUrl,
+          deckUrl: this.phase3Application()?.productInfo?.companyDeck?.fileUrl
+            || this.phase1Application()?.extendedInfo?.pitchDeck?.fileUrl,
         }),
       });
 

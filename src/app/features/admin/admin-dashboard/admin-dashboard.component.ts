@@ -1513,6 +1513,7 @@ type AdminSubView = 'users' | 'interviewers';
     .applicants-table td {
       padding: 1rem;
       border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
     }
 
     .table-row {
@@ -1553,6 +1554,7 @@ type AdminSubView = 'users' | 'interviewers';
       user-select: none;
       position: relative;
       transition: background-color 0.2s;
+      white-space: nowrap;
     }
 
     .sortable-header:hover {
@@ -1578,6 +1580,8 @@ type AdminSubView = 'users' | 'interviewers';
       font-size: 0.8rem;
       font-weight: 500;
       text-transform: uppercase;
+      white-space: nowrap;
+      display: inline-block;
     }
 
     .status-accepted { background: #dcfce7; color: #166534; }

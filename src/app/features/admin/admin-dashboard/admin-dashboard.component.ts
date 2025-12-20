@@ -1508,6 +1508,7 @@ type AdminSubView = 'users' | 'interviewers';
       font-weight: 600;
       font-size: 0.9rem;
       border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
     }
 
     .applicants-table td {

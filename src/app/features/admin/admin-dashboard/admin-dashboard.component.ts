@@ -312,7 +312,6 @@ type AdminSubView = 'users' | 'interviewers';
                        [class.fa-sort-up]="sortField() === 'name' && sortDirection() === 'asc'"
                        [class.fa-sort-down]="sortField() === 'name' && sortDirection() === 'desc'"></i>
                   </th>
-                  <th>Email</th>
                   <th class="sortable-header" (click)="sort('status')">
                     Status
                     <i class="fas" 
@@ -329,6 +328,13 @@ type AdminSubView = 'users' | 'interviewers';
                   </th>
                   <th>Company</th>
                   <th>Country</th>
+                  <th class="sortable-header" (click)="sort('p1submission')">
+                    P1 Submission
+                    <i class="fas"
+                       [class.fa-sort]="sortField() !== 'p1submission'"
+                       [class.fa-sort-up]="sortField() === 'p1submission' && sortDirection() === 'asc'"
+                       [class.fa-sort-down]="sortField() === 'p1submission' && sortDirection() === 'desc'"></i>
+                  </th>
                   <th class="sortable-header" (click)="sort('p3submission')">
                     P3 Submission
                     <i class="fas" 
@@ -343,11 +349,6 @@ type AdminSubView = 'users' | 'interviewers';
               <tbody>
                 <tr *ngFor="let applicant of filteredApplicants()" class="table-row" (click)="viewApplicantDetails(applicant)">
                   <td>{{ applicant.name }}</td>
-                  <td>
-                    <a [href]="'mailto:' + applicant.email" class="email-link" (click)="$event.stopPropagation()">
-                      {{ applicant.email }}
-                    </a>
-                  </td>
                   <td>
                     <span [class]="'status-badge status-' + applicant.status.toLowerCase().replace('_', '-')">
                       {{ getStatusDisplayName(applicant.status) }}
@@ -390,6 +391,7 @@ type AdminSubView = 'users' | 'interviewers';
                   </td>
                   <td>{{ applicant.profileData?.companyName || 'Not specified' }}</td>
                   <td>{{ getCountryFromCache(applicant.userId) }}</td>
+                  <td>{{ getP1SubmissionDisplay(applicant.userId) }}</td>
                   <td>{{ getP3SubmissionDisplay(applicant.userId) }}</td>
                   <td>
                     <div class="assigned-cell">
@@ -2739,8 +2741,11 @@ export class AdminDashboardComponent implements OnInit {
   countryFilter = signal<string>('all');
 
   // Sorting
-  sortField = signal<'name' | 'status' | 'rating' | 'p3submission'>('p3submission');
+  sortField = signal<'name' | 'status' | 'rating' | 'p1submission' | 'p3submission'>('p3submission');
   sortDirection = signal<'asc' | 'desc'>('desc');
+
+  // Cache for Phase 1 applications submission dates
+  p1SubmissionCache = signal<Map<string, Date | null>>(new Map());
 
   // Cache for Phase 3 applications submission dates
   p3SubmissionCache = signal<Map<string, Date | null>>(new Map());
@@ -2802,15 +2807,37 @@ export class AdminDashboardComponent implements OnInit {
           compareValue = ratingA - ratingB;
           break;
 
+        case 'p1submission':
+          // P1 submission date, fallback to name
+          const p1DateA = this.getP1SubmissionFromCache(a.userId);
+          const p1DateB = this.getP1SubmissionFromCache(b.userId);
+
+          // Check if dates are valid Date objects
+          const validP1DateA = p1DateA && p1DateA instanceof Date && !isNaN(p1DateA.getTime());
+          const validP1DateB = p1DateB && p1DateB instanceof Date && !isNaN(p1DateB.getTime());
+
+          if (validP1DateA && validP1DateB) {
+            // Both have valid submission dates - sort by date (desc - newest first)
+            compareValue = p1DateB.getTime() - p1DateA.getTime();
+          } else if (validP1DateA && !validP1DateB) {
+            compareValue = -1; // A has submission, B doesn't - A comes first
+          } else if (!validP1DateA && validP1DateB) {
+            compareValue = 1; // B has submission, A doesn't - B comes first
+          } else {
+            // Neither has valid submission date - sort alphabetically by name
+            compareValue = `${a.name}`.localeCompare(`${b.name}`);
+          }
+          break;
+
         case 'p3submission':
           // P3 submission date, fallback to name
           const p3DateA = this.getP3SubmissionFromCache(a.userId);
           const p3DateB = this.getP3SubmissionFromCache(b.userId);
-          
+
           // Check if dates are valid Date objects
           const validDateA = p3DateA && p3DateA instanceof Date && !isNaN(p3DateA.getTime());
           const validDateB = p3DateB && p3DateB instanceof Date && !isNaN(p3DateB.getTime());
-          
+
           if (validDateA && validDateB) {
             // Both have valid submission dates - sort by date (desc - newest first)
             compareValue = p3DateB.getTime() - p3DateA.getTime();
@@ -3242,6 +3269,55 @@ export class AdminDashboardComponent implements OnInit {
     return this.countryCache().get(userId) || 'Loading...';
   }
 
+  async getApplicantP1SubmissionDate(applicant: ApplicantUser): Promise<Date | null> {
+    try {
+      // Query the applications collection for this applicant's Phase 1 application
+      const phase1App = await this.applicationService.getApplicationByApplicantId(applicant.userId);
+      const submittedAt = phase1App?.submittedAt;
+
+      if (!submittedAt) {
+        return null;
+      }
+
+      // Handle Firestore Timestamp conversion
+      if (submittedAt instanceof Date) {
+        return submittedAt;
+      }
+
+      // Handle Firestore Timestamp object
+      if (submittedAt && typeof submittedAt === 'object' && 'toDate' in submittedAt) {
+        return (submittedAt as any).toDate();
+      }
+
+      // Handle string dates
+      if (typeof submittedAt === 'string') {
+        const date = new Date(submittedAt);
+        return isNaN(date.getTime()) ? null : date;
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`Failed to load P1 submission date for applicant ${applicant.userId}:`, error);
+      return null;
+    }
+  }
+
+  getP1SubmissionFromCache(userId: string): Date | null {
+    return this.p1SubmissionCache().get(userId) || null;
+  }
+
+  getP1SubmissionDisplay(userId: string): string {
+    const submissionDate = this.getP1SubmissionFromCache(userId);
+    if (submissionDate && submissionDate instanceof Date && !isNaN(submissionDate.getTime())) {
+      return new Intl.DateTimeFormat('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      }).format(submissionDate);
+    }
+    return 'Not submitted';
+  }
+
   async getApplicantP3SubmissionDate(applicant: ApplicantUser): Promise<Date | null> {
     try {
       // Query the phase3_applications collection for this applicant
@@ -3297,7 +3373,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // Sorting methods
-  sort(field: 'name' | 'status' | 'rating' | 'p3submission'): void {
+  sort(field: 'name' | 'status' | 'rating' | 'p1submission' | 'p3submission'): void {
     const currentField = this.sortField();
     const currentDirection = this.sortDirection();
 
@@ -3920,9 +3996,10 @@ export class AdminDashboardComponent implements OnInit {
         this.applicants.update(current => [...current, ...result.users]);
       }
       
-      // Load country data and P3 submission dates for each applicant and cache them
+      // Load country data, P1 and P3 submission dates for each applicant and cache them
       for (const applicant of result.users) {
         this.loadCountryForApplicant(applicant.userId);
+        this.loadP1SubmissionForApplicant(applicant);
         this.loadP3SubmissionForApplicant(applicant);
       }
       
@@ -3967,6 +4044,26 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error) {
       console.warn(`Failed to load P3 submission date for applicant ${applicant.userId}:`, error);
       this.p3SubmissionCache.update(cache => {
+        const newCache = new Map(cache);
+        newCache.set(applicant.userId, null);
+        return newCache;
+      });
+    }
+  }
+
+  private async loadP1SubmissionForApplicant(applicant: ApplicantUser) {
+    try {
+      const submissionDate = await this.getApplicantP1SubmissionDate(applicant);
+
+      // Update the cache
+      this.p1SubmissionCache.update(cache => {
+        const newCache = new Map(cache);
+        newCache.set(applicant.userId, submissionDate);
+        return newCache;
+      });
+    } catch (error) {
+      console.warn(`Failed to load P1 submission date for applicant ${applicant.userId}:`, error);
+      this.p1SubmissionCache.update(cache => {
         const newCache = new Map(cache);
         newCache.set(applicant.userId, null);
         return newCache;

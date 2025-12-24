@@ -245,7 +245,7 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
               <!-- Video Pitch -->
               <div class="form-group">
                 <label for="videoPitch" class="form-label required">
-                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building, or any URL of a publicly visible video. <span class="required-asterisk">*</span>
+                  Video Pitch: Please provide a link to a 1-2 minute unlisted YouTube video where the founding team introduces themselves and what you're building, or any URL of a publicly visible video. <strong>The video must be in English.</strong> <span class="required-asterisk">*</span>
                 </label>
                 <input
                   type="url"

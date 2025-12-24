@@ -126,6 +126,11 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
                 <p>Tell us about your product and market traction</p>
               </div>
 
+              <div class="english-disclaimer">
+                <i class="fas fa-language"></i>
+                <strong>Please fill out in English only</strong>
+              </div>
+
               <!-- Product Stage -->
               <div class="form-group">
                 <label class="form-label required">Product Stage: How far along are you in building the service or product? <span class="required-asterisk">*</span></label>
@@ -264,6 +269,11 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
               <div class="tab-header">
                 <h3><i class="fas fa-users"></i> Team</h3>
                 <p>Information about your founding team and key members</p>
+              </div>
+
+              <div class="english-disclaimer">
+                <i class="fas fa-language"></i>
+                <strong>Please fill out in English only</strong>
               </div>
 
               <!-- Co-Founders -->
@@ -439,6 +449,11 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
                 <p>Your funding history and equity structure</p>
               </div>
 
+              <div class="english-disclaimer">
+                <i class="fas fa-language"></i>
+                <strong>Please fill out in English only</strong>
+              </div>
+
               <!-- Has Raised Capital -->
               <div class="form-group">
                 <label class="form-label required">Funding History: Have you raised any capital to date? <span class="required-asterisk">*</span></label>
@@ -495,6 +510,11 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
               <div class="tab-header">
                 <h3><i class="fas fa-balance-scale"></i> Part 4: Legal & Corporate Structure</h3>
                 <p>Ensuring your company is set up for venture-scale success is a core part of the Vetted program. Please answer the following questions honestly.</p>
+              </div>
+
+              <div class="english-disclaimer">
+                <i class="fas fa-language"></i>
+                <strong>Please fill out in English only</strong>
               </div>
 
               <!-- Question 1: Is Incorporated -->
@@ -758,6 +778,29 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
     </div>
   `,
   styles: [`
+    /* English Disclaimer */
+    .english-disclaimer {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #92400e;
+      font-size: 0.95rem;
+    }
+
+    .english-disclaimer i {
+      color: #f59e0b;
+      font-size: 1.1rem;
+    }
+
+    .english-disclaimer strong {
+      font-weight: 600;
+    }
+
     /* Loading Overlay */
     .loading-overlay {
       position: fixed;

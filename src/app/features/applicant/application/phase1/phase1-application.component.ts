@@ -53,6 +53,10 @@ import { StorageService, ApplicationService, ApplicationSubmissionData, AuthServ
         <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()" class="auth-form">
           @if (currentPage() === 1) {
             <!-- Page 1: Company & Personal Info -->
+            <div class="english-disclaimer">
+              <i class="fas fa-language"></i>
+              <strong>Please fill out in English only</strong>
+            </div>
             <div class="form-section">
               <h3>Company Information</h3>
               
@@ -270,6 +274,10 @@ import { StorageService, ApplicationService, ApplicationSubmissionData, AuthServ
             </div>
           } @else {
             <!-- Page 2: Extended Information -->
+            <div class="english-disclaimer">
+              <i class="fas fa-language"></i>
+              <strong>Please fill out in English only</strong>
+            </div>
             <div class="form-section">
               <h3>Professional Background</h3>
               

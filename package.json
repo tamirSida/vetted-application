@@ -34,6 +34,7 @@
     "@netlify/functions": "^5.1.0",
     "firebase": "^11.10.0",
     "firebase-admin": "^13.6.0",
+    "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^3.11.174",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

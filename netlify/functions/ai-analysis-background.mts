@@ -174,47 +174,19 @@ async function parsePDF(url: string): Promise<{ text: string; success: boolean; 
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
     }
-    
+
     const arrayBuffer = await response.arrayBuffer();
-    
-    // Use pdfjs-dist legacy build for Node.js/serverless environments
-    // @ts-ignore - legacy build has no type declarations
-    const pdfjsModule = await import('pdfjs-dist/legacy/build/pdf.js');
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Handle both ESM and CommonJS exports
-    const pdfjsLib = pdfjsModule.default || pdfjsModule;
+    // Use pdf-parse which is designed for Node.js/serverless environments
+    // @ts-ignore - no type declarations
+    const pdfParse = (await import('pdf-parse')).default;
 
-    // Disable worker for serverless environment (check if GlobalWorkerOptions exists)
-    if (pdfjsLib.GlobalWorkerOptions) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    }
+    const data = await pdfParse(buffer);
 
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(arrayBuffer),
-      useSystemFonts: true,
-      disableFontFace: true,
-      isEvalSupported: false,
-      useWorkerFetch: false,
-    });
-    
-    const pdf = await loadingTask.promise;
-    let fullText = '';
-    
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n';
-    }
-    
-    console.log('✅ PDF parsed successfully, text length:', fullText.length);
+    console.log('✅ PDF parsed successfully, text length:', data.text.length);
     return {
-      text: fullText.trim(),
+      text: data.text.trim(),
       success: true
     };
   } catch (error: any) {

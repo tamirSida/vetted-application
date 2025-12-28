@@ -50,64 +50,34 @@ export default async (request: Request, context: Context) => {
 
 async function parsePDF(url: string): Promise<string> {
   console.log('📄 Starting PDF parse for URL:', url);
-  
+
   try {
     // Fetch the PDF
     console.log('📄 Fetching PDF...');
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
     }
-    
+
     const arrayBuffer = await response.arrayBuffer();
     console.log('📄 PDF downloaded, size:', arrayBuffer.byteLength, 'bytes');
-    
-    // Use pdfjs-dist legacy build for Node.js/serverless environments
-    console.log('📄 Importing pdfjs-dist legacy build...');
-    // @ts-ignore - legacy build has no type declarations
-    const pdfjsModule = await import('pdfjs-dist/legacy/build/pdf.js');
 
-    // Handle both ESM and CommonJS exports
-    const pdfjsLib = pdfjsModule.default || pdfjsModule;
-    console.log('📄 pdfjs-dist loaded successfully');
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Disable worker for serverless environment (check if GlobalWorkerOptions exists)
-    if (pdfjsLib.GlobalWorkerOptions) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    }
+    // Use pdf-parse which is designed for Node.js/serverless environments
+    console.log('📄 Importing pdf-parse...');
+    // @ts-ignore - no type declarations
+    const pdfParse = (await import('pdf-parse')).default;
+    console.log('📄 pdf-parse loaded successfully');
 
-    console.log('📄 Loading PDF document...');
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(arrayBuffer),
-      useSystemFonts: true,
-      disableFontFace: true,
-      isEvalSupported: false,
-      useWorkerFetch: false,
-    });
-    
-    const pdf = await loadingTask.promise;
-    console.log('📄 PDF loaded, pages:', pdf.numPages);
-    
-    let fullText = '';
-    
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      console.log(`📄 Extracting text from page ${pageNum}...`);
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n';
-    }
-    
-    console.log('📄 PDF parsed successfully, text length:', fullText.length);
-    return fullText.trim();
-    
-  } catch (error) {
+    console.log('📄 Parsing PDF...');
+    const data = await pdfParse(buffer);
+
+    console.log('📄 PDF parsed successfully, pages:', data.numpages, 'text length:', data.text.length);
+    return data.text.trim();
+
+  } catch (error: any) {
     console.error('📄 PDF parsing failed:', error);
     throw new Error(`PDF parsing failed: ${error.message}`);
   }

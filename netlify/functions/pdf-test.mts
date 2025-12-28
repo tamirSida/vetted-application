@@ -63,19 +63,19 @@ async function parsePDF(url: string): Promise<string> {
     const arrayBuffer = await response.arrayBuffer();
     console.log('📄 PDF downloaded, size:', arrayBuffer.byteLength, 'bytes');
 
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Use pdf-parse which is designed for Node.js/serverless environments
-    console.log('📄 Importing pdf-parse...');
-    // @ts-ignore - no type declarations
-    const pdfParse = (await import('pdf-parse')).default;
-    console.log('📄 pdf-parse loaded successfully');
+    // Use unpdf which is designed for serverless/edge environments (no DOM required)
+    console.log('📄 Importing unpdf...');
+    const { extractText } = await import('unpdf');
+    console.log('📄 unpdf loaded successfully');
 
     console.log('📄 Parsing PDF...');
-    const data = await pdfParse(buffer);
+    const { text, totalPages } = await extractText(new Uint8Array(arrayBuffer));
 
-    console.log('📄 PDF parsed successfully, pages:', data.numpages, 'text length:', data.text.length);
-    return data.text.trim();
+    // text is an array of strings (one per page), join them
+    const fullText = Array.isArray(text) ? text.join('\n') : text;
+
+    console.log('📄 PDF parsed successfully, pages:', totalPages, 'text length:', fullText.length);
+    return fullText.trim();
 
   } catch (error: any) {
     console.error('📄 PDF parsing failed:', error);

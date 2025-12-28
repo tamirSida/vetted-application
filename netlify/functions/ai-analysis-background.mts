@@ -176,17 +176,18 @@ async function parsePDF(url: string): Promise<{ text: string; success: boolean; 
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    // Use pdf-parse which is designed for Node.js/serverless environments
-    // @ts-ignore - no type declarations
-    const pdfParse = (await import('pdf-parse')).default;
+    // Use unpdf which is designed for serverless/edge environments (no DOM required)
+    const { extractText } = await import('unpdf');
 
-    const data = await pdfParse(buffer);
+    const { text } = await extractText(new Uint8Array(arrayBuffer));
 
-    console.log('✅ PDF parsed successfully, text length:', data.text.length);
+    // text is an array of strings (one per page), join them
+    const fullText = Array.isArray(text) ? text.join('\n') : text;
+
+    console.log('✅ PDF parsed successfully, text length:', fullText.length);
     return {
-      text: data.text.trim(),
+      text: fullText.trim(),
       success: true
     };
   } catch (error: any) {

@@ -42,15 +42,14 @@ interface AnalysisResult {
     competitiveLandscape: CompetitiveLandscape;
     readinessSummary: ReadinessSummary;
   };
-  pdfParsed: boolean;
-  pdfParseError?: string;
+  deckIncluded: boolean;
   generatedAt: string;
 }
 
 export default async (request: Request, context: Context) => {
   console.log('🤖 AI Analysis Background Function Started');
   let requestData!: AnalysisRequest;
-  
+
   try {
     if (request.method !== 'POST') {
       throw new Error('Method not allowed');
@@ -62,7 +61,7 @@ export default async (request: Request, context: Context) => {
     // Initialize Firebase (client-side for now)
     const { initializeApp, getApps } = await import('firebase/app');
     const { getFirestore, doc, setDoc } = await import('firebase/firestore');
-    
+
     if (getApps().length === 0) {
       initializeApp({
         apiKey: "AIzaSyC8dVIhL8ug7R5dV7S7ZVo_YTgz4ZS4_UA",
@@ -76,39 +75,20 @@ export default async (request: Request, context: Context) => {
 
     const db = getFirestore();
 
-    // Step 1: Parse PDF if available
-    let deckText = '';
-    let pdfParsed = false;
-    let pdfParseError = '';
-    
-    if (requestData.deckUrl) {
-      console.log('📄 Parsing PDF deck...');
-      const pdfResult = await parsePDF(requestData.deckUrl);
-      deckText = pdfResult.text;
-      pdfParsed = pdfResult.success;
-      pdfParseError = pdfResult.error || '';
-    } else {
-      console.log('📄 No deck URL provided');
-    }
-
-    // Step 2: Collect all data
-    const analysisContext = {
-      phase1: requestData.phase1Data,
-      phase3: requestData.phase3Data,
-      deckContent: deckText,
-    };
-
-    // Step 3: Generate AI Analysis
+    // Generate AI Analysis (PDF is sent directly to OpenAI)
     console.log('🧠 Generating AI analysis...');
-    const analysis = await generateAnalysis(analysisContext);
+    const analysis = await generateAnalysis(
+      requestData.phase1Data,
+      requestData.phase3Data,
+      requestData.deckUrl
+    );
 
-    // Step 4: Save results to Firestore
+    // Save results to Firestore
     const result: AnalysisResult = {
       applicantId: requestData.applicantId,
       status: 'completed',
       analysis,
-      pdfParsed,
-      ...(pdfParseError ? { pdfParseError } : {}),
+      deckIncluded: !!requestData.deckUrl,
       generatedAt: new Date().toISOString(),
     };
 
@@ -147,7 +127,7 @@ export default async (request: Request, context: Context) => {
           applicantId: requestData.applicantId,
           status: 'failed',
           error: error.message,
-          pdfParsed: false,
+          deckIncluded: false,
           generatedAt: new Date().toISOString(),
         };
 
@@ -157,9 +137,9 @@ export default async (request: Request, context: Context) => {
       console.error('Failed to save error:', saveError);
     }
 
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message 
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -167,47 +147,17 @@ export default async (request: Request, context: Context) => {
   }
 };
 
-async function parsePDF(url: string): Promise<{ text: string; success: boolean; error?: string }> {
-  try {
-    // Fetch the PDF
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-
-    // Use unpdf which is designed for serverless/edge environments (no DOM required)
-    const { extractText } = await import('unpdf');
-
-    const { text } = await extractText(new Uint8Array(arrayBuffer));
-
-    // text is an array of strings (one per page), join them
-    const fullText = Array.isArray(text) ? text.join('\n') : text;
-
-    console.log('✅ PDF parsed successfully, text length:', fullText.length);
-    return {
-      text: fullText.trim(),
-      success: true
-    };
-  } catch (error: any) {
-    console.error('📄 PDF parsing failed:', error);
-    return {
-      text: 'PDF parsing failed - analysis will proceed without deck content',
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-async function generateAnalysis(context: any): Promise<any> {
-  const prompt = `
-You are an expert venture capital analyst. Analyze this startup application and provide a structured assessment.
+async function generateAnalysis(
+  phase1Data: any,
+  phase3Data: any,
+  deckUrl?: string
+): Promise<any> {
+  const prompt = `You are an expert venture capital analyst. Analyze this startup application and provide a structured assessment.
 
 CONTEXT:
-Phase 1 Data: ${JSON.stringify(context.phase1, null, 2)}
-Phase 3 Data: ${JSON.stringify(context.phase3, null, 2)}
-Deck Content: ${context.deckContent || 'No deck provided'}
+Phase 1 Data: ${JSON.stringify(phase1Data, null, 2)}
+Phase 3 Data: ${JSON.stringify(phase3Data, null, 2)}
+${deckUrl ? 'Pitch Deck: See attached PDF file' : 'No pitch deck provided'}
 
 Generate a comprehensive analysis with the following structure:
 
@@ -215,7 +165,7 @@ Generate a comprehensive analysis with the following structure:
 - Market Category: Identify the primary industry/sector
 - Hypothesized TAM: Provide qualitative assessment and both bottom-up and top-down estimates
 
-2. COMPETITIVE LANDSCAPE  
+2. COMPETITIVE LANDSCAPE
 - Direct Competitors: 3 startups with similar solutions
 - Legacy Competitors: 3 established companies solving similar problems
 - Differentiator Analysis: How this startup differentiates
@@ -228,7 +178,7 @@ Return ONLY a valid JSON object with this exact structure:
   "marketSizing": {
     "category": "string",
     "tam": {
-      "qualitative": "string", 
+      "qualitative": "string",
       "bottomUp": "string",
       "topDown": "string"
     }
@@ -236,7 +186,7 @@ Return ONLY a valid JSON object with this exact structure:
   "competitiveLandscape": {
     "directCompetitors": [
       {"name": "string", "description": "string"},
-      {"name": "string", "description": "string"}, 
+      {"name": "string", "description": "string"},
       {"name": "string", "description": "string"}
     ],
     "legacyCompetitors": [
@@ -249,10 +199,24 @@ Return ONLY a valid JSON object with this exact structure:
   "readinessSummary": {
     "investmentThesis": "string"
   }
-}
-`;
+}`;
 
-  const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  // Build the content array for OpenAI
+  const content: any[] = [
+    { type: 'input_text', text: prompt }
+  ];
+
+  // Add PDF file if URL is provided
+  if (deckUrl) {
+    console.log('📄 Including PDF deck in analysis:', deckUrl);
+    content.push({
+      type: 'input_file',
+      file_url: deckUrl
+    });
+  }
+
+  // Use OpenAI Responses API which supports native PDF input
+  const openaiResponse = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -260,22 +224,33 @@ Return ONLY a valid JSON object with this exact structure:
     },
     body: JSON.stringify({
       model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
+      input: [
+        {
+          role: 'user',
+          content: content
+        }
+      ],
       temperature: 0.7,
-      max_tokens: 2000,
     }),
   });
 
   if (!openaiResponse.ok) {
-    throw new Error(`OpenAI API error: ${openaiResponse.statusText}`);
+    const errorBody = await openaiResponse.text();
+    console.error('OpenAI API error:', errorBody);
+    throw new Error(`OpenAI API error: ${openaiResponse.status} ${openaiResponse.statusText}`);
   }
 
   const result = await openaiResponse.json();
-  let analysisText = result.choices[0].message.content;
-  
+  let analysisText = result.output?.[0]?.content?.[0]?.text || result.choices?.[0]?.message?.content;
+
+  if (!analysisText) {
+    console.error('Unexpected OpenAI response structure:', JSON.stringify(result));
+    throw new Error('No content in OpenAI response');
+  }
+
   // Remove markdown code blocks if present
   analysisText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  
+
   try {
     return JSON.parse(analysisText);
   } catch (parseError) {

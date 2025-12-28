@@ -63,34 +63,21 @@ async function parsePDF(url: string): Promise<string> {
     const arrayBuffer = await response.arrayBuffer();
     console.log('📄 PDF downloaded, size:', arrayBuffer.byteLength, 'bytes');
     
-    // Use pdfjs-dist directly for better serverless compatibility
-    console.log('📄 Importing pdfjs-dist...');
-    const pdfjsLib = await import('pdfjs-dist');
-    
-    // Use the default export which should contain getDocument
-    const pdfjs = pdfjsLib.default || pdfjsLib;
-    console.log('📄 Default export methods:', Object.keys(pdfjs));
-    
-    // Configure worker for serverless environment
-    if (pdfjs.GlobalWorkerOptions) {
-      // Try to use the local worker file
-      try {
-        const path = await import('path');
-        const workerPath = path.resolve('node_modules/pdfjs-dist/build/pdf.worker.js');
-        pdfjs.GlobalWorkerOptions.workerSrc = workerPath;
-        console.log('📄 Set worker path to:', workerPath);
-      } catch (error) {
-        console.log('📄 Failed to set local worker, trying to disable worker...');
-        // As last resort, try to disable worker completely
-        pdfjs.GlobalWorkerOptions.workerSrc = false;
-      }
-    }
-    
+    // Use pdfjs-dist legacy build for Node.js/serverless environments
+    console.log('📄 Importing pdfjs-dist legacy build...');
+    // @ts-ignore - legacy build has no type declarations
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+    console.log('📄 pdfjs-dist loaded successfully');
+
+    // Disable worker for serverless environment
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+
     console.log('📄 Loading PDF document...');
-    const loadingTask = pdfjs.getDocument({
+    const loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(arrayBuffer),
       useSystemFonts: true,
-      disableFontFace: true
+      disableFontFace: true,
+      isEvalSupported: false,
     });
     
     const pdf = await loadingTask.promise;

@@ -11,6 +11,7 @@ import { ApplicantUser, AdminUser, Phase1Application, Phase3Application, Applica
 import { FlaggingResult, FlaggingService } from '../../../services/flagging.service';
 import { OpenAIService } from '../../../services/openai.service';
 import { EmailService } from '../../../services/email.service';
+import { AiChatService, ChatMessage } from '../../../services/ai-chat.service';
 import { deleteField } from '@angular/fire/firestore';
 import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
 
@@ -960,6 +961,85 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
                   <p>{{ aiAnalysisResult()?.readinessSummary?.investmentThesis }}</p>
                 </div>
               </div>
+            </div>
+
+            <!-- AI Chat Section -->
+            <div class="chat-section" *ngIf="chatAvailable()">
+              <div class="chat-header">
+                <h3><i class="fas fa-comments"></i> Ask Follow-up Questions</h3>
+                <button class="clear-chat-button" (click)="clearChatHistory()" *ngIf="chatMessages().length > 0">
+                  <i class="fas fa-trash"></i> Clear History
+                </button>
+              </div>
+
+              <div class="chat-messages" #chatContainer>
+                <div *ngFor="let msg of chatMessages()"
+                     [class]="'chat-message ' + msg.role">
+                  <div class="message-avatar">
+                    <i [class]="msg.role === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
+                  </div>
+                  <div class="message-content">
+                    <div class="message-text">{{ msg.content }}</div>
+                    <div class="message-time">{{ msg.timestamp | date:'short' }}</div>
+                  </div>
+                </div>
+
+                <!-- Streaming response indicator -->
+                <div *ngIf="streamingResponse()" class="chat-message assistant streaming">
+                  <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                  </div>
+                  <div class="message-content">
+                    <div class="message-text">{{ streamingResponse() }}<span class="typing-cursor">|</span></div>
+                  </div>
+                </div>
+
+                <!-- Loading indicator -->
+                <div *ngIf="isSendingChat() && !streamingResponse()" class="chat-message assistant loading">
+                  <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                  </div>
+                  <div class="message-content">
+                    <div class="message-text"><i class="fas fa-spinner fa-spin"></i> Thinking...</div>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="chatError()" class="chat-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                {{ chatError() }}
+              </div>
+
+              <div class="chat-input-container">
+                <input
+                  type="text"
+                  class="chat-input"
+                  placeholder="Ask a question about this applicant..."
+                  [value]="chatInput()"
+                  (input)="chatInput.set($any($event.target).value)"
+                  (keyup.enter)="sendChatMessage()"
+                  [disabled]="isSendingChat()"
+                />
+                <button
+                  class="send-button"
+                  (click)="sendChatMessage()"
+                  [disabled]="isSendingChat() || !chatInput().trim()">
+                  <i [class]="isSendingChat() ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'"></i>
+                </button>
+              </div>
+
+              <div class="chat-suggestions">
+                <span class="suggestions-label">Try asking:</span>
+                <button class="suggestion-chip" (click)="askSuggestion('What are the key risks for this startup?')">Key risks?</button>
+                <button class="suggestion-chip" (click)="askSuggestion('How does their go-to-market strategy compare to competitors?')">GTM strategy?</button>
+                <button class="suggestion-chip" (click)="askSuggestion('What questions should I ask in the interview?')">Interview questions?</button>
+              </div>
+            </div>
+
+            <!-- Chat not available message -->
+            <div class="chat-unavailable" *ngIf="aiAnalysisResult() && !chatAvailable()">
+              <i class="fas fa-info-circle"></i>
+              <p>Chat is not available for this analysis. Regenerate the analysis to enable the chat feature.</p>
             </div>
           </section>
 
@@ -2907,6 +2987,243 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
       color: #166534;
       line-height: 1.6;
     }
+
+    /* AI Chat Styles */
+    .chat-section {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .chat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .chat-header h3 {
+      color: #1e40af;
+      margin: 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .clear-chat-button {
+      background: transparent;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .clear-chat-button:hover {
+      background: #fef2f2;
+    }
+
+    .chat-messages {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 1rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 85%;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .chat-message.assistant {
+      align-self: flex-start;
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .chat-message.user .message-avatar {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .chat-message.assistant .message-avatar {
+      background: #10b981;
+      color: white;
+    }
+
+    .message-content {
+      background: #f3f4f6;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      max-width: 100%;
+    }
+
+    .chat-message.user .message-content {
+      background: #dbeafe;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.assistant .message-content {
+      background: #d1fae5;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-text {
+      color: #1f2937;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message-time {
+      font-size: 0.7rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+
+    .typing-cursor {
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .chat-error {
+      background: #fef2f2;
+      color: #dc2626;
+      padding: 0.75rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .chat-input-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: #3b82f6;
+    }
+
+    .chat-input:disabled {
+      background: #f3f4f6;
+    }
+
+    .send-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .send-button:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    .send-button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .chat-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+
+    .suggestions-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+    }
+
+    .suggestion-chip {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+      padding: 0.4rem 0.75rem;
+      border-radius: 16px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .suggestion-chip:hover {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+    }
+
+    .chat-unavailable {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      color: #92400e;
+    }
+
+    .chat-unavailable i {
+      font-size: 1.2rem;
+      margin-top: 0.1rem;
+    }
+
+    .chat-unavailable p {
+      margin: 0;
+      line-height: 1.5;
+    }
   `]
 })
 export class ApplicantDetailComponent implements OnInit {
@@ -2920,6 +3237,7 @@ export class ApplicantDetailComponent implements OnInit {
   private emailService = inject(EmailService);
   private interviewerService = inject(InterviewerService);
   private phaseProgressionService = inject(PhaseProgressionService);
+  private aiChatService = inject(AiChatService);
   private fb = inject(FormBuilder);
 
   // Signals
@@ -2936,6 +3254,14 @@ export class ApplicantDetailComponent implements OnInit {
   isGeneratingAnalysis = signal(false);
   aiAnalysisPdfParsed = signal<boolean | null>(null);
   aiAnalysisPdfError = signal<string | null>(null);
+
+  // AI Chat
+  chatMessages = signal<ChatMessage[]>([]);
+  chatInput = signal<string>('');
+  isSendingChat = signal(false);
+  chatError = signal<string | null>(null);
+  chatAvailable = signal(false);
+  streamingResponse = signal<string>('');
   allInterviewers = signal<Interviewer[]>([]); // For displaying interviewer names
   showInterviewerSelection = signal(false);
   isAdvancingToPhase4 = signal(false);
@@ -3230,13 +3556,21 @@ export class ApplicantDetailComponent implements OnInit {
     try {
       const db = getFirestore();
       const analysisDoc = await getDoc(doc(db, 'aiAnalyses', this.applicant()!.userId));
-      
+
       if (analysisDoc.exists()) {
         const data = analysisDoc.data();
         if (data['status'] === 'completed') {
           this.aiAnalysisResult.set(data['analysis']);
           this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
           this.aiAnalysisPdfError.set(data['pdfParseError'] || null);
+
+          // Check if chat is available (has threadId)
+          this.chatAvailable.set(!!data['threadId']);
+
+          // Load chat history if available
+          if (data['chatHistory']) {
+            this.chatMessages.set(data['chatHistory']);
+          }
         } else if (data['status'] === 'failed') {
           this.aiAnalysisError.set(data['error'] || 'Analysis failed');
           this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
@@ -3264,6 +3598,7 @@ export class ApplicantDetailComponent implements OnInit {
             this.aiAnalysisResult.set(data['analysis']);
             this.aiAnalysisPdfParsed.set(data['pdfParsed'] ?? null);
             this.aiAnalysisPdfError.set(data['pdfParseError'] || null);
+            this.chatAvailable.set(!!data['threadId']);
             this.isGeneratingAnalysis.set(false);
             return;
           } else if (data['status'] === 'failed') {
@@ -3295,6 +3630,64 @@ export class ApplicantDetailComponent implements OnInit {
     };
 
     poll();
+  }
+
+  // AI Chat methods
+  async sendChatMessage(): Promise<void> {
+    const message = this.chatInput().trim();
+    if (!message || this.isSendingChat()) return;
+
+    const applicantId = this.applicant()?.userId;
+    if (!applicantId) return;
+
+    try {
+      this.isSendingChat.set(true);
+      this.chatError.set(null);
+      this.chatInput.set('');
+
+      // Add user message to UI immediately
+      const userMessage: ChatMessage = {
+        role: 'user',
+        content: message,
+        timestamp: new Date()
+      };
+      this.chatMessages.update(msgs => [...msgs, userMessage]);
+
+      // Send message and get response
+      const response = await this.aiChatService.sendMessage(applicantId, message);
+
+      // Add assistant response
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      this.chatMessages.update(msgs => [...msgs, assistantMessage]);
+
+    } catch (error: any) {
+      this.chatError.set(error.message || 'Failed to send message');
+      // Remove the user message if request failed
+      this.chatMessages.update(msgs => msgs.slice(0, -1));
+    } finally {
+      this.isSendingChat.set(false);
+    }
+  }
+
+  askSuggestion(suggestion: string): void {
+    this.chatInput.set(suggestion);
+    this.sendChatMessage();
+  }
+
+  async clearChatHistory(): Promise<void> {
+    const applicantId = this.applicant()?.userId;
+    if (!applicantId) return;
+
+    try {
+      await this.aiChatService.clearChatHistory(applicantId);
+      this.chatMessages.set([]);
+    } catch (error: any) {
+      this.chatError.set('Failed to clear chat history');
+    }
   }
 
   // Phase advancement capabilities

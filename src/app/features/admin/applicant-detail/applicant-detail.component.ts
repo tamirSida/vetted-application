@@ -979,7 +979,7 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
                     <i [class]="msg.role === 'user' ? 'fas fa-user' : 'fas fa-robot'"></i>
                   </div>
                   <div class="message-content">
-                    <div class="message-text">{{ msg.content }}</div>
+                    <div class="message-text" [innerHTML]="formatMessageWithLinks(msg.content)"></div>
                     <div class="message-time">{{ msg.timestamp | date:'short' }}</div>
                   </div>
                 </div>
@@ -3101,6 +3101,16 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
       word-break: break-word;
     }
 
+    .message-text a {
+      color: #2563eb;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
+    .message-text a:hover {
+      color: #1d4ed8;
+    }
+
     .message-time {
       font-size: 0.7rem;
       color: #6b7280;
@@ -3633,6 +3643,31 @@ export class ApplicantDetailComponent implements OnInit {
   }
 
   // AI Chat methods
+  formatMessageWithLinks(content: string): string {
+    if (!content) return '';
+
+    let formatted = content;
+
+    // Convert markdown links [text](url) to <a> tags
+    formatted = formatted.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Convert **bold** to <strong>
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Convert *italic* to <em> (but not if it's a list item)
+    formatted = formatted.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+
+    // Convert standalone URLs to clickable links (that weren't already converted)
+    formatted = formatted.replace(/(?<!href=")(https?:\/\/[^\s<]+[^\s<.,;:!?'")\]])/g,
+      '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Convert newlines to <br>
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    return formatted;
+  }
+
   async sendChatMessage(): Promise<void> {
     const message = this.chatInput().trim();
     if (!message || this.isSendingChat()) return;

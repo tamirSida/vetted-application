@@ -130,12 +130,17 @@ export default async (request: Request, context: Context) => {
 
 // Add a message to a thread
 async function addMessage(threadId: string, content: string): Promise<void> {
+  // Prepend instruction to respond conversationally (not JSON)
+  const conversationalContent = `[INSTRUCTION: This is a follow-up question. Respond in natural conversational language, NOT JSON. Be helpful and reference the original application context.]
+
+Question: ${content}`;
+
   const response = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
     method: 'POST',
     headers: OPENAI_HEADERS,
     body: JSON.stringify({
       role: 'user',
-      content,
+      content: conversationalContent,
     }),
   });
 

@@ -934,6 +934,9 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
                     <div class="competitors-list">
                       <div *ngFor="let competitor of aiAnalysisResult()?.competitiveLandscape?.directCompetitors" class="competitor-item">
                         <strong>{{ competitor.name }}</strong>
+                        <a *ngIf="competitor.url" [href]="competitor.url" target="_blank" rel="noopener noreferrer" class="competitor-url">
+                          <i class="fas fa-external-link-alt"></i> {{ competitor.url }}
+                        </a>
                         <p>{{ competitor.description }}</p>
                       </div>
                     </div>
@@ -943,6 +946,9 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
                     <div class="competitors-list">
                       <div *ngFor="let competitor of aiAnalysisResult()?.competitiveLandscape?.legacyCompetitors" class="competitor-item">
                         <strong>{{ competitor.name }}</strong>
+                        <a *ngIf="competitor.url" [href]="competitor.url" target="_blank" rel="noopener noreferrer" class="competitor-url">
+                          <i class="fas fa-external-link-alt"></i> {{ competitor.url }}
+                        </a>
                         <p>{{ competitor.description }}</p>
                       </div>
                     </div>
@@ -2952,6 +2958,24 @@ import { getFirestore, doc, getDoc, deleteDoc } from 'firebase/firestore';
       color: #6b7280;
       font-size: 0.9rem;
       line-height: 1.4;
+    }
+
+    .competitor-url {
+      display: block;
+      color: #2563eb;
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .competitor-url:hover {
+      text-decoration: underline;
+    }
+
+    .competitor-url i {
+      margin-right: 0.25rem;
+      font-size: 0.7rem;
     }
 
     .differentiator-analysis {

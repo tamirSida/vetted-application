@@ -383,8 +383,8 @@ Generate a comprehensive analysis with the following structure:
 - Hypothesized TAM: Provide qualitative assessment and both bottom-up and top-down estimates
 
 2. COMPETITIVE LANDSCAPE
-- Direct Competitors: 3 startups with similar solutions
-- Legacy Competitors: 3 established companies solving similar problems
+- Direct Competitors: 3 startups with similar solutions (include their website URL)
+- Legacy Competitors: 3 established companies solving similar problems (include their website URL)
 - Differentiator Analysis: How this startup differentiates
 
 3. OVERALL READINESS SUMMARY
@@ -402,14 +402,14 @@ Return ONLY a valid JSON object with this exact structure:
   },
   "competitiveLandscape": {
     "directCompetitors": [
-      {"name": "string", "description": "string"},
-      {"name": "string", "description": "string"},
-      {"name": "string", "description": "string"}
+      {"name": "string", "description": "string", "url": "https://..."},
+      {"name": "string", "description": "string", "url": "https://..."},
+      {"name": "string", "description": "string", "url": "https://..."}
     ],
     "legacyCompetitors": [
-      {"name": "string", "description": "string"},
-      {"name": "string", "description": "string"},
-      {"name": "string", "description": "string"}
+      {"name": "string", "description": "string", "url": "https://..."},
+      {"name": "string", "description": "string", "url": "https://..."},
+      {"name": "string", "description": "string", "url": "https://..."}
     ],
     "differentiatorAnalysis": "string"
   },

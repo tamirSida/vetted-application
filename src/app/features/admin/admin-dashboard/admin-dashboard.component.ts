@@ -52,35 +52,35 @@ type AdminSubView = 'users' | 'interviewers';
 
       <!-- Navigation -->
       <nav class="admin-nav">
-        <button 
+        <button
           class="nav-button"
           [class.active]="currentView() === 'applicants'"
           (click)="switchView('applicants')">
           <i class="fas fa-users"></i>
           Applicants
         </button>
-        <button 
+        <button
           class="nav-button"
           [class.active]="currentView() === 'cohorts'"
           (click)="switchView('cohorts')">
           <i class="fas fa-calendar-alt"></i>
           Cohort Management
         </button>
-        <button 
+        <button
           class="nav-button"
           [class.active]="currentView() === 'admin'"
           (click)="switchView('admin')">
           <i class="fas fa-user-shield"></i>
           Admin Management
         </button>
-        <button 
+        <button
           class="nav-button"
           [class.active]="currentView() === 'settings'"
           (click)="switchView('settings')">
           <i class="fas fa-cog"></i>
           Settings
         </button>
-        <button 
+        <button
           class="nav-button"
           [class.active]="currentView() === 'preview'"
           (click)="switchView('preview')">
@@ -116,14 +116,6 @@ type AdminSubView = 'users' | 'interviewers';
               <i class="fas fa-users"></i>
               Applicants Management
             </h2>
-            <div class="controls">
-              <div class="page-size-selector">
-                <label for="page-size">Page Size:</label>
-                <select id="page-size" (change)="changePageSize($event)" [value]="pageSize()">
-                  <option *ngFor="let size of pageSizeOptions" [value]="size" [selected]="size === pageSize()">{{ size }}</option>
-                </select>
-              </div>
-            </div>
           </div>
 
           <!-- Stats Section -->
@@ -138,7 +130,7 @@ type AdminSubView = 'users' | 'interviewers';
                 {{ showStats() ? 'Collapse' : 'Expand' }}
               </button>
             </div>
-            
+
             <div *ngIf="showStats()" class="stats-content">
               <!-- Stats Grid -->
               <div class="stats-grid">
@@ -151,7 +143,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <div class="stat-filter">
                     <label for="country-stats-status-filter">Filter by Status:</label>
                     <div class="select-wrapper">
-                      <select id="country-stats-status-filter" class="filter-select" 
+                      <select id="country-stats-status-filter" class="filter-select"
                               [value]="countryStatsStatusFilter()" (change)="updateCountryStatsStatusFilter($event)">
                         <option value="all">All Statuses</option>
                         <option *ngFor="let status of availableStatuses()" [value]="status">
@@ -186,7 +178,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <div class="stat-filter">
                     <label for="rating-stats-country-filter">Filter by Country:</label>
                     <div class="select-wrapper">
-                      <select id="rating-stats-country-filter" class="filter-select" 
+                      <select id="rating-stats-country-filter" class="filter-select"
                               [value]="ratingStatsCountryFilter()" (change)="updateRatingStatsCountryFilter($event)">
                         <option value="all">All Countries</option>
                         <option *ngFor="let country of availableCountries(); trackBy: trackByCountry" [value]="country">
@@ -259,7 +251,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <i class="fas fa-chevron-down select-arrow"></i>
                 </div>
               </div>
-              
+
               <div class="filter-group">
                 <label for="rating-filter">Rating:</label>
                 <div class="select-wrapper">
@@ -272,7 +264,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <i class="fas fa-chevron-down select-arrow"></i>
                 </div>
               </div>
-              
+
               <div class="filter-group">
                 <label for="country-filter">Country:</label>
                 <div class="select-wrapper">
@@ -285,7 +277,7 @@ type AdminSubView = 'users' | 'interviewers';
               </div>
             </div>
             <div class="filter-summary">
-              Showing {{ filteredApplicants().length }} of {{ applicants().length }} applicants
+              Showing {{ filteredApplicants().length }} of {{ totalApplicantsCount() }} applicants
             </div>
           </div>
 
@@ -307,21 +299,21 @@ type AdminSubView = 'users' | 'interviewers';
                 <tr>
                   <th class="sortable-header" (click)="sort('name')">
                     Name
-                    <i class="fas" 
+                    <i class="fas"
                        [class.fa-sort]="sortField() !== 'name'"
                        [class.fa-sort-up]="sortField() === 'name' && sortDirection() === 'asc'"
                        [class.fa-sort-down]="sortField() === 'name' && sortDirection() === 'desc'"></i>
                   </th>
                   <th class="sortable-header" (click)="sort('status')">
                     Status
-                    <i class="fas" 
+                    <i class="fas"
                        [class.fa-sort]="sortField() !== 'status'"
                        [class.fa-sort-up]="sortField() === 'status' && sortDirection() === 'asc'"
                        [class.fa-sort-down]="sortField() === 'status' && sortDirection() === 'desc'"></i>
                   </th>
                   <th class="sortable-header" (click)="sort('rating')">
                     Rating
-                    <i class="fas" 
+                    <i class="fas"
                        [class.fa-sort]="sortField() !== 'rating'"
                        [class.fa-sort-up]="sortField() === 'rating' && sortDirection() === 'asc'"
                        [class.fa-sort-down]="sortField() === 'rating' && sortDirection() === 'desc'"></i>
@@ -337,7 +329,7 @@ type AdminSubView = 'users' | 'interviewers';
                   </th>
                   <th class="sortable-header" (click)="sort('p3submission')">
                     P3 Submission
-                    <i class="fas" 
+                    <i class="fas"
                        [class.fa-sort]="sortField() !== 'p3submission'"
                        [class.fa-sort-up]="sortField() === 'p3submission' && sortDirection() === 'asc'"
                        [class.fa-sort-down]="sortField() === 'p3submission' && sortDirection() === 'desc'"></i>
@@ -357,12 +349,12 @@ type AdminSubView = 'users' | 'interviewers';
                   <td>
                     <div class="rating-cell">
                       <div class="rating-dropdown-container">
-                        <span [class]="'rating-badge rating-' + (applicant.rating || 'none')" 
+                        <span [class]="'rating-badge rating-' + (applicant.rating || 'none')"
                               (click)="$event.stopPropagation(); toggleRatingDropdown(applicant.userId)">
                           {{ getRatingDisplay(applicant.rating) }}
                           <i class="fas fa-chevron-down rating-arrow"></i>
                         </span>
-                        <div *ngIf="activeRatingDropdown() === applicant.userId" 
+                        <div *ngIf="activeRatingDropdown() === applicant.userId"
                              class="rating-dropdown"
                              (click)="$event.stopPropagation()">
                           <div class="rating-option rating-option-none"
@@ -396,19 +388,19 @@ type AdminSubView = 'users' | 'interviewers';
                   <td>
                     <div class="assigned-cell">
                       <div class="assigned-dropdown-container">
-                        <span [class]="'assigned-badge'" 
+                        <span [class]="'assigned-badge'"
                               (click)="$event.stopPropagation(); toggleAssignedDropdown(applicant.userId)">
                           {{ getAssignedDisplay(applicant.assignedTo) }}
                           <i class="fas fa-chevron-down assigned-arrow"></i>
                         </span>
-                        <div *ngIf="activeAssignedDropdown() === applicant.userId" 
+                        <div *ngIf="activeAssignedDropdown() === applicant.userId"
                              class="assigned-dropdown"
                              (click)="$event.stopPropagation()">
                           <div class="assigned-option assigned-option-none"
                                (click)="setApplicantAssignment(applicant, null)">
                             <span class="assigned-preview assigned-none">None</span>
                           </div>
-                          <div *ngFor="let admin of adminUsers()" 
+                          <div *ngFor="let admin of adminUsers()"
                                class="assigned-option"
                                (click)="setApplicantAssignment(applicant, admin.userId)">
                             <span class="assigned-preview">{{ admin.name }}</span>
@@ -425,28 +417,6 @@ type AdminSubView = 'users' | 'interviewers';
                 </tr>
               </tbody>
             </table>
-            
-            <div class="pagination-controls">
-              <div class="pagination-info">
-                Page {{ currentPage() }} • Showing {{ filteredApplicants().length }} items
-              </div>
-              <div class="pagination-buttons">
-                <button 
-                  class="pagination-btn" 
-                  (click)="loadPreviousPage('applicants')" 
-                  [disabled]="currentPage() <= 1">
-                  <i class="fas fa-chevron-left"></i>
-                  Previous
-                </button>
-                <button 
-                  class="pagination-btn" 
-                  (click)="loadNextPage('applicants')" 
-                  [disabled]="!hasMoreApplicants()">
-                  Next
-                  <i class="fas fa-chevron-right"></i>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -475,7 +445,7 @@ type AdminSubView = 'users' | 'interviewers';
           <div *ngIf="showCohortForm()" class="form-container">
             <form [formGroup]="cohortForm" (ngSubmit)="saveCohort()" class="create-form">
               <h3>{{ editingCohort() ? 'Edit Cohort' : 'Create New Cohort' }}</h3>
-              
+
               <div class="form-group">
                 <label for="cohort-number">Cohort Number</label>
                 <div class="cohort-input-container">
@@ -574,10 +544,10 @@ type AdminSubView = 'users' | 'interviewers';
                   <div *ngIf="webinars.length === 0" class="empty-webinars">
                     <p>No webinar sessions added yet. Click "Add Webinar" to create one.</p>
                   </div>
-                  
-                  <div 
-                    *ngFor="let webinar of webinars.controls; let i = index" 
-                    [formGroupName]="i" 
+
+                  <div
+                    *ngFor="let webinar of webinars.controls; let i = index"
+                    [formGroupName]="i"
                     class="webinar-item">
                     <div class="webinar-header">
                       <h5>Webinar {{ i + 1 }}</h5>
@@ -585,7 +555,7 @@ type AdminSubView = 'users' | 'interviewers';
                         <i class="fas fa-trash"></i>
                       </button>
                     </div>
-                    
+
                     <div class="webinar-code-display" *ngIf="getWebinarCode(i)">
                       <div class="code-section">
                         <label>Webinar Code:</label>
@@ -597,7 +567,7 @@ type AdminSubView = 'users' | 'interviewers';
                         </div>
                       </div>
                     </div>
-                    
+
                     <div class="form-row">
                       <div class="form-group">
                         <label [for]="'webinar-date-' + i">Date & Time (ET)</label>
@@ -692,22 +662,22 @@ type AdminSubView = 'users' | 'interviewers';
                 </div>
               </div>
             </div>
-            
+
             <div class="pagination-controls">
               <div class="pagination-info">
                 Page {{ currentPage() }} • Showing {{ cohorts().length }} items
               </div>
               <div class="pagination-buttons">
-                <button 
-                  class="pagination-btn" 
-                  (click)="loadPreviousPage('cohorts')" 
+                <button
+                  class="pagination-btn"
+                  (click)="loadPreviousPage('cohorts')"
                   [disabled]="currentPage() <= 1">
                   <i class="fas fa-chevron-left"></i>
                   Previous
                 </button>
-                <button 
-                  class="pagination-btn" 
-                  (click)="loadNextPage('cohorts')" 
+                <button
+                  class="pagination-btn"
+                  (click)="loadNextPage('cohorts')"
                   [disabled]="!hasMoreCohorts()">
                   Next
                   <i class="fas fa-chevron-right"></i>
@@ -728,14 +698,14 @@ type AdminSubView = 'users' | 'interviewers';
 
           <!-- Admin Sub-Navigation -->
           <nav class="admin-sub-nav">
-            <button 
+            <button
               class="sub-nav-button"
               [class.active]="currentAdminSubView() === 'users'"
               (click)="switchAdminSubView('users')">
               <i class="fas fa-users"></i>
               Users
             </button>
-            <button 
+            <button
               class="sub-nav-button"
               [class.active]="currentAdminSubView() === 'interviewers'"
               (click)="switchAdminSubView('interviewers')">
@@ -765,7 +735,7 @@ type AdminSubView = 'users' | 'interviewers';
           <div *ngIf="showAdminForm()" class="form-container">
             <form [formGroup]="adminForm" (ngSubmit)="createAdmin()" class="create-form">
               <h3>Create New Admin or Viewer</h3>
-              
+
               <div class="form-group">
                 <label for="admin-name">Name</label>
                 <input
@@ -842,10 +812,10 @@ type AdminSubView = 'users' | 'interviewers';
                       Admin
                     </span>
                   </div>
-                  
+
                   <div class="admin-details">
                     <div class="detail-item">
-                      <strong>Status:</strong> 
+                      <strong>Status:</strong>
                       <span [class]="'status-indicator ' + (admin.isActive ? 'active' : 'inactive')">
                         {{ admin.isActive ? 'Active' : 'Inactive' }}
                       </span>
@@ -881,10 +851,10 @@ type AdminSubView = 'users' | 'interviewers';
                       Viewer
                     </span>
                   </div>
-                  
+
                   <div class="admin-details">
                     <div class="detail-item">
-                      <strong>Access:</strong> 
+                      <strong>Access:</strong>
                       <span [class]="'status-indicator ' + (viewer.canView ? 'active' : 'inactive')">
                         {{ viewer.canView ? 'Can View' : 'No Access' }}
                       </span>
@@ -904,22 +874,22 @@ type AdminSubView = 'users' | 'interviewers';
                 </div>
               </div>
             </div>
-            
+
             <div class="pagination-controls">
               <div class="pagination-info">
                 Page {{ currentPage() }} • Showing {{ adminUsers().length + viewerUsers().length }} items
               </div>
               <div class="pagination-buttons">
-                <button 
-                  class="pagination-btn" 
-                  (click)="loadPreviousPage('admin')" 
+                <button
+                  class="pagination-btn"
+                  (click)="loadPreviousPage('admin')"
                   [disabled]="currentPage() <= 1">
                   <i class="fas fa-chevron-left"></i>
                   Previous
                 </button>
-                <button 
-                  class="pagination-btn" 
-                  (click)="loadNextPage('admin')" 
+                <button
+                  class="pagination-btn"
+                  (click)="loadNextPage('admin')"
                   [disabled]="!hasMoreAdmins() && !hasMoreViewers()">
                   Next
                   <i class="fas fa-chevron-right"></i>
@@ -944,7 +914,7 @@ type AdminSubView = 'users' | 'interviewers';
           <div *ngIf="showInterviewerForm()" class="form-container">
             <form [formGroup]="interviewerForm" (ngSubmit)="createInterviewer()" class="create-form">
               <h3>Add New Interviewer</h3>
-              
+
               <div class="form-group">
                 <label for="interviewer-user">Select User</label>
                 <select id="interviewer-user" formControlName="userId" class="form-input">
@@ -1012,20 +982,20 @@ type AdminSubView = 'users' | 'interviewers';
                     Interviewer
                   </span>
                 </div>
-                
+
                 <div class="admin-details">
                   <div class="detail-item">
                     <strong>Role:</strong> {{ interviewer.role }}
                   </div>
                   <div class="detail-item">
-                    <strong>Calendar:</strong> 
+                    <strong>Calendar:</strong>
                     <a [href]="interviewer.calendarUrl" target="_blank" class="calendar-link">
                       <i class="fas fa-external-link-alt"></i>
                       View Calendar
                     </a>
                   </div>
                   <div class="detail-item">
-                    <strong>Status:</strong> 
+                    <strong>Status:</strong>
                     <span [class]="'status-indicator ' + (interviewer.isActive ? 'active' : 'inactive')">
                       {{ interviewer.isActive ? 'Active' : 'Inactive' }}
                     </span>
@@ -1070,8 +1040,8 @@ type AdminSubView = 'users' | 'interviewers';
                 </div>
                 <div class="setting-control">
                   <label class="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       [checked]="systemSettings().skipPhase2"
                       (change)="toggleSkipPhase2()"
                       [disabled]="isSubmitting()">
@@ -1090,8 +1060,8 @@ type AdminSubView = 'users' | 'interviewers';
                 </div>
                 <div class="setting-control">
                   <label class="toggle-switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       [checked]="!applicationSettings().acceptingApplications"
                       (change)="toggleApplicationAcceptance()"
                       [disabled]="isSubmitting()">
@@ -1114,33 +1084,33 @@ type AdminSubView = 'users' | 'interviewers';
               Email & Dashboard Preview
             </h2>
           </div>
-          
+
           <div class="preview-controls">
             <div class="preview-type-selector">
               <label>
-                <input 
-                  type="radio" 
-                  name="previewType" 
-                  value="email" 
+                <input
+                  type="radio"
+                  name="previewType"
+                  value="email"
                   [checked]="previewType() === 'email'"
                   (change)="setPreviewType('email')">
                 Email Templates
               </label>
               <label>
-                <input 
-                  type="radio" 
-                  name="previewType" 
-                  value="dashboard" 
+                <input
+                  type="radio"
+                  name="previewType"
+                  value="dashboard"
                   [checked]="previewType() === 'dashboard'"
                   (change)="setPreviewType('dashboard')">
                 Dashboard Templates
               </label>
             </div>
-            
+
             <!-- Email Template Selector -->
             <div *ngIf="previewType() === 'email'" class="preview-selector">
               <label for="emailSelect">Select Email Template:</label>
-              <select 
+              <select
                 id="emailSelect"
                 [value]="selectedEmailPreview()"
                 (change)="setSelectedEmailPreview($event)">
@@ -1149,11 +1119,11 @@ type AdminSubView = 'users' | 'interviewers';
                 </option>
               </select>
             </div>
-            
+
             <!-- Dashboard Template Selector -->
             <div *ngIf="previewType() === 'dashboard'" class="preview-selector">
               <label for="dashboardSelect">Select Dashboard State:</label>
-              <select 
+              <select
                 id="dashboardSelect"
                 [value]="selectedDashboardPreview()"
                 (change)="setSelectedDashboardPreview($event)">
@@ -1174,7 +1144,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <p>{{ getSelectedEmailType().description }}</p>
                 </div>
                 <div class="preview-iframe-container">
-                  <iframe 
+                  <iframe
                     class="preview-iframe"
                     [srcdoc]="getEmailPreview(selectedEmailPreview())"
                     frameborder="0">
@@ -1191,7 +1161,7 @@ type AdminSubView = 'users' | 'interviewers';
                   <p>{{ getSelectedDashboardType().description }}</p>
                 </div>
                 <div class="preview-iframe-container">
-                  <iframe 
+                  <iframe
                     class="preview-iframe"
                     [srcdoc]="getDashboardPreviewHTML(selectedDashboardPreview())"
                     frameborder="0">
@@ -1625,32 +1595,32 @@ type AdminSubView = 'users' | 'interviewers';
       min-width: 3rem;
       display: inline-block;
     }
-    
+
     .rating-cell {
       text-align: center;
     }
 
-    .rating-1 { 
-      background: #22c55e; 
-      color: white; 
+    .rating-1 {
+      background: #22c55e;
+      color: white;
       border-color: #16a34a;
     }
-    
-    .rating-2 { 
-      background: #fbbf24; 
-      color: #92400e; 
+
+    .rating-2 {
+      background: #fbbf24;
+      color: #92400e;
       border-color: #f59e0b;
     }
-    
-    .rating-3 { 
-      background: #ef4444; 
-      color: white; 
+
+    .rating-3 {
+      background: #ef4444;
+      color: white;
       border-color: #dc2626;
     }
-    
-    .rating-none { 
-      background: #ffffff; 
-      color: #6b7280; 
+
+    .rating-none {
+      background: #ffffff;
+      color: #6b7280;
       border: 1px dashed #d1d5db;
     }
 
@@ -2423,9 +2393,9 @@ type AdminSubView = 'users' | 'interviewers';
     /* Mobile Responsive */
     @media (max-width: 768px) {
       .admin-main { padding: 1rem; }
-      .header-content { 
-        flex-direction: column; 
-        gap: 1rem; 
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
         align-items: center;
       }
       .header-left {
@@ -2594,7 +2564,7 @@ type AdminSubView = 'users' | 'interviewers';
       display: flex;
       gap: 2rem;
     }
-    
+
     .preview-type-selector label {
       display: flex;
       align-items: center;
@@ -2608,19 +2578,19 @@ type AdminSubView = 'users' | 'interviewers';
       margin: 0;
       accent-color: #1e40af;
     }
-    
+
     .preview-selector {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
-    
+
     .preview-selector label {
       font-weight: 500;
       color: #374151;
       font-size: 0.875rem;
     }
-    
+
     .preview-selector select {
       padding: 0.75rem;
       border: 1px solid #d1d5db;
@@ -2630,7 +2600,7 @@ type AdminSubView = 'users' | 'interviewers';
       color: #374151;
       cursor: pointer;
     }
-    
+
     .preview-selector select:focus {
       outline: none;
       border-color: #1e40af;
@@ -2687,11 +2657,11 @@ type AdminSubView = 'users' | 'interviewers';
         flex-direction: column;
         gap: 1rem;
       }
-      
+
       .preview-iframe-container {
         height: 400px;
       }
-      
+
       .preview-controls {
         padding: 1rem;
       }
@@ -2725,8 +2695,8 @@ export class AdminDashboardComponent implements OnInit {
   interviewers = signal<Interviewer[]>([]);
   eligibleInterviewers = signal<{userId: string, name: string, email: string, role: UserRole}[]>([]);
   systemSettings = signal<SystemSettings>({ skipPhase2: true });
-  applicationSettings = signal<ApplicationSettings>({ 
-    acceptingApplications: true, 
+  applicationSettings = signal<ApplicationSettings>({
+    acceptingApplications: true,
     lastUpdatedBy: 'system',
     lastUpdatedAt: new Date(),
     createdAt: new Date(),
@@ -2763,14 +2733,14 @@ export class AdminDashboardComponent implements OnInit {
     const countryFilter = this.countryFilter();
     const sortField = this.sortField();
     const sortDirection = this.sortDirection();
-    
+
     // First, filter the applicants
     const filtered = applicants.filter(applicant => {
       // Status filter
       if (statusFilter !== 'all' && applicant.status !== statusFilter) {
         return false;
       }
-      
+
       // Rating filter
       if (ratingFilter !== 'all') {
         if (ratingFilter === 'unrated' && applicant.rating != null) {
@@ -2780,7 +2750,7 @@ export class AdminDashboardComponent implements OnInit {
           return false;
         }
       }
-      
+
       // Country filter
       if (countryFilter !== 'all') {
         const applicantCountry = this.getCountryFromCache(applicant.userId);
@@ -2788,7 +2758,7 @@ export class AdminDashboardComponent implements OnInit {
           return false;
         }
       }
-      
+
       return true;
     });
 
@@ -2861,27 +2831,39 @@ export class AdminDashboardComponent implements OnInit {
     });
   });
 
+  // Paginated applicants - shows only current page items
+  paginatedApplicants = computed(() => {
+    const filtered = this.filteredApplicants();
+    const page = this.currentPage();
+    const size = this.pageSize();
+
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+
+    return filtered.slice(startIndex, endIndex);
+  });
+
   availableStatuses = computed(() => {
     const statuses = new Set<string>();
     const applicants = this.applicants();
-    
+
     for (const applicant of applicants) {
       if (applicant.status) {
         statuses.add(applicant.status);
       }
     }
-    
+
     return Array.from(statuses).sort();
   });
 
   availableRatings = computed(() => {
     const ratings = new Set<number | null>();
     const applicants = this.applicants();
-    
+
     for (const applicant of applicants) {
       ratings.add(applicant.rating || null);
     }
-    
+
     return Array.from(ratings).sort((a, b) => {
       if (a === null) return 1; // null comes last
       if (b === null) return -1;
@@ -2892,26 +2874,26 @@ export class AdminDashboardComponent implements OnInit {
   availableCountries = computed(() => {
     const countries = new Set<string>();
     const applicants = this.applicants();
-    
+
     for (const applicant of applicants) {
       const country = this.getCountryFromCache(applicant.userId);
       if (country && country !== 'Loading...' && country !== 'Not specified') {
         countries.add(country);
       }
     }
-    
+
     return Array.from(countries).sort();
   });
 
   // Stats computed signals with independent filters
   countryStats = computed(() => {
     const statusFilter = this.countryStatsStatusFilter();
-    const applicants = this.applicants().filter(applicant => 
+    const applicants = this.applicants().filter(applicant =>
       statusFilter === 'all' || applicant.status === statusFilter
     );
-    
+
     const stats = { US: 0, Israel: 0, Other: 0 };
-    
+
     for (const applicant of applicants) {
       const country = this.getCountryFromCache(applicant.userId);
       if (country === 'USA') {
@@ -2922,7 +2904,7 @@ export class AdminDashboardComponent implements OnInit {
         stats.Other++;
       }
     }
-    
+
     return stats;
   });
 
@@ -2933,18 +2915,18 @@ export class AdminDashboardComponent implements OnInit {
       const country = this.getCountryFromCache(applicant.userId);
       return country === countryFilter;
     });
-    
-    const stats = { 
+
+    const stats = {
       rating1: { total: 0, US: 0, Israel: 0 },
       rating2: { total: 0, US: 0, Israel: 0 },
       rating3: { total: 0, US: 0, Israel: 0 }
     };
-    
+
     for (const applicant of applicants) {
       if (applicant.rating === 1 || applicant.rating === 2 || applicant.rating === 3) {
         const country = this.getCountryFromCache(applicant.userId);
         const key = `rating${applicant.rating}` as keyof typeof stats;
-        
+
         stats[key].total++;
         if (country === 'USA') {
           stats[key].US++;
@@ -2953,19 +2935,19 @@ export class AdminDashboardComponent implements OnInit {
         }
       }
     }
-    
+
     return stats;
   });
 
   unratedPhase3Stats = computed(() => {
     // No filters for this stat - just count all unrated P3 submissions
-    const applicants = this.applicants().filter(applicant => 
-      (applicant.rating === null || applicant.rating === undefined) && 
+    const applicants = this.applicants().filter(applicant =>
+      (applicant.rating === null || applicant.rating === undefined) &&
       this.hasPhase3Submission(applicant.userId)
     );
-    
+
     const stats = { total: 0, US: 0, Israel: 0 };
-    
+
     for (const applicant of applicants) {
       const country = this.getCountryFromCache(applicant.userId);
       stats.total++;
@@ -2975,25 +2957,28 @@ export class AdminDashboardComponent implements OnInit {
         stats.Israel++;
       }
     }
-    
+
     return stats;
   });
 
   // Pagination
   pageSize = signal(25);
   currentPage = signal(1);
-  
+
   // Pagination states for each view
   applicantsLastDoc = signal<DocumentSnapshot | null>(null);
   cohortsLastDoc = signal<DocumentSnapshot | null>(null);
   adminsLastDoc = signal<DocumentSnapshot | null>(null);
   viewersLastDoc = signal<DocumentSnapshot | null>(null);
-  
+
   hasMoreApplicants = signal(false);
   hasMoreCohorts = signal(false);
   hasMoreAdmins = signal(false);
   hasMoreViewers = signal(false);
-  
+
+  // Total counts for pagination display
+  totalApplicantsCount = signal(0);
+
   pageSizeOptions = [5, 10, 25, 50, 100];
 
   // Form states
@@ -3003,10 +2988,10 @@ export class AdminDashboardComponent implements OnInit {
   editingCohort = signal<Cohort | null>(null);
   activeRatingDropdown = signal<string | null>(null);
   activeAssignedDropdown = signal<string | null>(null);
-  
+
   // Stats section
   showStats = signal(false);
-  
+
   // Independent filters for each stat card
   countryStatsStatusFilter = signal<ApplicationStatus | 'all'>('all');
   ratingStatsCountryFilter = signal<string>('all');
@@ -3047,9 +3032,37 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadUserPreferences();
     this.loadCurrentUser();
     this.loadData();
     this.loadSettings();
+  }
+
+  private loadUserPreferences() {
+    // Load page size from localStorage
+    const savedPageSize = localStorage.getItem('admin_pageSize');
+    if (savedPageSize) {
+      const size = parseInt(savedPageSize);
+      if (this.pageSizeOptions.includes(size)) {
+        this.pageSize.set(size);
+      }
+    }
+
+    // Load sort preferences from localStorage
+    const savedSortField = localStorage.getItem('admin_sortField');
+    const savedSortDirection = localStorage.getItem('admin_sortDirection');
+    if (savedSortField) {
+      this.sortField.set(savedSortField as any);
+    }
+    if (savedSortDirection) {
+      this.sortDirection.set(savedSortDirection as 'asc' | 'desc');
+    }
+  }
+
+  private saveUserPreferences() {
+    localStorage.setItem('admin_pageSize', this.pageSize().toString());
+    localStorage.setItem('admin_sortField', this.sortField());
+    localStorage.setItem('admin_sortDirection', this.sortDirection());
   }
 
   private loadCurrentUser() {
@@ -3115,23 +3128,23 @@ export class AdminDashboardComponent implements OnInit {
   // Timezone conversion methods
   private getETOffset(date: Date): string {
     const year = date.getFullYear();
-    
+
     // Calculate 2nd Sunday in March
     const march = new Date(year, 2, 1); // March 1st
     const daysUntilFirstSunday = (7 - march.getDay()) % 7;
     const firstSundayMarch = 1 + daysUntilFirstSunday;
     const secondSundayMarch = firstSundayMarch + 7;
     const edtStart = new Date(year, 2, secondSundayMarch, 2, 0, 0); // 2 AM
-    
+
     // Calculate 1st Sunday in November
     const november = new Date(year, 10, 1); // November 1st
     const daysUntilFirstSundayNov = (7 - november.getDay()) % 7;
     const firstSundayNovember = 1 + daysUntilFirstSundayNov;
     const edtEnd = new Date(year, 10, firstSundayNovember, 2, 0, 0); // 2 AM
-    
+
     // Check if date is within EDT period
     const isEDT = date >= edtStart && date < edtEnd;
-    
+
     // Return proper ET offset (EST = -05:00, EDT = -04:00)
     return isEDT ? '-04:00' : '-05:00';
   }
@@ -3139,7 +3152,7 @@ export class AdminDashboardComponent implements OnInit {
   // Extract time for form display (convert from UTC back to ET)
   private extractTimeInET(date: Date | any): string {
     let dateObj: Date;
-    
+
     // Handle Firestore Timestamp objects
     if (date && typeof date.toDate === 'function') {
       dateObj = date.toDate();
@@ -3151,12 +3164,12 @@ export class AdminDashboardComponent implements OnInit {
       console.error('No date provided to extractTimeInET:', date);
       return '';
     }
-    
+
     if (isNaN(dateObj.getTime())) {
       console.error('Invalid date passed to extractTimeInET:', date);
       return '';
     }
-    
+
     const etTime = dateObj.toLocaleString('en-US', {
       timeZone: 'America/New_York',
       hour: '2-digit',
@@ -3169,7 +3182,7 @@ export class AdminDashboardComponent implements OnInit {
   // Extract date for form display (convert from UTC back to ET)
   private extractDateInET(date: Date | any): string {
     let dateObj: Date;
-    
+
     // Handle Firestore Timestamp objects
     if (date && typeof date.toDate === 'function') {
       dateObj = date.toDate();
@@ -3181,12 +3194,12 @@ export class AdminDashboardComponent implements OnInit {
       console.error('No date provided to extractDateInET:', date);
       return '';
     }
-    
+
     if (isNaN(dateObj.getTime())) {
       console.error('Invalid date passed to extractDateInET:', date);
       return '';
     }
-    
+
     const etDate = dateObj.toLocaleDateString('en-CA', {
       timeZone: 'America/New_York',
       year: 'numeric',
@@ -3200,15 +3213,15 @@ export class AdminDashboardComponent implements OnInit {
     if (!dateString || !timeString) {
       throw new Error('Both date and time are required');
     }
-    
+
     // Parse date components
     const [year, month, day] = dateString.split('-').map(Number);
     const [hours, minutes] = timeString.split(':').map(Number);
-    
+
     // Create date treating the input as ET timezone
     const etOffset = this.getETOffset(new Date(year, month - 1, day));
     const etISOString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00.000${etOffset}`;
-    
+
     return new Date(etISOString);
   }
 
@@ -3328,27 +3341,27 @@ export class AdminDashboardComponent implements OnInit {
       // Query the phase3_applications collection for this applicant
       const phase3App = await this.applicationService.getPhase3Application(applicant.userId, applicant.cohortId);
       const submittedAt = phase3App?.submittedAt;
-      
+
       if (!submittedAt) {
         return null;
       }
-      
+
       // Handle Firestore Timestamp conversion
       if (submittedAt instanceof Date) {
         return submittedAt;
       }
-      
+
       // Handle Firestore Timestamp object
       if (submittedAt && typeof submittedAt === 'object' && 'toDate' in submittedAt) {
         return (submittedAt as any).toDate();
       }
-      
+
       // Handle string dates
       if (typeof submittedAt === 'string') {
         const date = new Date(submittedAt);
         return isNaN(date.getTime()) ? null : date;
       }
-      
+
       return null;
     } catch (error) {
       console.warn(`Failed to load P3 submission date for applicant ${applicant.userId}:`, error);
@@ -3390,6 +3403,10 @@ export class AdminDashboardComponent implements OnInit {
       this.sortField.set(field);
       this.sortDirection.set(field === 'rating' ? 'asc' : 'desc');
     }
+
+    // Reset to page 1 when sort changes since items will be in different positions
+    this.currentPage.set(1);
+    this.saveUserPreferences();
   }
 
   // Filter methods
@@ -3437,16 +3454,16 @@ export class AdminDashboardComponent implements OnInit {
   async setApplicantRating(applicant: ApplicantUser, rating: number | null): Promise<void> {
     try {
       await this.userService.updateUser(applicant.userId, { rating });
-      
+
       // Update local state
-      const updatedApplicants = this.applicants().map(a => 
+      const updatedApplicants = this.applicants().map(a =>
         a.userId === applicant.userId ? { ...a, rating } : a
       );
       this.applicants.set(updatedApplicants);
-      
+
       // Close dropdown
       this.activeRatingDropdown.set(null);
-      
+
       console.log(`✅ Updated rating for ${applicant.name} to ${rating || 'no rating'}`);
     } catch (error) {
       console.error('❌ Error updating rating:', error);
@@ -3472,16 +3489,16 @@ export class AdminDashboardComponent implements OnInit {
   async setApplicantAssignment(applicant: ApplicantUser, assignedTo: string | null): Promise<void> {
     try {
       await this.userService.updateUser(applicant.userId, { assignedTo });
-      
+
       // Update local state
-      const updatedApplicants = this.applicants().map(a => 
+      const updatedApplicants = this.applicants().map(a =>
         a.userId === applicant.userId ? { ...a, assignedTo } : a
       );
       this.applicants.set(updatedApplicants);
-      
+
       // Close dropdown
       this.activeAssignedDropdown.set(null);
-      
+
       console.log(`✅ Updated assignment for ${applicant.name} to ${this.getAssignedDisplay(assignedTo)}`);
     } catch (error) {
       console.error('❌ Error updating assignment:', error);
@@ -3528,12 +3545,12 @@ export class AdminDashboardComponent implements OnInit {
       this.error.set('Cannot edit cohort: missing ID');
       return;
     }
-    
+
     this.editingCohort.set(cohort);
-    
+
     // Extract cohort number from name (e.g., "Cohort #001" -> 1)
     const cohortNumber = parseInt(cohort.name.replace(/\D/g, ''), 10) || 1;
-    
+
     // Convert UTC dates to ET for editing
     this.cohortForm.patchValue({
       cohortNumber: cohortNumber,
@@ -3556,7 +3573,7 @@ export class AdminDashboardComponent implements OnInit {
         }));
       });
     }
-    
+
     this.showCohortForm.set(true);
   }
 
@@ -3576,7 +3593,7 @@ export class AdminDashboardComponent implements OnInit {
       time: ['', Validators.required],
       link: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
     });
-    
+
     this.webinars.push(webinarGroup);
   }
 
@@ -3614,13 +3631,13 @@ export class AdminDashboardComponent implements OnInit {
 
       const formValue = this.cohortForm.value;
       const cohortName = this.formatCohortName(formValue.cohortNumber);
-      
+
       // Convert ET dates to UTC
       const applicationStartUTC = this.convertETToUTC(formValue.applicationStartDate, formValue.applicationStartTime);
       const applicationEndUTC = this.convertETToUTC(formValue.applicationEndDate, formValue.applicationEndTime);
       const programStartUTC = this.convertETDateToUTC(formValue.programStartDate);
       const programEndUTC = this.convertETDateToUTC(formValue.programEndDate);
-      
+
       // Convert webinar dates to UTC
       const webinars: Partial<Webinar>[] = formValue.webinars?.map((webinar: any, index: number) => ({
         num: index + 1,
@@ -3628,9 +3645,9 @@ export class AdminDashboardComponent implements OnInit {
         link: webinar.link,
         code: this.generateWebinarCode()
       })) || [];
-      
+
       const editingCohort = this.editingCohort();
-      
+
       if (editingCohort && editingCohort.id) {
         // Update existing cohort
         await this.cohortService.updateCohort(editingCohort.id, {
@@ -3641,7 +3658,7 @@ export class AdminDashboardComponent implements OnInit {
           programEndDate: programEndUTC,
           webinars: webinars
         });
-        
+
         this.success.set('Cohort updated successfully!');
         // Ensure we stay on cohorts view and refresh
         this.currentView.set('cohorts');
@@ -3706,7 +3723,7 @@ export class AdminDashboardComponent implements OnInit {
       await this.cohortService.deleteCohort(cohortId);
       this.success.set('Cohort deleted successfully!');
       setTimeout(() => this.success.set(''), 5000);
-      
+
       // Ensure we stay on cohorts view and refresh
       this.currentView.set('cohorts');
       await this.loadCohortsPage(true);
@@ -3740,20 +3757,20 @@ export class AdminDashboardComponent implements OnInit {
       this.error.set('');
 
       const formValue = this.adminForm.value;
-      
+
       const userId = await this.userService.createUser({
         name: formValue.name,
         email: formValue.email,
         password: formValue.password,
         role: formValue.role
       });
-      
+
       // Reload the current view data
       await this.loadData();
-      
+
       this.success.set(`${formValue.role === 'ADMIN' ? 'Admin' : 'Viewer'} created successfully!`);
       this.toggleAdminForm();
-      
+
       setTimeout(() => this.success.set(''), 5000);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to create user');
@@ -3766,11 +3783,11 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const newStatus = !admin.isActive;
       await this.userService.toggleAdminStatus(admin.userId, newStatus);
-      
-      this.adminUsers.update(admins => 
+
+      this.adminUsers.update(admins =>
         admins.map(a => a.userId === admin.userId ? { ...a, isActive: newStatus } : a)
       );
-      
+
       this.success.set(`Admin ${newStatus ? 'activated' : 'deactivated'} successfully!`);
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
@@ -3782,11 +3799,11 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const newAccess = !viewer.canView;
       await this.userService.toggleViewerAccess(viewer.userId, newAccess);
-      
-      this.viewerUsers.update(viewers => 
+
+      this.viewerUsers.update(viewers =>
         viewers.map(v => v.userId === viewer.userId ? { ...v, canView: newAccess } : v)
       );
-      
+
       this.success.set(`Viewer access ${newAccess ? 'granted' : 'revoked'} successfully!`);
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
@@ -3796,7 +3813,7 @@ export class AdminDashboardComponent implements OnInit {
 
   async deleteAdminUser(userId: string) {
     if (!confirm('Are you sure you want to remove this admin?')) return;
-    
+
     try {
       await this.userService.deleteUser(userId);
       this.adminUsers.update(admins => admins.filter(a => a.userId !== userId));
@@ -3809,7 +3826,7 @@ export class AdminDashboardComponent implements OnInit {
 
   async deleteViewerUser(userId: string) {
     if (!confirm('Are you sure you want to remove this viewer?')) return;
-    
+
     try {
       await this.userService.deleteUser(userId);
       this.viewerUsers.update(viewers => viewers.filter(v => v.userId !== userId));
@@ -3858,18 +3875,18 @@ export class AdminDashboardComponent implements OnInit {
       this.error.set('');
 
       const formValue = this.interviewerForm.value;
-      
+
       await this.interviewerService.createInterviewer({
         userId: formValue.userId,
         title: formValue.title,
         calendarUrl: formValue.calendarUrl
       });
-      
+
       this.success.set('Interviewer created successfully!');
       this.toggleInterviewerForm();
       await this.loadInterviewers();
       await this.loadEligibleInterviewers();
-      
+
       setTimeout(() => this.success.set(''), 5000);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to create interviewer');
@@ -3881,12 +3898,12 @@ export class AdminDashboardComponent implements OnInit {
 
   async deleteInterviewer(interviewerId: string) {
     if (!confirm('Are you sure you want to remove this interviewer?')) return;
-    
+
     try {
       await this.interviewerService.deleteInterviewer(interviewerId);
       this.interviewers.update(interviewers => interviewers.filter(i => i.id !== interviewerId));
       await this.loadEligibleInterviewers(); // Refresh eligible list
-      
+
       this.success.set('Interviewer removed successfully!');
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
@@ -3900,11 +3917,11 @@ export class AdminDashboardComponent implements OnInit {
       await this.interviewerService.updateInterviewer(interviewer.id!, {
         calendarUrl: newCalendarUrl
       });
-      
-      this.interviewers.update(interviewers => 
+
+      this.interviewers.update(interviewers =>
         interviewers.map(i => i.id === interviewer.id ? { ...i, calendarUrl: newCalendarUrl } : i)
       );
-      
+
       this.success.set('Calendar URL updated successfully!');
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
@@ -3938,10 +3955,10 @@ export class AdminDashboardComponent implements OnInit {
         title: newTitle
       });
 
-      this.interviewers.update(interviewers => 
+      this.interviewers.update(interviewers =>
         interviewers.map(i => i.id === interviewer.id ? { ...i, title: newTitle } : i)
       );
-      
+
       this.success.set('Title updated successfully!');
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
@@ -3952,16 +3969,16 @@ export class AdminDashboardComponent implements OnInit {
 
   async deleteApplicant(applicant: ApplicantUser) {
     const confirmMessage = `Are you sure you want to delete applicant "${applicant.name}"?\n\nThis will permanently remove:\n- Their user account\n- Their application data\n- All associated records\n\nThis action cannot be undone.`;
-    
+
     if (!confirm(confirmMessage)) return;
-    
+
     try {
       // TODO: Also delete associated application data when implemented
       await this.userService.deleteUser(applicant.userId);
-      
+
       // Update the local state
       this.applicants.update(apps => apps.filter(a => a.userId !== applicant.userId));
-      
+
       this.success.set(`Applicant "${applicant.name}" deleted successfully!`);
       setTimeout(() => this.success.set(''), 3000);
     } catch (error: any) {
@@ -3986,30 +4003,28 @@ export class AdminDashboardComponent implements OnInit {
   changePageSize(event: Event) {
     const target = event.target as HTMLSelectElement;
     this.pageSize.set(parseInt(target.value));
+    this.saveUserPreferences();
     this.resetPagination();
     this.loadData();
   }
 
   async loadApplicantsPage(reset = false) {
     try {
-      const lastDoc = reset ? null : this.applicantsLastDoc();
-      const result = await this.userService.getApplicantsPaginated(this.pageSize(), lastDoc || undefined);
-      
-      if (reset) {
-        this.applicants.set(result.users);
-      } else {
-        this.applicants.update(current => [...current, ...result.users]);
-      }
-      
+      // Always load all applicants for proper sorting across entire dataset
+      const allApplicants = await this.userService.getAllApplicants();
+      this.applicants.set(allApplicants);
+      this.totalApplicantsCount.set(allApplicants.length);
+
       // Load country data, P1 and P3 submission dates for each applicant and cache them
-      for (const applicant of result.users) {
+      for (const applicant of allApplicants) {
         this.loadCountryForApplicant(applicant.userId);
         this.loadP1SubmissionForApplicant(applicant);
         this.loadP3SubmissionForApplicant(applicant);
       }
-      
-      this.applicantsLastDoc.set(result.lastDoc);
-      this.hasMoreApplicants.set(result.hasMore);
+
+      // Calculate if there are more pages based on total count
+      const totalPages = Math.ceil(allApplicants.length / this.pageSize());
+      this.hasMoreApplicants.set(this.currentPage() < totalPages);
     } catch (error: any) {
       this.error.set(error.message || 'Failed to load applicants');
     }
@@ -4019,7 +4034,7 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const phase1App = await this.applicationService.getApplicationByApplicantId(userId);
       const country = phase1App?.extendedInfo?.serviceHistory?.country || 'Not specified';
-      
+
       // Update the cache
       this.countryCache.update(cache => {
         const newCache = new Map(cache);
@@ -4039,7 +4054,7 @@ export class AdminDashboardComponent implements OnInit {
   private async loadP3SubmissionForApplicant(applicant: ApplicantUser) {
     try {
       const submissionDate = await this.getApplicantP3SubmissionDate(applicant);
-      
+
       // Update the cache
       this.p3SubmissionCache.update(cache => {
         const newCache = new Map(cache);
@@ -4080,13 +4095,13 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const lastDoc = reset ? null : this.cohortsLastDoc();
       const result = await this.cohortService.getCohortsPaginated(this.pageSize(), lastDoc || undefined);
-      
+
       if (reset) {
         this.cohorts.set(result.cohorts);
       } else {
         this.cohorts.update(current => [...current, ...result.cohorts]);
       }
-      
+
       this.cohortsLastDoc.set(result.lastDoc);
       this.hasMoreCohorts.set(result.hasMore);
     } catch (error: any) {
@@ -4098,13 +4113,13 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const lastDoc = reset ? null : this.adminsLastDoc();
       const result = await this.userService.getAdminsPaginated(this.pageSize(), lastDoc || undefined);
-      
+
       if (reset) {
         this.adminUsers.set(result.users);
       } else {
         this.adminUsers.update(current => [...current, ...result.users]);
       }
-      
+
       this.adminsLastDoc.set(result.lastDoc);
       this.hasMoreAdmins.set(result.hasMore);
     } catch (error: any) {
@@ -4126,13 +4141,13 @@ export class AdminDashboardComponent implements OnInit {
     try {
       const lastDoc = reset ? null : this.viewersLastDoc();
       const result = await this.userService.getViewersPaginated(this.pageSize(), lastDoc || undefined);
-      
+
       if (reset) {
         this.viewerUsers.set(result.users);
       } else {
         this.viewerUsers.update(current => [...current, ...result.users]);
       }
-      
+
       this.viewersLastDoc.set(result.lastDoc);
       this.hasMoreViewers.set(result.hasMore);
     } catch (error: any) {
@@ -4142,11 +4157,16 @@ export class AdminDashboardComponent implements OnInit {
 
   async loadNextPage(view: string) {
     this.currentPage.update(page => page + 1);
-    
+
+    // For applicants, data is already loaded - just update page number
+    // paginatedApplicants computed will handle slicing
+    if (view === 'applicants') {
+      const totalPages = Math.ceil(this.filteredApplicants().length / this.pageSize());
+      this.hasMoreApplicants.set(this.currentPage() < totalPages);
+      return;
+    }
+
     switch (view) {
-      case 'applicants':
-        await this.loadApplicantsPage();
-        break;
       case 'cohorts':
         await this.loadCohortsPage();
         break;
@@ -4161,19 +4181,24 @@ export class AdminDashboardComponent implements OnInit {
 
   async loadPreviousPage(view: string) {
     if (this.currentPage() <= 1) return;
-    
+
     this.currentPage.update(page => page - 1);
+
+    // For applicants, data is already loaded - just update page number
+    if (view === 'applicants') {
+      const totalPages = Math.ceil(this.filteredApplicants().length / this.pageSize());
+      this.hasMoreApplicants.set(this.currentPage() < totalPages);
+      return;
+    }
+
     this.resetPagination();
-    
+
     // Load from beginning up to current page
     let currentPageNum = 1;
     const targetPage = this.currentPage();
-    
+
     while (currentPageNum < targetPage) {
       switch (view) {
-        case 'applicants':
-          await this.loadApplicantsPage();
-          break;
         case 'cohorts':
           await this.loadCohortsPage();
           break;
@@ -4194,7 +4219,7 @@ export class AdminDashboardComponent implements OnInit {
       this.isLoading.set(true);
       const settings = await this.settingsService.getSettings();
       this.systemSettings.set(settings);
-      
+
       const appSettings = await this.applicationSettingsService.getApplicationSettings();
       if (appSettings) {
         this.applicationSettings.set(appSettings);
@@ -4214,7 +4239,7 @@ export class AdminDashboardComponent implements OnInit {
       this.success.set('');
 
       const newValue = await this.settingsService.toggleSkipPhase2();
-      
+
       // Update local state
       this.systemSettings.update(settings => ({
         ...settings,
@@ -4241,7 +4266,7 @@ export class AdminDashboardComponent implements OnInit {
       }
 
       await this.applicationSettingsService.toggleApplicationAcceptance(currentUser.userId);
-      
+
       // Refresh the settings to get the updated state
       const appSettings = await this.applicationSettingsService.getApplicationSettings();
       if (appSettings) {
@@ -4262,22 +4287,22 @@ export class AdminDashboardComponent implements OnInit {
   setPreviewType(type: 'email' | 'dashboard') {
     this.previewType.set(type);
   }
-  
+
   setSelectedEmailPreview(event: Event) {
     const target = event.target as HTMLSelectElement;
     this.selectedEmailPreview.set(target.value);
   }
-  
+
   setSelectedDashboardPreview(event: Event) {
     const target = event.target as HTMLSelectElement;
     this.selectedDashboardPreview.set(target.value);
   }
-  
+
   getSelectedEmailType() {
     const selected = this.selectedEmailPreview();
     return this.emailPreviewTypes.find(type => type.type === selected) || this.emailPreviewTypes[0];
   }
-  
+
   getSelectedDashboardType() {
     const selected = this.selectedDashboardPreview();
     return this.dashboardPreviewTypes.find(type => type.type === selected) || this.dashboardPreviewTypes[0];
@@ -4353,7 +4378,7 @@ export class AdminDashboardComponent implements OnInit {
   // Generate email preview HTML
   getEmailPreview(type: string): string {
     const sampleData = this.getSampleApplicantData();
-    
+
     let html = '';
     switch (type) {
       case 'phase1-approved':
@@ -4362,21 +4387,21 @@ export class AdminDashboardComponent implements OnInit {
           dashboardUrl: 'https://app.thevetted.vc/dashboard'
         });
         break;
-        
+
       case 'phase1-rejected':
         html = Phase1RejectedEmailTemplate.generateHtml({
           applicantName: sampleData.name,
           supportEmail: 'application@thevetted.vc'
         });
         break;
-        
+
       case 'phase3-submitted':
         html = Phase3SubmittedEmailTemplate.generateHtml({
           applicantName: sampleData.name,
           applicationEndDate: 'March 15, 2025'
         });
         break;
-        
+
       case 'phase3-approved':
         html = Phase3ApprovedEmailTemplate.generateHtml({
           applicantName: sampleData.name,
@@ -4385,21 +4410,21 @@ export class AdminDashboardComponent implements OnInit {
           schedulingUrl: 'https://calendly.com/vetted/interview'
         });
         break;
-        
+
       default:
         return '<p>Preview not available</p>';
     }
-    
+
     // Replace cid:logo with actual logo URL for preview
     html = html.replace(/src="cid:logo"/g, 'src="https://dummyimage.com/150x50/1e40af/ffffff&text=Vetted+Logo"');
-    
+
     return html;
   }
 
   // Generate dashboard preview HTML with wrapper
   getDashboardPreviewHTML(type: string): string {
     const dashboardContent = this.getDashboardPreview(type);
-    
+
     // Wrap dashboard content in a basic HTML structure for iframe
     return `
       <!DOCTYPE html>
@@ -4487,29 +4512,29 @@ export class AdminDashboardComponent implements OnInit {
   // Generate dashboard preview content
   getDashboardPreview(type: string): string {
     const sampleData = this.getSampleApplicantData();
-    
+
     switch (type) {
       case 'phase1-signup':
         return '<div class="preview-card"><h3>Phase 1: Sign Up</h3><p>Initial application signup dashboard - content integrated into main dashboard component</p></div>';
-        
+
       case 'phase1-pending':
         return '<div class="preview-card"><h3>Phase 1: Pending</h3><p>Application pending review dashboard - content integrated into main dashboard component</p></div>';
-        
+
       case 'phase2-webinar':
         return '<div class="preview-card"><h3>Phase 2: Webinar</h3><p>Webinar attendance dashboard - content integrated into main dashboard component</p></div>';
-        
+
       case 'phase3-application':
         return '<div class="preview-card"><h3>Phase 3: Application</h3><p>In-depth application dashboard - content integrated into main dashboard component</p></div>';
-        
+
       case 'phase3-submitted':
         return '<div class="preview-card"><h3>Phase 3: Submitted</h3><p>Application submitted dashboard - content integrated into main dashboard component</p></div>';
-        
+
       case 'phase4-interview':
         return '<div class="preview-card"><h3>Phase 4: Interview</h3><p>Interview scheduling dashboard - content integrated into main dashboard component</p></div>';
-        
+
       case 'phase5-accepted':
         return '<div class="preview-card"><h3>Phase 5: Accepted</h3><p>Acceptance celebration dashboard - content integrated into main dashboard component</p></div>';
-        
+
       default:
         return '<p>Preview not available</p>';
     }

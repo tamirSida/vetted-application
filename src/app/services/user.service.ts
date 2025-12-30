@@ -1,20 +1,21 @@
 import { Injectable, inject } from '@angular/core';
-import { 
-  Firestore, 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  getDocs, 
-  query, 
+import {
+  Firestore,
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
   where,
   getDoc,
   QueryConstraint,
   limit,
   startAfter,
   DocumentSnapshot,
-  setDoc
+  setDoc,
+  getCountFromServer
 } from '@angular/fire/firestore';
 import { Auth, createUserWithEmailAndPassword } from '@angular/fire/auth';
 import { ApplicantUser, AdminUser, ViewerUser, UserCreateRequest, UserUpdateRequest, ApplicationStatus, Phase } from '../models';
@@ -489,6 +490,21 @@ export class UserService {
     } catch (error) {
       console.error('Error loading paginated applicants:', error);
       throw new Error('Failed to load applicants');
+    }
+  }
+
+  /**
+   * Get total count of applicants
+   */
+  async getTotalApplicantsCount(): Promise<number> {
+    try {
+      const usersRef = collection(this.firestore, 'users');
+      const q = query(usersRef, where('role', '==', UserRole.APPLICANT));
+      const snapshot = await getCountFromServer(q);
+      return snapshot.data().count;
+    } catch (error) {
+      console.error('Error getting applicants count:', error);
+      return 0;
     }
   }
 

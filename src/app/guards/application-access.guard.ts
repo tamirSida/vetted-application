@@ -4,7 +4,7 @@ import { Observable, map, take, combineLatest, filter, switchMap } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { ApplicationService } from '../services/application.service';
 import { ApplicationSettingsService } from '../services/application-settings.service';
-import { UserRole, ApplicantUser, Phase } from '../models';
+import { UserRole, ApplicantUser, Phase, ApplicationStatus } from '../models';
 
 @Injectable({
   providedIn: 'root'
@@ -35,7 +35,14 @@ export class ApplicationAccessGuard implements CanActivate {
         // For applicant users, check application toggle and user phase/status
         if (currentUser?.role === UserRole.APPLICANT) {
           const applicant = currentUser as ApplicantUser;
-          
+
+          // Block access to Phase 3 form if already submitted (prevents auto-save from overwriting)
+          if (state.url === '/application/phase3' && applicant.status === ApplicationStatus.PHASE_3_SUBMITTED) {
+            console.log('🚫 Phase 3 already submitted, redirecting to dashboard');
+            this.router.navigate(['/dashboard']);
+            return false;
+          }
+
           // If applications are stopped, check user's progress
           if (!applicationSettings.acceptingApplications) {
             // Allow access if user is in Phase 3 and has already submitted
